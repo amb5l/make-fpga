@@ -16,17 +16,6 @@ VSIM_DIR?=sim_vsim
 XSIM_CMD_DIR?=sim_xsim_cmd
 XSIM_IDE_DIR?=sim_xsim_ide
 
-# basic definitions
-MAKE_FPGA_DIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-ifeq ($(OS),Windows_NT)
-MAKE_FPGA_DIR:=$(shell cygpath -m $(MAKE_FPGA_DIR))
-endif
-MAKE_FPGA_TCL:=$(MAKE_FPGA_DIR)/make-fpga.tcl
-NULL:=
-COMMA:=,
-SEMICOLON:=;
-SPACE:=$(subst x, ,x)
-
 # useful functions
 define check_null_error
 $(eval $(if $($1),,$(error $1 is empty)))
@@ -52,6 +41,17 @@ ifeq ($(OS),Windows_NT)
 DUMMY:=$(shell cygpath -w ~)
 $(call check_shell_error,Could not run cygpath)
 endif
+
+# basic definitions
+MAKE_FPGA_DIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+ifeq ($(OS),Windows_NT)
+MAKE_FPGA_DIR:=$(shell cygpath -m $(MAKE_FPGA_DIR))
+endif
+MAKE_FPGA_TCL:=$(MAKE_FPGA_DIR)/make-fpga.tcl
+NULL:=
+COMMA:=,
+SEMICOLON:=;
+SPACE:=$(subst x, ,x)
 
 #-------------------------------------------------------------------------------
 # default target
@@ -310,8 +310,9 @@ endif
 ################################################################################
 # simulation targets
 
-.PHONY: ghdl nvc vsim xsim_cmd xsim_ide vcd gtkw
+.PHONY: sim ghdl nvc vsim xsim_cmd xsim_ide vcd gtkw
 
+SIM_DIR:=
 SIM_WORK?=work
 
 # single run: SIM_RUN=top[,generics]
@@ -335,7 +336,9 @@ $(error This makefile does not support vsim)
 endif
 endif
 
-SIM_DIR:=$(GHDL_DIR)
+ghdl: sim
+
+SIM_DIR+=$(GHDL_DIR)
 GHDL?=ghdl
 $(eval $(call check_exe,$(GHDL)))
 
@@ -375,7 +378,7 @@ $(GHDL_TOUCH_RUN):: $(GHDL_TOUCH_COM) | $(GHDL_DIR)
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	touch $(GHDL_TOUCH_RUN)
 
-ghdl:: $(GHDL_TOUCH_RUN)
+sim:: $(GHDL_TOUCH_RUN)
 
 $(GHDL_DIR)/$(word 1,$1).vcd: $(GHDL_TOUCH_RUN)
 
@@ -414,7 +417,9 @@ $(error This makefile does not support vsim)
 endif
 endif
 
-SIM_DIR:=$(NVC_DIR)
+nvc: sim
+
+SIM_DIR+=$(NVC_DIR)
 NVC?=nvc
 $(eval $(call check_exe,$(NVC)))
 
@@ -455,7 +460,7 @@ $(NVC_TOUCH_RUN):: $(NVC_TOUCH_COM) | $(NVC_DIR)
 		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),--format=vcd --wave=$$(word 1,$1).vcd)
 	touch $(NVC_TOUCH_RUN)
 
-nvc:: $(NVC_TOUCH_RUN)
+sim:: $(NVC_TOUCH_RUN)
 
 $(NVC_DIR)/$(word 1,$1).vcd: $(NVC_TOUCH_RUN)
 
@@ -494,7 +499,9 @@ $(error This makefile does not support vsim)
 endif
 endif
 
-SIM_DIR:=$(VSIM_DIR)
+vsim: sim
+
+SIM_DIR+=$(VSIM_DIR)
 VSIM_INI?=modelsim.ini
 VMAP?=vmap
 VCOM?=vcom
@@ -553,7 +560,7 @@ $(VSIM_TOUCH_RUN):: $(VSIM_TOUCH_COM) | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	touch $(VSIM_TOUCH_RUN)
 
-vsim:: $(VSIM_TOUCH_RUN)
+sim:: $(VSIM_TOUCH_RUN)
 
 $(VSIM_DIR)/$(word 1,$1).vcd: $(VSIM_TOUCH_RUN)
 
@@ -603,8 +610,10 @@ XSIM_WORK?=$(SIM_WORK)
 
 ifneq (,$(filter xsim_cmd,$(MAKECMDGOALS)))
 
+xsim_cmd: sim
+
 XSIM_DIR:=$(XSIM_CMD_DIR)
-SIM_DIR:=$(XSIM_DIR)
+SIM_DIR+=$(XSIM_DIR)
 XVHDL?=xvhdl
 $(eval $(call check_exe,$(XVHDL)))
 XELAB?=xelab
@@ -612,8 +621,8 @@ $(eval $(call check_exe,$(XELAB)))
 XSIM?=xsim
 $(eval $(call check_exe,$(XSIM)))
 
-XSIM_TOUCH_COM:=$(XSIM_DIR)/touch.com
-XSIM_TOUCH_RUN:=$(XSIM_DIR)/touch.run
+XSIM_CMD_TOUCH_COM:=$(XSIM_DIR)/touch.com
+XSIM_CMD_TOUCH_RUN:=$(XSIM_DIR)/touch.run
 
 XVHDL_OPTS+=-2008 -relax
 XELAB_OPTS+=-debug typical -O2 -relax
@@ -622,28 +631,44 @@ XSIM_OPTS+=-onerror quit -onfinish quit
 ifeq ($(OS),Windows_NT)
 
 define xsim_cmd_com
-$(XSIM_TOUCH_COM):: $1 | $(XSIM_DIR)
-	cmd.exe //C " \
-		cd $$(XSIM_DIR) & \
-		call $$(XVHDL).bat $$(XVHDL_OPTS) -work $$(XSIM_WORK) $1 \
-		"
-	touch $(XSIM_TOUCH_COM)
+
+$(XSIM_CMD_TOUCH_COM):: $1 | $(XSIM_DIR)
+	cd $$(XSIM_DIR) && cmd.exe //C $(XVHDL).bat \
+		$$(XVHDL_OPTS) \
+		-work $$(SIM_WORK) \
+		$1
+	touch $(XSIM_CMD_TOUCH_COM)
+
 endef
 
 define xsim_cmd_run
 
-$(XSIM_TOUCH_RUN): $(XSIM_TOUCH_COM) | $(XSIM_DIR)
-	cd $$(SIM_DIR) && echo "open_vcd $$(word 1,$1).vcd; log_vcd /*; run all; close_vcd; quit" > $$(word 1,$1).tcl
-	cmd.exe //C " \
-		cd $$(SIM_DIR) & \
-		call $$(XELAB).bat $$(XELAB_OPTS) -L $$(XSIM_WORK) -top $$(word 2,$1) -snapshot $$(word 2,$1)_$$(word 1,$1) $$(addprefix -generic_top \",$$(addsuffix \",$$(subst ;, ,$$(word 3,$1)))) & \
-		call $$(XSIM).bat $$(XSIM_OPTS) -tclbatch $$(word 1,$1).tcl $$(word 2,$1)_$$(word 1,$1) \
-		"
-	touch $(XSIM_TOUCH_RUN)
+$(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
+	$$(file >$$(XSIM_DIR)/$$(word 1,$1)_run.tcl, \
+		$(if $(filter vcd gtkwave,$(MAKECMDGOALS)), \
+		open_vcd $$(word 1,$1).vcd; log_vcd /*; run all; close_vcd; quit, \
+		run all; quit \
+		) \
+	)
+	$$(file >$$(XSIM_DIR)/$$(word 1,$1)_run.bat, \
+		$$(XELAB).bat \
+			$$(XELAB_OPTS) \
+			-L $$(SIM_WORK) \
+			-top $$(word 2,$1) \
+			-snapshot $$(word 2,$1)_$$(word 1,$1) \
+			$$(addprefix -generic_top ",$$(addsuffix ",$$(subst ;, ,$$(word 3,$1)))) \
+		&& \
+		$$(XSIM).bat \
+			$$(XSIM_OPTS) \
+			-tclbatch $$(word 1,$1)_run.tcl \
+			$$(word 2,$1)_$$(word 1,$1) \
+	)
+	cd $$(XSIM_DIR) && cmd.exe //C $$(word 1,$1)_run.bat
+	touch $(XSIM_CMD_TOUCH_RUN)
 
-xsim_cmd:: $(XSIM_TOUCH_RUN)
+sim:: $(XSIM_CMD_TOUCH_RUN)
 
-$(XSIM_DIR)/$(word 1,$1).vcd: $(XSIM_TOUCH_RUN)
+$(XSIM_DIR)/$(word 1,$1).vcd: $(XSIM_CMD_TOUCH_RUN)
 
 vcd:: $(XSIM_DIR)/$(word 1,$1).vcd
 
@@ -660,26 +685,41 @@ endef
 else
 
 define xsim_cmd_com
-$(XSIM_TOUCH_COM):: $1 | $(XSIM_DIR)
+
+$(XSIM_CMD_TOUCH_COM):: $1 | $(XSIM_DIR)
 	cd $$(SIM_DIR) && $$(XVHDL) \
 		$$(XVHDL_OPTS) \
 		-work $$(SIM_WORK) \
 		$1
-	touch $(XSIM_TOUCH_COM)
+	touch $(XSIM_CMD_TOUCH_COM)
+
 endef
 
 define xsim_cmd_run
 
-$(XSIM_TOUCH_RUN):: $(XSIM_TOUCH_COM) | $(XSIM_DIR)
-	cd $$(SIM_DIR) && \
-	echo "open_vcd $$(word 1,$1).vcd; log_vcd /*; run all; close_vcd; quit" > $$(word 1,$1).tcl && \
-	$$(XELAB) $$(XELAB_OPTS) -L $$(SIM_WORK) -top $$(word 2,$1) -snapshot $$(word 2,$1)_$$(word 1,$1) $$(word 2,$1) $(addprefix -generic_top \",$(addsuffix \",$(subst $(SEMICOLON), $(SPACE),$$(word 3,$1)))) && \
-	$$(XSIM) $$(XSIM_OPTS) -tclbatch $$(word 1,$1).tcl $$(word 2,$1)_$$(word 1,$1)
-	touch $(XSIM_TOUCH_RUN)
+$$(file >$$(XSIM_DIR)/$$(word 1,$1)_run.tcl, \
+	$(if $(filter vcd gtkwave,$(MAKECMDGOALS)), \
+	open_vcd $$(word 1,$1).vcd; log_vcd /*; run all; close_vcd; quit, \
+	run all; quit \
+	) \
+)
 
-xsim_cmd:: $(XSIM_TOUCH_RUN)
+$(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
+	cd $$(XSIM_DIR) && $$(XELAB) \
+		$$(XELAB_OPTS) \
+		-L $$(SIM_WORK) \
+		-top $$(word 2,$1) \
+		-snapshot $$(word 2,$1)_$$(word 1,$1) $$(word 2,$1) \
+		$(addprefix -generic_top ,$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	cd $$(XSIM_DIR) && $$(XSIM) \
+		$$(XSIM_OPTS) \
+		-tclbatch $$(word 1,$1)_run.tcl \
+		$$(word 2,$1)_$$(word 1,$1)
+	touch $(XSIM_CMD_TOUCH_RUN)
 
-$(XSIM_DIR)/$(word 1,$1).vcd: $(XSIM_TOUCH_RUN)
+sim:: $(XSIM_CMD_TOUCH_RUN)
+
+$(XSIM_DIR)/$(word 1,$1).vcd: $(XSIM_CMD_TOUCH_RUN)
 
 vcd:: $(XSIM_DIR)/$(word 1,$1).vcd
 
@@ -689,11 +729,7 @@ $(XSIM_DIR)/$(word 1,$1).gtkw: $(XSIM_DIR)/$(word 1,$1).vcd
 	$(XSIM_DIR)/$(word 1,$1).gtkw
 
 gtkwave:: $(XSIM_DIR)/$(word 1,$1).vcd $(XSIM_DIR)/$(word 1,$1).gtkw
-ifeq ($(OS),Windows_NT)
-	start cmd.exe //C \"gtkwave $(XSIM_DIR)/$(word 1,$1).vcd $(XSIM_DIR)/$(word 1,$1).gtkw\"
-else
 	gtkwave $(XSIM_DIR)/$(word 1,$1).vcd $(XSIM_DIR)/$(word 1,$1).gtkw &
-endif
 
 endef
 
@@ -712,14 +748,15 @@ endif
 
 ifneq (,$(filter xsim_ide,$(MAKECMDGOALS)))
 
+xsim_ide: sim
+
 # basic checks
 VIVADO_EXE:=vivado
 $(eval $(call check_exe,$(VIVADO_EXE)))
 VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs vivado script
 
-
 XSIM_DIR:=$(XSIM_IDE_DIR)
-SIM_DIR:=$(XSIM_DIR)
+SIM_DIR+=$(XSIM_DIR)
 
 VIVADO_PROJ?=xsim
 VIVADO_PROJ_FILE?=$(XSIM_DIR)/$(VIVADO_PROJ).xpr
@@ -728,8 +765,7 @@ $(XSIM_DIR):
 	bash -c "mkdir -p $(XSIM_DIR)"
 
 $(VIVADO_PROJ_FILE): $(XSIM_SRC) | $(XSIM_DIR)
-	cd $(XSIM_DIR) && \
-	$(VIVADO_TCL) \
+	cd $(XSIM_DIR) && $(VIVADO_TCL) \
 		"create_project -force $(VIVADO_PROJ); \
 		set_property target_language VHDL [get_projects $(VIVADO_PROJ)]; \
 		add_files -norecurse -fileset [get_filesets sim_1] $(XSIM_SRC); \
@@ -739,12 +775,11 @@ $(VIVADO_PROJ_FILE): $(XSIM_SRC) | $(XSIM_DIR)
 
 define xsim_ide_run
 
-xsim_ide:: | $(VIVADO_PROJ_FILE)
-	cd $(XSIM_DIR) && \
-	$(VIVADO_TCL) \
+sim:: | $(VIVADO_PROJ_FILE)	
+	cd $(XSIM_DIR) && $(VIVADO_TCL) \
 		"open_project $(VIVADO_PROJ); \
 		set_property top $$(word 2,$1) [get_filesets sim_1]; \
-		set_property generic {$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1))} [get_filesets sim_1]; \
+		$(if $(word 3,$1),set_property generic {$(subst $(SEMICOLON),$(SPACE),$(word 3,$1))} [get_filesets sim_1];) \
 		puts \"Run: $$(word 1,$1)\"; \
 		launch_simulation; \
 		run all; \
@@ -756,9 +791,8 @@ $(foreach r,$(SIM_RUN),$(eval $(call xsim_ide_run,$(subst $(COMMA),$(SPACE),$r))
 
 ifneq (,$(word 2,$(SIM_RUN)))
 # ensure that simulator is left set up for first run
-xsim_ide::
-	cd $(XSIM_DIR) && \
-	$(VIVADO_TCL) \
+sim::
+	cd $(XSIM_DIR) && $(VIVADO_TCL) \
 		"open_project $(VIVADO_PROJ); \
 		set_property top $(word 2,$(subst $(COMMA),$(SPACE),$(word 1,$(SIM_RUN)))) [get_filesets sim_1]; \
 		set_property generic {$(subst $(SEMICOLON),$(SPACE),$(word 3,$(subst $(COMMA),$(SPACE),$(word 1,$(SIM_RUN)))))} [get_filesets sim_1]; \
