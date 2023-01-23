@@ -612,8 +612,7 @@ ifneq (,$(filter xsim_cmd,$(MAKECMDGOALS)))
 
 xsim_cmd: sim
 
-XSIM_DIR:=$(XSIM_CMD_DIR)
-SIM_DIR+=$(XSIM_DIR)
+SIM_DIR+=$(XSIM_CMD_DIR)
 XVHDL?=xvhdl
 $(eval $(call check_exe,$(XVHDL)))
 XELAB?=xelab
@@ -621,8 +620,8 @@ $(eval $(call check_exe,$(XELAB)))
 XSIM?=xsim
 $(eval $(call check_exe,$(XSIM)))
 
-XSIM_CMD_TOUCH_COM:=$(XSIM_DIR)/touch.com
-XSIM_CMD_TOUCH_RUN:=$(XSIM_DIR)/touch.run
+XSIM_CMD_TOUCH_COM:=$(XSIM_CMD_DIR)/touch.com
+XSIM_CMD_TOUCH_RUN:=$(XSIM_CMD_DIR)/touch.run
 
 XVHDL_OPTS+=-2008 -relax
 XELAB_OPTS+=-debug typical -O2 -relax
@@ -632,8 +631,8 @@ ifeq ($(OS),Windows_NT)
 
 define xsim_cmd_com
 
-$(XSIM_CMD_TOUCH_COM):: $1 | $(XSIM_DIR)
-	cd $$(XSIM_DIR) && cmd.exe //C $(XVHDL).bat \
+$(XSIM_CMD_TOUCH_COM):: $1 | $(XSIM_CMD_DIR)
+	cd $$(XSIM_CMD_DIR) && cmd.exe //C $(XVHDL).bat \
 		$$(XVHDL_OPTS) \
 		-work $$(SIM_WORK) \
 		$1
@@ -644,13 +643,13 @@ endef
 define xsim_cmd_run
 
 $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
-	$$(file >$$(XSIM_DIR)/$$(word 1,$1)_run.tcl, \
+	$$(file >$$(XSIM_CMD_DIR)/$$(word 1,$1)_run.tcl, \
 		$(if $(filter vcd gtkwave,$(MAKECMDGOALS)), \
 		open_vcd $$(word 1,$1).vcd; log_vcd /*; run all; close_vcd; quit, \
 		run all; quit \
 		) \
 	)
-	$$(file >$$(XSIM_DIR)/$$(word 1,$1)_run.bat, \
+	$$(file >$$(XSIM_CMD_DIR)/$$(word 1,$1)_run.bat, \
 		$$(XELAB).bat \
 			$$(XELAB_OPTS) \
 			-L $$(SIM_WORK) \
@@ -663,22 +662,22 @@ $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
 			-tclbatch $$(word 1,$1)_run.tcl \
 			$$(word 2,$1)_$$(word 1,$1) \
 	)
-	cd $$(XSIM_DIR) && cmd.exe //C $$(word 1,$1)_run.bat
+	cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_run.bat
 	touch $(XSIM_CMD_TOUCH_RUN)
 
 sim:: $(XSIM_CMD_TOUCH_RUN)
 
-$(XSIM_DIR)/$(word 1,$1).vcd: $(XSIM_CMD_TOUCH_RUN)
+$(XSIM_CMD_DIR)/$(word 1,$1).vcd: $(XSIM_CMD_TOUCH_RUN)
 
-vcd:: $(XSIM_DIR)/$(word 1,$1).vcd
+vcd:: $(XSIM_CMD_DIR)/$(word 1,$1).vcd
 
-$(XSIM_DIR)/$(word 1,$1).gtkw: $(XSIM_DIR)/$(word 1,$1).vcd
+$(XSIM_CMD_DIR)/$(word 1,$1).gtkw: $(XSIM_CMD_DIR)/$(word 1,$1).vcd
 	sh $(REPO_ROOT)/submodules/vcd2gtkw/vcd2gtkw.sh \
-	$(XSIM_DIR)/$(word 1,$1).vcd \
-	$(XSIM_DIR)/$(word 1,$1).gtkw
+	$(XSIM_CMD_DIR)/$(word 1,$1).vcd \
+	$(XSIM_CMD_DIR)/$(word 1,$1).gtkw
 
-gtkwave:: $(XSIM_DIR)/$(word 1,$1).vcd $(XSIM_DIR)/$(word 1,$1).gtkw
-	start cmd.exe //C \"gtkwave $(XSIM_DIR)/$(word 1,$1).vcd $(XSIM_DIR)/$(word 1,$1).gtkw\"
+gtkwave:: $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw
+	start cmd.exe //C \"gtkwave $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw\"
 
 endef
 
@@ -686,7 +685,7 @@ else
 
 define xsim_cmd_com
 
-$(XSIM_CMD_TOUCH_COM):: $1 | $(XSIM_DIR)
+$(XSIM_CMD_TOUCH_COM):: $1 | $(XSIM_CMD_DIR)
 	cd $$(SIM_DIR) && $$(XVHDL) \
 		$$(XVHDL_OPTS) \
 		-work $$(SIM_WORK) \
@@ -697,7 +696,7 @@ endef
 
 define xsim_cmd_run
 
-$$(file >$$(XSIM_DIR)/$$(word 1,$1)_run.tcl, \
+$$(file >$$(XSIM_CMD_DIR)/$$(word 1,$1)_run.tcl, \
 	$(if $(filter vcd gtkwave,$(MAKECMDGOALS)), \
 	open_vcd $$(word 1,$1).vcd; log_vcd /*; run all; close_vcd; quit, \
 	run all; quit \
@@ -705,13 +704,13 @@ $$(file >$$(XSIM_DIR)/$$(word 1,$1)_run.tcl, \
 )
 
 $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
-	cd $$(XSIM_DIR) && $$(XELAB) \
+	cd $$(XSIM_CMD_DIR) && $$(XELAB) \
 		$$(XELAB_OPTS) \
 		-L $$(SIM_WORK) \
 		-top $$(word 2,$1) \
 		-snapshot $$(word 2,$1)_$$(word 1,$1) $$(word 2,$1) \
 		$(addprefix -generic_top ,$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
-	cd $$(XSIM_DIR) && $$(XSIM) \
+	cd $$(XSIM_CMD_DIR) && $$(XSIM) \
 		$$(XSIM_OPTS) \
 		-tclbatch $$(word 1,$1)_run.tcl \
 		$$(word 2,$1)_$$(word 1,$1)
@@ -719,24 +718,24 @@ $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
 
 sim:: $(XSIM_CMD_TOUCH_RUN)
 
-$(XSIM_DIR)/$(word 1,$1).vcd: $(XSIM_CMD_TOUCH_RUN)
+$(XSIM_CMD_DIR)/$(word 1,$1).vcd: $(XSIM_CMD_TOUCH_RUN)
 
-vcd:: $(XSIM_DIR)/$(word 1,$1).vcd
+vcd:: $(XSIM_CMD_DIR)/$(word 1,$1).vcd
 
-$(XSIM_DIR)/$(word 1,$1).gtkw: $(XSIM_DIR)/$(word 1,$1).vcd
+$(XSIM_CMD_DIR)/$(word 1,$1).gtkw: $(XSIM_CMD_DIR)/$(word 1,$1).vcd
 	sh $(REPO_ROOT)/submodules/vcd2gtkw/vcd2gtkw.sh \
-	$(XSIM_DIR)/$(word 1,$1).vcd \
-	$(XSIM_DIR)/$(word 1,$1).gtkw
+	$(XSIM_CMD_DIR)/$(word 1,$1).vcd \
+	$(XSIM_CMD_DIR)/$(word 1,$1).gtkw
 
-gtkwave:: $(XSIM_DIR)/$(word 1,$1).vcd $(XSIM_DIR)/$(word 1,$1).gtkw
-	gtkwave $(XSIM_DIR)/$(word 1,$1).vcd $(XSIM_DIR)/$(word 1,$1).gtkw &
+gtkwave:: $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw
+	gtkwave $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw &
 
 endef
 
 endif
 
-$(XSIM_DIR):
-	bash -c "mkdir -p $(XSIM_DIR)"
+$(XSIM_CMD_DIR):
+	bash -c "mkdir -p $(XSIM_CMD_DIR)"
 
 $(foreach s,$(XSIM_SRC),$(eval $(call xsim_cmd_com,$s)))
 $(foreach r,$(SIM_RUN),$(eval $(call xsim_cmd_run,$(subst $(COMMA),$(SPACE),$r))))
@@ -755,17 +754,16 @@ VIVADO_EXE:=vivado
 $(eval $(call check_exe,$(VIVADO_EXE)))
 VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs vivado script
 
-XSIM_DIR:=$(XSIM_IDE_DIR)
-SIM_DIR+=$(XSIM_DIR)
+SIM_DIR+=$(XSIM_IDE_DIR)
 
 VIVADO_PROJ?=xsim
-VIVADO_PROJ_FILE?=$(XSIM_DIR)/$(VIVADO_PROJ).xpr
+VIVADO_PROJ_FILE?=$(XSIM_IDE_DIR)/$(VIVADO_PROJ).xpr
 
-$(XSIM_DIR):
-	bash -c "mkdir -p $(XSIM_DIR)"
+$(XSIM_IDE_DIR):
+	bash -c "mkdir -p $(XSIM_IDE_DIR)"
 
-$(VIVADO_PROJ_FILE): $(XSIM_SRC) | $(XSIM_DIR)
-	cd $(XSIM_DIR) && $(VIVADO_TCL) \
+$(VIVADO_PROJ_FILE): $(XSIM_SRC) | $(XSIM_IDE_DIR)
+	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"create_project -force $(VIVADO_PROJ); \
 		set_property target_language VHDL [get_projects $(VIVADO_PROJ)]; \
 		add_files -norecurse -fileset [get_filesets sim_1] $(XSIM_SRC); \
@@ -776,7 +774,7 @@ $(VIVADO_PROJ_FILE): $(XSIM_SRC) | $(XSIM_DIR)
 define xsim_ide_run
 
 sim:: | $(VIVADO_PROJ_FILE)	
-	cd $(XSIM_DIR) && $(VIVADO_TCL) \
+	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"open_project $(VIVADO_PROJ); \
 		set_property top $$(word 2,$1) [get_filesets sim_1]; \
 		$(if $(word 3,$1),set_property generic {$(subst $(SEMICOLON),$(SPACE),$(word 3,$1))} [get_filesets sim_1];) \
@@ -792,7 +790,7 @@ $(foreach r,$(SIM_RUN),$(eval $(call xsim_ide_run,$(subst $(COMMA),$(SPACE),$r))
 ifneq (,$(word 2,$(SIM_RUN)))
 # ensure that simulator is left set up for first run
 sim::
-	cd $(XSIM_DIR) && $(VIVADO_TCL) \
+	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"open_project $(VIVADO_PROJ); \
 		set_property top $(word 2,$(subst $(COMMA),$(SPACE),$(word 1,$(SIM_RUN)))) [get_filesets sim_1]; \
 		set_property generic {$(subst $(SEMICOLON),$(SPACE),$(word 3,$(subst $(COMMA),$(SPACE),$(word 1,$(SIM_RUN)))))} [get_filesets sim_1]; \
