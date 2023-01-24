@@ -3,6 +3,25 @@
 # Support for using GNU make to drive FPGA builds and simulations.
 ################################################################################
 
+# supported targets/goals
+SUPPORTED_FPGA_TOOL:=vivado quartus radiant_cmd radiant_ide
+SUPPORTED_SIMULATOR:=ghdl nvc vsim xsim_cmd xsim_ide
+SUPPORTED_OTHER:=vcd gtkwave vscode clean
+
+.PHONY: all $(SUPPORTED_FPGA_TOOL) sim $(SUPPORTED_SIMULATOR) $(SUPPORTED_OTHER)
+
+ifeq (,$(MAKECMDGOALS))
+$(info MAKECMDGOALS=$(MAKECMDGOALS))
+ifdef FPGA_TOOL
+ifneq (,$(filter-out $(SUPPORTED_FPGA_TOOL),$(FPGA_TOOL)))
+$(error FPGA_TOOL specifies unsupported tool(s): $(filter-out $(SUPPORTED_FPGA_TOOLS),$(FPGA_TOOL)))
+endif
+all: $(FPGA_TOOL)
+else
+$(error FPGA_TOOL not defined, simulator not specified)
+endif
+endif
+
 # FPGA build subdirectories
 VIVADO_DIR?=vivado
 QUARTUS_DIR?=quartus
@@ -53,21 +72,8 @@ COMMA:=,
 SEMICOLON:=;
 SPACE:=$(subst x, ,x)
 
-#-------------------------------------------------------------------------------
-# default target
-
-ifeq (,$(MAKECMDGOALS))
-MAKECMDGOALS:=fpga
-endif
-
-all: fpga
-
 ################################################################################
 # FPGA build targets
-
-.PHONY: fpga
-
-ifneq (,$(filter fpga,$(MAKECMDGOALS)))
 
 ifdef FPGA
 FPGA_VENDOR?=$(word 1,$(FPGA))
@@ -75,21 +81,15 @@ FPGA_FAMILY?=$(word 2,$(FPGA))
 FPGA_DEVICE?=$(word 3,$(FPGA))
 endif
 
-ifdef FPGA_TOOL
-FPGA_TOOL:=$(shell echo '$(FPGA_TOOL)' | tr '[:upper:]' '[:lower:]'))
-endif
-
 #-------------------------------------------------------------------------------
 # AMD/Xilinx Vivado
 
-ifeq ($(FPGA_TOOL),VIVADO)
+ifneq (,$(filter vivado,$(FPGA_TOOL)))
 
-.PHONY: vivado bit
+.PHONY: bit
+vivado: bit
 
-vivado: $(VIVADO_PROJ_FILE)
-fpga: bit
-
-$(call check_null_error,$(XILINX_VIVADO))
+$(call check_null_error,XILINX_VIVADO)
 ifeq ($(OS),Windows_NT)
 XILINX_VIVADO:=$(shell cygpath -m $(XILINX_VIVADO))
 endif
@@ -104,15 +104,13 @@ $(error Vivado support is missing)
 #-------------------------------------------------------------------------------
 # Intel/Altera Quartus
 
-else ifeq ($(FPGA_TOOL),QUARTUS)
+else ifneq (,$(filter quartus,$(FPGA_TOOL)))
 
-.PHONY: quartus sof rbf
-
-quartus: $(QUARTUS_QPF_FILE)
-fpga: sof
+.PHONY: sof rbf
+quartus: sof rbf
 
 # basic checks
-$(call check_null_error,$(QUARTUS_ROOTDIR))
+$(call check_null_error,QUARTUS_ROOTDIR)
 ifeq ($(OS),Windows_NT)
 QUARTUS_ROOTDIR:=$(shell cygpath -m $(QUARTUS_ROOTDIR))
 endif
@@ -124,16 +122,10 @@ $(info Intel/Altera Quartus version $(QUARTUS_VER))
 
 $(error Quartus support is missing)
 
-endif
-
 #-------------------------------------------------------------------------------
 # Lattice Radiant
 
-else ifneq (,$(findstring RADIANT,$(FPGA_TOOL)))
-
-.PHONY: bin nvcm
-
-fpga: bin nvcm
+else ifneq (,$(findstring radiant,$(FPGA_TOOL)))
 
 # basic checks
 $(call check_null_error,LATTICE_RADIANT)
@@ -161,8 +153,6 @@ RADIANT_DEV_BASE?=$(word 1,$(subst -, ,$(RADIANT_DEV)))
 RADIANT_DEV_PKG?=$(shell echo "iCE40UP5K-SG48I" | grep -Po "(?<=-)(.+\d+)")
 ifeq (ICE40UP,$(shell echo '$(RADIANT_DEV_ARCH)' | tr '[:lower:]' '[:upper:]'))
 RADIANT_PERF?=High-Performance_1.2V
-else
-$(error $(shell echo '$(RADIANT_DEV_ARCH)' | tr '[:lower:]' '[:upper:]'))
 endif
 
 # errors
@@ -180,7 +170,10 @@ $(call check_null_warning,RADIANT_PDC)
 #...............................................................................
 # command line flow
 
-ifeq ($(FPGA_TOOL),RADIANT_CMD)
+ifneq (,$(filter radiant_cmd,$(FPGA_TOOL)))
+
+.PHONY: bin nvcm
+radiant_cmd: bin nvcm
 
 $(info Lattice Radiant version $(RADIANT_VER) - Command Line Flow)
 
@@ -260,7 +253,10 @@ nvcm: $(RADIANT_NVCM)
 #...............................................................................
 # IDE flow
 
-else ifeq ($(FPGA_TOOL),RADIANT_IDE)
+else ifneq (,$(filter radiant_ide,$(FPGA_TOOL)))
+
+.PHONY: bin nvcm
+radiant_ide: bin nvcm
 
 $(info Lattice Radiant version $(RADIANT_VER) - IDE Flow)
 
@@ -293,7 +289,7 @@ $(RADIANT_IDE_DIR)/$(RADIANT_RDF): (ALL MAKEFILES) | $(RADIANT_IDE_DIR)
 
 else
 
-$(error Lattice Radiant version $(RADIANT_VER) - unknown flow ($(FPGA_TOOL)))
+$(error Lattice Radiant version $(RADIANT_VER) - unknown flow: $(FPGA_TOOL))
 
 endif
 
@@ -302,15 +298,13 @@ endif
 else
 
 ifdef FPGA_TOOL
-$(error Unknown FPGA tool ($(FPGA_TOOL)))
+$(error Unknown FPGA tool: $(FPGA_TOOL))
 endif
 
 endif
 
 ################################################################################
 # simulation targets
-
-.PHONY: sim ghdl nvc vsim xsim_cmd xsim_ide vcd gtkw
 
 SIM_DIR:=
 SIM_WORK?=work
@@ -330,10 +324,8 @@ endif
 
 ifneq (,$(filter ghdl,$(MAKECMDGOALS)))
 
-ifdef SIMULATORS
-ifeq (,$(filter ghdl,$(SIMULATORS)))
-$(error This makefile does not support vsim)
-endif
+ifeq (,$(filter ghdl,$(SIMULATOR)))
+$(error This makefile does not support GHDL)
 endif
 
 ghdl: sim
@@ -411,10 +403,8 @@ endif
 
 ifneq (,$(filter nvc,$(MAKECMDGOALS)))
 
-ifdef SIMULATORS
-ifeq (,$(filter nvc,$(SIMULATORS)))
-$(error This makefile does not support vsim)
-endif
+ifeq (,$(filter nvc,$(SIMULATOR)))
+$(error This makefile does not support NVC)
 endif
 
 nvc: sim
@@ -493,10 +483,8 @@ endif
 
 ifneq (,$(filter vsim,$(MAKECMDGOALS)))
 
-ifdef SIMULATORS
-ifeq (,$(filter vsim,$(SIMULATORS)))
-$(error This makefile does not support vsim)
-endif
+ifeq (,$(filter vsim,$(SIMULATOR)))
+$(error This makefile does not support vsim (ModelSim/Questa/etc))
 endif
 
 vsim: sim
@@ -596,10 +584,8 @@ endif
 
 ifneq (,$(filter xsim_cmd xsim_ide,$(MAKECMDGOALS)))
 
-ifdef SIMULATORS
-ifeq (,$(filter xsim,$(SIMULATORS)))
-$(error This makefile does not support xsim)
-endif
+ifeq (,$(filter xsim,$(SIMULATOR)))
+$(error This makefile does not support XSim)
 endif
 
 XSIM_SRC?=$(SIM_SRC)
@@ -830,14 +816,12 @@ CONFIG_V4P_LINES:= \
 FORCE:
 $(CONFIG_V4P_FILE): FORCE
 	l=( $(CONFIG_V4P_LINES) ); printf "%s\n" "$${l[@]}" > $(CONFIG_V4P_FILE)
-.PHONY: vscode
 vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE) | $(VSCODE_DIR)
 	$(VSCODE) $(VSCODE_DIR)
 
 #################################################################################
 # cleanup
 
-.PHONY: clean
 clean:
 	find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
 	rm -rf */
