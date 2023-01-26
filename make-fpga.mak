@@ -8,10 +8,10 @@ SUPPORTED_FPGA_TOOL:=vivado quartus radiant_cmd radiant_ide
 SUPPORTED_SIMULATOR:=ghdl nvc vsim xsim_cmd xsim_ide
 SUPPORTED_OTHER:=vcd gtkwave vscode clean
 
-.PHONY: all $(SUPPORTED_FPGA_TOOL) sim $(SUPPORTED_SIMULATOR) $(SUPPORTED_OTHER)
+.PHONY: all sim clean force
+.PHONY: $(SUPPORTED_FPGA_TOOL) $(SUPPORTED_SIMULATOR) $(SUPPORTED_OTHER)
 
 ifeq (,$(MAKECMDGOALS))
-$(info MAKECMDGOALS=$(MAKECMDGOALS))
 ifdef FPGA_TOOL
 ifneq (,$(filter-out $(SUPPORTED_FPGA_TOOL),$(FPGA_TOOL)))
 $(error FPGA_TOOL specifies unsupported tool(s): $(filter-out $(SUPPORTED_FPGA_TOOLS),$(FPGA_TOOL)))
@@ -86,6 +86,8 @@ endif
 
 ifneq (,$(filter vivado,$(FPGA_TOOL)))
 
+VIVADO_GOALS:=bit xpr
+
 .PHONY: bit
 vivado: bit
 
@@ -97,9 +99,87 @@ VIVADO_EXE:=vivado
 $(eval $(call check_exe,$(VIVADO_EXE)))
 VIVADO_VER:=$(shell vivado -version | grep -Po '(?<=Vivado\sv)[^\s]+')
 
-$(info AMD/Xilinx Vivado version $(VIVADO_VER))
+VIVADO_TCL:=vivado -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs vivado script
+VIVADO_PROJ?=fpga
+VIVADO_XPR?=$(VIVADO_DIR)/$(VIVADO_PROJ).xpr
 
-$(error Vivado support is missing)
+ifeq (,$(VIVADO_DSN_VHDL) $(VIVADO_DSN_VHDL_2008))
+$(error Vivado: no VHDL sources)
+endif
+ifeq (,$(VIVADO_DSN_XDC) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC_IMPL))
+$(info WARNING: Vivado: no design constraints)
+endif
+
+VIVADO_XPR_RECIPE:=$(VIVADO_DIR)/$(VIVADO_PROJ)_recipe.txt
+VIVADO_XPR_RECIPE_CONTENTS:=\
+	$(VIVADO_LANG) \
+	$(VIVADO_DSN_VHDL) \
+	$(VIVADO_DSN_VHDL_2008) \
+	$(VIVADO_DSN_IP_TCL) \
+	$(VIVADO_DSN_BD_TCL) \
+	$(VIVADO_DSN_XDC) \
+	$(VIVADO_DSN_XDC_SYNTH) \
+	$(VIVADO_DSN_XDC_IMPL)
+
+$(VIVADO_DIR):
+	bash -c "mkdir -p $(VIVADO_DIR)"
+
+$(VIVADO_XPR_RECIPE): force | $(VIVADO_DIR)
+	if [[ "$(VIVADO_XPR_RECIPE_CONTENTS)" != "$(<$(VIVADO_XPR_RECIPE))" ]]; then \
+		echo "$(VIVADO_XPR_RECIPE_CONTENTS)" > $@; \
+	fi
+
+$(VIVADO_XPR): $(VIVADO_XPR_RECIPE) | $(VIVADO_DIR)
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) "\
+		create_project -force $(VIVADO_PROJ); \
+		set_property target_language VHDL [get_projects $(VIVADO_PROJ)]; \
+		$(if $(FPGA_DEVICE), \
+			set_property part $(FPGA_DEVICE) [current_project]; \
+		,) \
+		$(if $(VIVADO_DSN_VHDL), \
+			add_files -norecurse -fileset [get_filesets sources_1] $(VIVADO_DSN_VHDL); \
+		,) \
+		$(if $(VIVADO_DSN_VHDL_2008), \
+			add_files -norecurse -fileset [get_filesets sources_1] $(VIVADO_DSN_VHDL_2008); \
+			set_property file_type \"VHDL 2008\" [get_files -of_objects [get_filesets sources_1] {$(VIVADO_DSN_VHDL_2008)}]; \
+		,) \
+		$(if $(VIVADO_DSN_XDC), \
+			add_files -norecurse -fileset [get_filesets constrs_1] $(VIVADO_DSN_XDC); \
+			set_property used_in_synthesis true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC)}]; \
+			set_property used_in_implementation true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC)}]; \
+		,) \
+		$(if $(VIVADO_DSN_XDC_SYNTH), \
+			add_files -norecurse -fileset [get_filesets constrs_1] $(VIVADO_DSN_XDC_SYNTH); \
+			set_property used_in_synthesis true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_SYNTH)}]; \
+			set_property used_in_implementation false [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_SYNTH)}]; \
+		,) \
+		$(if $(VIVADO_DSN_XDC_IMPL), \
+			add_files -norecurse -fileset [get_filesets constrs_1] $(VIVADO_DSN_XDC_IMPL); \
+			set_property used_in_synthesis false [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_IMPL)}]; \
+			set_property used_in_implementation true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_IMPL)}]; \
+		,) \
+		$(if $(VIVADO_DSN_TOP), \
+			set_property top $(VIVADO_DSN_TOP) [get_filesets sources_1]; \
+		,) \
+		$(if $(VIVADO_DSN_GEN), \
+			set_property generic {$(VIVADO_DSN_GEN)} [get_filesets sources_1]; \
+		,) \
+		$(if $(VIVADO_SIM_VHDL), \
+			add_files -norecurse -fileset [get_filesets sim_1] $(VIVADO_SIM_VHDL); \
+		,) \
+		$(if $(VIVADO_SIM_VHDL_2008), \
+			add_files -norecurse -fileset [get_filesets sim_1] $(VIVADO_SIM_VHDL_2008); \
+			set_property file_type \"VHDL 2008\" [get_files -of_objects [get_filesets sim_1] {$(VIVADO_SIM_VHDL_2008)}]; \
+		,) \
+		$(if $(VIVADO_SIM_TOP), \
+			set_property top $(VIVADO_SIM_TOP) [get_filesets sim_1]; \
+		,) \
+		$(if $(VIVADO_SIM_GEN), \
+			set_property generic {$(VIVADO_SIM_GEN)} [get_filesets sim_1]; \
+		,) \
+		exit \
+	"
+xpr: $(VIVADO_XPR)
 
 #-------------------------------------------------------------------------------
 # Intel/Altera Quartus
@@ -271,10 +351,10 @@ $(RADIANT_IDE_DIR)/$(RADIANT_RDF): (ALL MAKEFILES) | $(RADIANT_IDE_DIR)
 	rm -f $(RADIANT_PROJ).rdf && \
 	$(RADIANT_TCL) script \
 		prj_create \
-		-name        $(RADIANT_PROJ) \
-		-synthesis   $(RADIANT_SYNTH) \
-		-impl        $(RADIANT_IMPL) \
-		-dev         $(RADIANT_DEV) \
+		-name		 $(RADIANT_PROJ) \
+		-synthesis	 $(RADIANT_SYNTH) \
+		-impl		 $(RADIANT_IMPL) \
+		-dev		 $(RADIANT_DEV) \
 		-performance $(RADIANT_PERF) ; \
 		$(addprefix prj_add_source $(RADIANT_VHDL)) ; \
 		$(addprefix prj_add_source $(RADIANT_VLOG)) ; \
@@ -759,7 +839,7 @@ $(VIVADO_PROJ_FILE): $(XSIM_SRC) | $(XSIM_IDE_DIR)
 
 define xsim_ide_run
 
-sim:: | $(VIVADO_PROJ_FILE)	
+sim:: | $(VIVADO_PROJ_FILE)
 	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"open_project $(VIVADO_PROJ); \
 		set_property top $$(word 2,$1) [get_filesets sim_1]; \
