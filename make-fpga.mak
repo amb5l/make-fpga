@@ -148,15 +148,24 @@ $(VIVADO_XPR): $(VIVADO_XPR_RECIPE) | $(VIVADO_DIR)
 			set_property used_in_synthesis true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC)}]; \
 			set_property used_in_implementation true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC)}]; \
 		,) \
+		$(if $(filter %.tcl,$(VIVADO_DSN_XDC)), \
+			foreach f {$(filter %.tcl,$(VIVADO_DSN_XDC))} {if {\"[file extension \$$f]\" == \".tcl\"} {set_property used_in_simulation false [get_files -of_objects [get_filesets constrs_1] \$$f]}}; \
+		,) \
 		$(if $(VIVADO_DSN_XDC_SYNTH), \
 			add_files -norecurse -fileset [get_filesets constrs_1] $(VIVADO_DSN_XDC_SYNTH); \
 			set_property used_in_synthesis true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_SYNTH)}]; \
 			set_property used_in_implementation false [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_SYNTH)}]; \
 		,) \
+		$(if $(filter %.tcl,$(VIVADO_DSN_XDC_SYNTH)), \
+			foreach f {$(filter %.tcl,$(VIVADO_DSN_XDC_SYNTH))} {if {\"[file extension \$$f]\" == \".tcl\"} {set_property used_in_simulation false [get_files -of_objects [get_filesets constrs_1] \$$f]}}; \
+		,) \
 		$(if $(VIVADO_DSN_XDC_IMPL), \
 			add_files -norecurse -fileset [get_filesets constrs_1] $(VIVADO_DSN_XDC_IMPL); \
 			set_property used_in_synthesis false [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_IMPL)}]; \
 			set_property used_in_implementation true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_IMPL)}]; \
+		,) \
+		$(if $(filter %.tcl,$(VIVADO_DSN_XDC_IMPL)), \
+			foreach f {$(filter %.tcl,$(VIVADO_DSN_XDC_IMPL))} {if {\"[file extension \$$f]\" == \".tcl\"} {set_property used_in_simulation false [get_files -of_objects [get_filesets constrs_1] \$$f]}}; \
 		,) \
 		$(if $(VIVADO_DSN_TOP), \
 			set_property top $(VIVADO_DSN_TOP) [get_filesets sources_1]; \
