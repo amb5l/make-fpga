@@ -22,18 +22,7 @@ $(error FPGA_TOOL not defined, simulator not specified)
 endif
 endif
 
-# FPGA build subdirectories
-VIVADO_DIR?=vivado
-QUARTUS_DIR?=quartus
-RADIANT_CMD_DIR?=radiant_cmd
-RADIANT_IDE_DIR?=radiant_ide
-
 # simulation subdirectories
-GHDL_DIR?=sim_ghdl
-NVC_DIR?=sim_nvc
-VSIM_DIR?=sim_vsim
-XSIM_CMD_DIR?=sim_xsim_cmd
-XSIM_IDE_DIR?=sim_xsim_ide
 
 # useful functions
 define check_null_error
@@ -82,14 +71,15 @@ FPGA_DEVICE?=$(word 3,$(FPGA))
 endif
 
 #-------------------------------------------------------------------------------
-# AMD/Xilinx Vivado
+# AMD/Xilinx Vivado/Vitis
 
 ifneq (,$(filter vivado,$(FPGA_TOOL)))
 
-VIVADO_GOALS:=bit xpr
-
 .PHONY: bit
 vivado: bit
+
+VIVADO_DIR?=.vivado
+VITIS_DIR?=.vitis
 
 $(call check_null_error,XILINX_VIVADO)
 ifeq ($(OS),Windows_NT)
@@ -102,17 +92,15 @@ VIVADO_VER:=$(shell vivado -version | grep -Po '(?<=Vivado\sv)[^\s]+')
 VIVADO_TCL:=vivado -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs vivado script
 VIVADO_PROJ?=fpga
 VIVADO_XPR?=$(VIVADO_DIR)/$(VIVADO_PROJ).xpr
+VIVADO_BD_PATH?=$(VIVADO_PROJ).srcs/sources_1/bd
+VIVADO_BD_HWDEF_PATH?=$(VIVADO_DIR)/$(VIVADO_PROJ).gen/sources_1/bd
+VIVADO_DSN_BD?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_BD_TCL))),$(VIVADO_BD_PATH)/$X/$X.bd)
+VIVADO_DSN_BD_HWDEF?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_BD_TCL))),$(VIVADO_BD_HWDEF_PATH)/$X/synth/$X.hwdef)
+VIVADO_UPD_BD_TCL?=$(VIVADO_DSN_BD_TCL:.tcl=_updated.tcl)
+VIVADO_UPD_BD_SVG?=$(VIVADO_DSN_BD_TCL:.tcl=_updated.svg)
 
-ifeq (,$(VIVADO_DSN_VHDL) $(VIVADO_DSN_VHDL_2008))
-$(error Vivado: no VHDL sources)
-endif
-ifeq (,$(VIVADO_DSN_XDC) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC_IMPL))
-$(info WARNING: Vivado: no design constraints)
-endif
-
-VIVADO_XPR_RECIPE:=$(VIVADO_DIR)/$(VIVADO_PROJ)_recipe.txt
-VIVADO_XPR_RECIPE_CONTENTS:=\
-	$(VIVADO_LANG) \
+VIVADO_XPR_DEPS_FILE:=$(VIVADO_DIR)/$(VIVADO_PROJ)_recipe.txt
+VIVADO_XPR_DEPS:=\
 	$(VIVADO_DSN_VHDL) \
 	$(VIVADO_DSN_VHDL_2008) \
 	$(VIVADO_DSN_IP_TCL) \
@@ -124,12 +112,13 @@ VIVADO_XPR_RECIPE_CONTENTS:=\
 $(VIVADO_DIR):
 	bash -c "mkdir -p $(VIVADO_DIR)"
 
-$(VIVADO_XPR_RECIPE): force | $(VIVADO_DIR)
-	if [[ "$(VIVADO_XPR_RECIPE_CONTENTS)" != "$(<$(VIVADO_XPR_RECIPE))" ]]; then \
-		echo "$(VIVADO_XPR_RECIPE_CONTENTS)" > $@; \
+$(VIVADO_XPR_DEPS_FILE): force | $(VIVADO_DIR)
+	@if [[ "$(VIVADO_XPR_DEPS)" != "$(file < $(VIVADO_XPR_DEPS_FILE))" ]]; then \
+		echo "$(VIVADO_XPR_DEPS)" > $@; \
 	fi
 
-$(VIVADO_XPR): $(VIVADO_XPR_RECIPE) | $(VIVADO_DIR)
+# project
+$(VIVADO_XPR): $(VIVADO_XPR_DEPS_FILE) $(VIVADO_XPR_DEPS) | $(VIVADO_DIR)
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) "\
 		create_project -force $(VIVADO_PROJ); \
 		set_property target_language VHDL [get_projects $(VIVADO_PROJ)]; \
@@ -186,9 +175,25 @@ $(VIVADO_XPR): $(VIVADO_XPR_RECIPE) | $(VIVADO_DIR)
 		$(if $(VIVADO_SIM_GEN), \
 			set_property generic {$(VIVADO_SIM_GEN)} [get_filesets sim_1]; \
 		,) \
+		$(if $(VIVADO_DSN_BD_TCL), \
+			$(foreach X,$(VIVADO_DSN_BD_TCL),source $X;) \
+		,) \
 		exit \
 	"
 xpr: $(VIVADO_XPR)
+
+# update BD source TCL scripts from changed BD files
+.PHONY: update_bd
+define RR_VIVADO_UPDATE_BD
+update_bd:: $(VIVADO_DIR)/$1 | $(VIVADO_XPR)
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) "\
+		open_project $(VIVADO_PROJ); \
+		open_bd_design $1; \
+		write_bd_tcl -force -include_layout $2; \
+		exit \
+	"
+endef
+$(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_UPDATE_BD,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd,$X)))
 
 #-------------------------------------------------------------------------------
 # Intel/Altera Quartus
@@ -197,6 +202,8 @@ else ifneq (,$(filter quartus,$(FPGA_TOOL)))
 
 .PHONY: sof rbf
 quartus: sof rbf
+
+QUARTUS_DIR?=.quartus
 
 # basic checks
 $(call check_null_error,QUARTUS_ROOTDIR)
@@ -215,6 +222,9 @@ $(error Quartus support is missing)
 # Lattice Radiant
 
 else ifneq (,$(findstring radiant,$(FPGA_TOOL)))
+
+RADIANT_CMD_DIR?=.radiant_cmd
+RADIANT_IDE_DIR?=.radiant_ide
 
 # basic checks
 $(call check_null_error,LATTICE_RADIANT)
@@ -419,6 +429,7 @@ endif
 
 ghdl: sim
 
+GHDL_DIR?=.ghdl
 SIM_DIR+=$(GHDL_DIR)
 GHDL?=ghdl
 $(eval $(call check_exe,$(GHDL)))
@@ -498,6 +509,7 @@ endif
 
 nvc: sim
 
+NVC_DIR?=.nvc
 SIM_DIR+=$(NVC_DIR)
 NVC?=nvc
 $(eval $(call check_exe,$(NVC)))
@@ -578,6 +590,7 @@ endif
 
 vsim: sim
 
+VSIM_DIR?=.vsim
 SIM_DIR+=$(VSIM_DIR)
 VSIM_INI?=modelsim.ini
 VMAP?=vmap
@@ -687,6 +700,7 @@ ifneq (,$(filter xsim_cmd,$(MAKECMDGOALS)))
 
 xsim_cmd: sim
 
+XSIM_CMD_DIR?=.xsim_cmd
 SIM_DIR+=$(XSIM_CMD_DIR)
 XVHDL?=xvhdl
 $(eval $(call check_exe,$(XVHDL)))
@@ -829,6 +843,7 @@ VIVADO_EXE:=vivado
 $(eval $(call check_exe,$(VIVADO_EXE)))
 VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs vivado script
 
+XSIM_IDE_DIR?=.xsim_ide
 SIM_DIR+=$(XSIM_IDE_DIR)
 
 VIVADO_PROJ?=xsim
