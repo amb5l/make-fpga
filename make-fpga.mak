@@ -22,8 +22,6 @@ $(error FPGA_TOOL not defined, simulator not specified)
 endif
 endif
 
-# simulation subdirectories
-
 # useful functions
 define check_null_error
 $(eval $(if $($1),,$(error $1 is empty)))
@@ -37,9 +35,6 @@ endef
 define check_file
 $(if $(filter $1,$(wildcard $1)),,$(error $1: file not found))
 endef
-define check_exe
-$(if $(filter $1,$(notdir $1)),$(if $(filter $1,$(notdir $(word 1,$(shell which $1 2>&1)))),,$(error $1: executable not found in path)),$(if $(filter $1,$(wildcard $1)),,$(error $1: file not found)))
-endef
 define check_shell_error
 $(if $(filter 0,$(.SHELLSTATUS)),,$(error $1))
 endef
@@ -51,8 +46,10 @@ $(call check_shell_error,Could not run cygpath)
 endif
 
 # basic definitions
+MAKE_DIR:=$(shell pwd)
 MAKE_FPGA_DIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ifeq ($(OS),Windows_NT)
+MAKE_DIR:=$(shell cygpath -m $(MAKE_DIR))
 MAKE_FPGA_DIR:=$(shell cygpath -m $(MAKE_FPGA_DIR))
 endif
 MAKE_FPGA_TCL:=$(MAKE_FPGA_DIR)/make-fpga.tcl
@@ -70,130 +67,278 @@ FPGA_FAMILY?=$(word 2,$(FPGA))
 FPGA_DEVICE?=$(word 3,$(FPGA))
 endif
 
+ifeq (,$(MAKECMDGOALS))
+endif
+
 #-------------------------------------------------------------------------------
-# AMD/Xilinx Vivado/Vitis
+# AMD/Xilinx Vivado (plus Vitis for MicroBlaze designs)
 
 ifneq (,$(filter vivado,$(FPGA_TOOL)))
 
-.PHONY: bit
 vivado: bit
-
-VIVADO_DIR?=.vivado
-VITIS_DIR?=.vitis
 
 $(call check_null_error,XILINX_VIVADO)
 ifeq ($(OS),Windows_NT)
 XILINX_VIVADO:=$(shell cygpath -m $(XILINX_VIVADO))
 endif
-VIVADO_EXE:=vivado
-$(eval $(call check_exe,$(VIVADO_EXE)))
-VIVADO_VER:=$(shell vivado -version | grep -Po '(?<=Vivado\sv)[^\s]+')
 
-VIVADO_TCL:=vivado -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs vivado script
+ifdef VITIS_APP
+
+# can't use the name of a phony target as a directory name, so prefix with .
+VITIS_DIR?=.vitis
+
+VITIS_EXE:=xsct
+
+VITIS_TCL?=xsct $(MAKE_FPGA_TCL) vitis $(VITIS_APP)
+VITIS_ABS_DIR:=$(MAKE_DIR)/$(VITIS_DIR)
+VITIS_PROJ_FILE?=$(VITIS_ABS_DIR)/$(VITIS_APP)/$(VITIS_APP).prj
+VITIS_ELF_RELEASE?=$(VITIS_ABS_DIR)/$(VITIS_APP)/Release/$(VITIS_APP).elf
+VITIS_ELF_DEBUG?=$(VITIS_ABS_DIR)/$(VITIS_APP)/Debug/$(VITIS_APP).elf
+
+endif
+
+# can't use the name of a phony target as a directory name, so prefix with .
+VIVADO_DIR?=.vivado
+
+VIVADO_EXE:=vivado
 VIVADO_PROJ?=fpga
-VIVADO_XPR?=$(VIVADO_DIR)/$(VIVADO_PROJ).xpr
-VIVADO_BD_PATH?=$(VIVADO_PROJ).srcs/sources_1/bd
-VIVADO_BD_HWDEF_PATH?=$(VIVADO_DIR)/$(VIVADO_PROJ).gen/sources_1/bd
+VIVADO_PART?=$(FPGA_DEVICE)
+VIVADO_JOBS?=4
+
+#VIVADO_VER:=$(shell $(VIVADO_EXE) -version | grep -Po '(?<=Vivado\sv)[^\s]+')
+VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs vivado $(VIVADO_PROJ)
+VIVADO_ABS_DIR:=$(MAKE_DIR)/$(VIVADO_DIR)
+VIVADO_PROJ_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).xpr
+VIVADO_BIT_FILE?=$(MAKE_DIR)/$(VIVADO_DSN_TOP).bit
+VIVADO_IMPL_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
+VIVADO_SYNTH_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
+VIVADO_XSA_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_DSN_TOP).xsa
+VIVADO_BD_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).srcs/sources_1/bd
+VIVADO_BD_HWDEF_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).gen/sources_1/bd
+VIVADO_SIM_PATH?=$(VIVADO_DIR)/$(VIVADO_PROJ).sim/sim_1/behav/xsim
+VIVADO_SIM_IP_PATH?=$(VIVADO_DIR)/$(VIVADO_PROJ).gen/sources_1/ip
+VIVADO_DSN_IP_XCI?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_IP_TCL))),$(VIVADO_DSN_IP_PATH)/$X/$X.xci)
 VIVADO_DSN_BD?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_BD_TCL))),$(VIVADO_BD_PATH)/$X/$X.bd)
 VIVADO_DSN_BD_HWDEF?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_BD_TCL))),$(VIVADO_BD_HWDEF_PATH)/$X/synth/$X.hwdef)
-VIVADO_UPD_BD_TCL?=$(VIVADO_DSN_BD_TCL:.tcl=_updated.tcl)
-VIVADO_UPD_BD_SVG?=$(VIVADO_DSN_BD_TCL:.tcl=_updated.svg)
+VIVADO_SIM_IP_FILES?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_IP_TCL))),$(addprefix $(VIVADO_SIM_IP_PATH)/,$(VIVADO_SIM_IP_$X)))
+ifdef VITIS_APP
+VIVADO_DSN_ELF_CFG?=Release
+VIVADO_DSN_ELF?=$(VITIS_ABS_DIR)/$(VITIS_APP)/$(VIVADO_DSN_ELF_CFG)/$(VITIS_APP).elf
+VIVADO_SIM_ELF_CFG?=Debug
+VIVADO_SIM_ELF?=$(VITIS_ABS_DIR)/$(VITIS_APP)/$(VIVADO_SIM_ELF_CFG)/$(VITIS_APP).elf
+endif
 
-VIVADO_XPR_DEPS_FILE:=$(VIVADO_DIR)/$(VIVADO_PROJ)_recipe.txt
-VIVADO_XPR_DEPS:=\
+VIVADO_PROJ_RECIPE_FILE:=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ)_recipe.txt
+VIVADO_PROJ_RECIPE_SOURCES:=\
 	$(VIVADO_DSN_VHDL) \
 	$(VIVADO_DSN_VHDL_2008) \
 	$(VIVADO_DSN_IP_TCL) \
 	$(VIVADO_DSN_BD_TCL) \
 	$(VIVADO_DSN_XDC) \
 	$(VIVADO_DSN_XDC_SYNTH) \
-	$(VIVADO_DSN_XDC_IMPL)
+	$(VIVADO_DSN_XDC_IMPL) \
+	$(VIVADO_SIM_VHDL) \
+	$(VIVADO_SIM_VHDL_2008)
+VIVADO_PROJ_RECIPE_SETTINGS:=\
+	$(VIVADO_DSN_TOP) \
+	$(VIVADO_DSN_GENERICS) \
+	$(VIVADO_SIM_TOP) \
+	$(VIVADO_SIM_GENERICS)
+VIVADO_PROJ_RECIPE:=\
+	$(VIVADO_PROJ_RECIPE_SOURCES) \
+	$(VIVADO_PROJ_RECIPE_SETTINGS)
 
 $(VIVADO_DIR):
 	bash -c "mkdir -p $(VIVADO_DIR)"
 
-$(VIVADO_XPR_DEPS_FILE): force | $(VIVADO_DIR)
-	@if [[ "$(VIVADO_XPR_DEPS)" != "$(file < $(VIVADO_XPR_DEPS_FILE))" ]]; then \
-		echo "$(VIVADO_XPR_DEPS)" > $@; \
-	fi
+# recipe file is created when missing, and updated when the recipe changes
+ifneq ($(VIVADO_PROJ_RECIPE),$(file < $(VIVADO_PROJ_RECIPE_FILE)))
+$(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
+	@echo "$(VIVADO_PROJ_RECIPE)" > $@
+endif
 
-# project
-$(VIVADO_XPR): $(VIVADO_XPR_DEPS_FILE) $(VIVADO_XPR_DEPS) | $(VIVADO_DIR)
-	cd $(VIVADO_DIR) && $(VIVADO_TCL) "\
-		create_project -force $(VIVADO_PROJ); \
-		set_property target_language VHDL [get_projects $(VIVADO_PROJ)]; \
-		$(if $(FPGA_DEVICE), \
-			set_property part $(FPGA_DEVICE) [current_project]; \
-		,) \
-		$(if $(VIVADO_DSN_VHDL), \
-			add_files -norecurse -fileset [get_filesets sources_1] $(VIVADO_DSN_VHDL); \
-		,) \
-		$(if $(VIVADO_DSN_VHDL_2008), \
-			add_files -norecurse -fileset [get_filesets sources_1] $(VIVADO_DSN_VHDL_2008); \
-			set_property file_type \"VHDL 2008\" [get_files -of_objects [get_filesets sources_1] {$(VIVADO_DSN_VHDL_2008)}]; \
-		,) \
-		$(if $(VIVADO_DSN_XDC), \
-			add_files -norecurse -fileset [get_filesets constrs_1] $(VIVADO_DSN_XDC); \
-			set_property used_in_synthesis true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC)}]; \
-			set_property used_in_implementation true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC)}]; \
-		,) \
-		$(if $(filter %.tcl,$(VIVADO_DSN_XDC)), \
-			foreach f {$(filter %.tcl,$(VIVADO_DSN_XDC))} {if {\"[file extension \$$f]\" == \".tcl\"} {set_property used_in_simulation false [get_files -of_objects [get_filesets constrs_1] \$$f]}}; \
-		,) \
-		$(if $(VIVADO_DSN_XDC_SYNTH), \
-			add_files -norecurse -fileset [get_filesets constrs_1] $(VIVADO_DSN_XDC_SYNTH); \
-			set_property used_in_synthesis true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_SYNTH)}]; \
-			set_property used_in_implementation false [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_SYNTH)}]; \
-		,) \
-		$(if $(filter %.tcl,$(VIVADO_DSN_XDC_SYNTH)), \
-			foreach f {$(filter %.tcl,$(VIVADO_DSN_XDC_SYNTH))} {if {\"[file extension \$$f]\" == \".tcl\"} {set_property used_in_simulation false [get_files -of_objects [get_filesets constrs_1] \$$f]}}; \
-		,) \
-		$(if $(VIVADO_DSN_XDC_IMPL), \
-			add_files -norecurse -fileset [get_filesets constrs_1] $(VIVADO_DSN_XDC_IMPL); \
-			set_property used_in_synthesis false [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_IMPL)}]; \
-			set_property used_in_implementation true [get_files -of_objects [get_filesets constrs_1] {$(VIVADO_DSN_XDC_IMPL)}]; \
-		,) \
-		$(if $(filter %.tcl,$(VIVADO_DSN_XDC_IMPL)), \
-			foreach f {$(filter %.tcl,$(VIVADO_DSN_XDC_IMPL))} {if {\"[file extension \$$f]\" == \".tcl\"} {set_property used_in_simulation false [get_files -of_objects [get_filesets constrs_1] \$$f]}}; \
-		,) \
-		$(if $(VIVADO_DSN_TOP), \
-			set_property top $(VIVADO_DSN_TOP) [get_filesets sources_1]; \
-		,) \
-		$(if $(VIVADO_DSN_GEN), \
-			set_property generic {$(VIVADO_DSN_GEN)} [get_filesets sources_1]; \
-		,) \
-		$(if $(VIVADO_SIM_VHDL), \
-			add_files -norecurse -fileset [get_filesets sim_1] $(VIVADO_SIM_VHDL); \
-		,) \
-		$(if $(VIVADO_SIM_VHDL_2008), \
-			add_files -norecurse -fileset [get_filesets sim_1] $(VIVADO_SIM_VHDL_2008); \
-			set_property file_type \"VHDL 2008\" [get_files -of_objects [get_filesets sim_1] {$(VIVADO_SIM_VHDL_2008)}]; \
-		,) \
-		$(if $(VIVADO_SIM_TOP), \
-			set_property top $(VIVADO_SIM_TOP) [get_filesets sim_1]; \
-		,) \
-		$(if $(VIVADO_SIM_GEN), \
-			set_property generic {$(VIVADO_SIM_GEN)} [get_filesets sim_1]; \
-		,) \
-		$(if $(VIVADO_DSN_BD_TCL), \
-			$(foreach X,$(VIVADO_DSN_BD_TCL),source $X;) \
-		,) \
-		exit \
-	"
-xpr: $(VIVADO_XPR)
+#$(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
+#	@bash -c "\
+#		if [[ ! -f $(VIVADO_PROJ_RECIPE_FILE) ]]; then \
+#			echo \"$(VIVADO_PROJ_RECIPE)\" > $@; \
+#		elif [[ \"$(VIVADO_PROJ_RECIPE)\" != \"$$(<$(VIVADO_PROJ_RECIPE_FILE))\" ]]; then \
+#			echo \"$(VIVADO_PROJ_RECIPE)\" > $@; \
+#		fi \
+#	"
+
+
+# project depends on recipe file and existence of directory and sources
+.PHONY: xpr
+xpr: $(VIVADO_PROJ_FILE)
+$(VIVADO_PROJ_FILE): $(VIVADO_PROJ_RECIPE_FILE) | $(VIVADO_PROJ_RECIPE_SOURCES)
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: create project
+	@echo -------------------------------------------------------------------------------
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) create $(VIVADO_PART) vhdl \
+		dsn_vhdl:       $(VIVADO_DSN_VHDL) \
+		dsn_vhdl_2008:  $(VIVADO_DSN_VHDL_2008) \
+		dsn_xdc:        $(VIVADO_DSN_XDC) \
+		dsn_xdc_synth:  $(VIVADO_DSN_XDC_SYNTH) \
+		dsn_xdc_impl:   $(VIVADO_DSN_XDC_IMPL) \
+		dsn_top:        $(VIVADO_DSN_TOP) \
+		dsn_gen:        $(VIVADO_DSN_GENERICS) \
+		sim_vhdl:       $(VIVADO_SIM_VHDL) \
+		sim_vhdl_2008:  $(VIVADO_SIM_VHDL_2008) \
+		sim_top:        $(VIVADO_SIM_TOP) \
+		sim_gen:        $(VIVADO_SIM_GENERICS)
+
+# BD files depend on BD TCL scripts (and existence of project)
+define RR_VIVADO_BD
+$1: $2 | $(VIVADO_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: build block diagrams from TCL
+	@echo -------------------------------------------------------------------------------
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bd $1 $2
+endef
+$(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd,$X)))
+
+# BD hardware definitions depend on BD files (and existence of project)
+define RR_VIVADO_BD_HWDEF
+$1: $2 | $(VIVADO_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: build block diagram hardware definitions
+	@echo -------------------------------------------------------------------------------
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build hwdef $2
+endef
+$(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD_HWDEF,$(VIVADO_BD_HWDEF_PATH)/$(basename $(notdir $X))/synth/$(basename $(notdir $X)).hwdef,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd)))
+
+# hardware handoff (XSA) file depends on BD hwdef(s) (and existence of project)
+$(VIVADO_XSA_FILE): $(VIVADO_DSN_BD_HWDEF) | $(VIVADO_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: build hardware handoff (XSA) file
+	@echo -------------------------------------------------------------------------------
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build xsa
+
+# IP XCI files and simulation models depend on IP TCL scripts (and existence of project)
+define RR_VIVADO_IP_XCI
+$1 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X) &: $2 | $(VIVADO_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: build IP XCI file and simulation model(s)
+	@echo -------------------------------------------------------------------------------
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build ip $1 $2 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X)
+endef
+$(foreach X,$(VIVADO_DSN_IP_TCL),$(eval $(call RR_VIVADO_IP_XCI,$(VIVADO_DSN_IP_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).xci,$X)))
+
+# synthesis file depends on design sources and relevant constraints (and existence of project)
+$(VIVADO_SYNTH_FILE): $(VIVADO_DSN_IP_XCI) $(VIVADO_DSN_BD_HWDEF) $(VIVADO_DSN_VHDL) $(VIVADO_DSN_VHDL_2008) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) | $(VIVADO_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: synthesis
+	@echo -------------------------------------------------------------------------------
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build synth $(VIVADO_JOBS)
+
+# implementation file depends on synthesis file, ELF file, and relevant constraints (and existence of project)
+# we also carry out simulation prep here so that project is left ready for interactive simulation
+$(VIVADO_IMPL_FILE): $(VIVADO_SYNTH_FILE) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_XDC) | $(VIVADO_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: implementation
+	@echo -------------------------------------------------------------------------------
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build impl $(VIVADO_JOBS) $(if $VITIS_APP,$(VIVADO_DSN_PROC_INST) $(VIVADO_DSN_PROC_REF) $(VIVADO_DSN_ELF))
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: prepare for simulation
+	@echo -------------------------------------------------------------------------------
+ifdef VITIS_APP
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) simprep \
+		elf: $(VIVADO_DSN_PROC_INST) $(VIVADO_DSN_PROC_REF) $(VIVADO_SIM_ELF) \
+		gen: $(VIVADO_SIM_GENERICS)
+else
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) simprep \
+		gen: $(VIVADO_SIM_GENERICS)
+endif
+	touch $(VIVADO_DSN_BD_HWDEF)
+	touch $(VIVADO_XSA_FILE)
+ifdef VITIS_APP
+	touch $(VITIS_PROJ_FILE)
+	touch $(VITIS_ELF_RELEASE)
+	touch $(VITIS_ELF_DEBUG)
+endif
+	touch $(VIVADO_SYNTH_FILE)
+	touch $@
+
+# bit file depends on implementation file
+.PHONY: bit
+bit: $(VIVADO_BIT_FILE)
+$(VIVADO_BIT_FILE): $(VIVADO_IMPL_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: create bit file
+	@echo -------------------------------------------------------------------------------
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bit $@
+
+# program FPGA
+.PHONY: prog
+prog: $(VIVADO_BIT_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: program FPGA
+	@echo -------------------------------------------------------------------------------
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) prog $<
 
 # update BD source TCL scripts from changed BD files
-.PHONY: update_bd
+.PHONY: bd_update
 define RR_VIVADO_UPDATE_BD
-update_bd:: $(VIVADO_DIR)/$1 | $(VIVADO_XPR)
-	cd $(VIVADO_DIR) && $(VIVADO_TCL) "\
-		open_project $(VIVADO_PROJ); \
-		open_bd_design $1; \
-		write_bd_tcl -force -include_layout $2; \
-		exit \
-	"
+bd_update:: $1 | $(VIVADO_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vivado: update block diagram TCL
+	@echo -------------------------------------------------------------------------------
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bd_tcl $2 $1
 endef
 $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_UPDATE_BD,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd,$X)))
+
+ifdef VITIS_APP
+
+VITIS_PROJ_RECIPE_FILE:=$(VITIS_ABS_DIR)/$(VITIS_APP)_recipe.txt
+VITIS_PROJ_RECIPE_SETTINGS:=\
+	$(VITIS_INCLUDE) \
+	$(VITIS_INCLUDE_RELEASE) \
+	$(VITIS_INCLUDE_DEBUG) \
+	$(VITIS_SYMBOL) \
+	$(VITIS_SYMBOL_RELEASE) \
+	$(VITIS_SYMBOL_DEBUG)
+VITIS_PROJ_RECIPE:=\
+	$(VITIS_SRC) \
+	$(VITIS_PROJ_RECIPE_SETTINGS)
+
+$(VITIS_DIR):
+	bash -c "mkdir -p $(VITIS_DIR)"
+
+# recipe file is created when missing, and updated when the recipe changes
+ifneq ($(VITIS_PROJ_RECIPE),$(file < $(VITIS_PROJ_RECIPE_FILE)))
+$(VITIS_PROJ_RECIPE_FILE): force | $(VITIS_DIR)
+	@echo "$(VITIS_PROJ_RECIPE)" > $@
+endif
+
+# project depends on XSA and recipe files (and existence of sources)
+$(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) $(VITIS_PROJ_RECIPE_FILE) | $(VITIS_SRC)
+	@echo -------------------------------------------------------------------------------
+	@echo Vitis: create project
+	@echo -------------------------------------------------------------------------------
+	cd $(VITIS_DIR) && $(VITIS_TCL) create $(VITIS_APP) $(VIVADO_XSA_FILE) $(VIVADO_DSN_PROC_INST) \
+		src:     $(VITIS_SRC) \
+		inc:     $(VITIS_INCLUDE) \
+		inc_rls: $(VITIS_INCLUDE_RELEASE) \
+		inc_dbg: $(VITIS_INCLUDE_DEBUG) \
+		sym:     $(VITIS_SYMBOL) \
+		sym_rls: $(VITIS_SYMBOL_RELEASE) \
+		sym_dbg: $(VITIS_SYMBOL_DEBUG)
+
+# ELF files depend on XSA file and source (and existence of project)
+.PHONY: elf
+elf: $(VITIS_ELF_RELEASE) $(VITIS_ELF_DEBUG)
+$(VITIS_ELF_RELEASE) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_RELEASE) | $(VITIS_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vitis: build release binary
+	@echo -------------------------------------------------------------------------------
+	cd $(VITIS_DIR) && $(VITIS_TCL) build release
+$(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) | $(VITIS_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@echo Vitis: build debug binary
+	@echo -------------------------------------------------------------------------------
+	cd $(VITIS_DIR) && $(VITIS_TCL) build debug
+
+endif
 
 #-------------------------------------------------------------------------------
 # Intel/Altera Quartus
@@ -203,6 +348,7 @@ else ifneq (,$(filter quartus,$(FPGA_TOOL)))
 .PHONY: sof rbf
 quartus: sof rbf
 
+# can't use the name of a phony target as a directory name, so prefix with .
 QUARTUS_DIR?=.quartus
 
 # basic checks
@@ -211,18 +357,89 @@ ifeq ($(OS),Windows_NT)
 QUARTUS_ROOTDIR:=$(shell cygpath -m $(QUARTUS_ROOTDIR))
 endif
 QUARTUS_EXE:=vivado
-$(eval $(call check_exe,$(QUARTUS_EXE)))
-QUARTUS_VER:=$(shell quartus_sh --tcl_eval regexp {[\.0-9]+} $quartus(version) ver; puts $ver)
+#QUARTUS_VER:=$(shell quartus_sh --tcl_eval regexp {[\.0-9]+} $quartus(version) ver; puts $ver)
+#$(info Intel/Altera Quartus version $(QUARTUS_VER))
 
-$(info Intel/Altera Quartus version $(QUARTUS_VER))
+QUARTUS_SH=$(QUARTUS_PATH:=/)quartus_sh
+QUARTUS_MAP=$(QUARTUS_PATH:=/)quartus_map
+QUARTUS_FIT=$(QUARTUS_PATH:=/)quartus_fit
+QUARTUS_ASM=$(QUARTUS_PATH:=/)quartus_asm
+QUARTUS_PGM=$(QUARTUS_PATH:=/)quartus_pgm
+QUARTUS_CPF=$(QUARTUS_PATH:=/)quartus_cpf
 
-$(error Quartus support is missing)
+QUARTUS_DIR=quartus
+
+ifndef QUARTUS_PART
+$(error QUARTUS_PART not defined)
+endif
+ifndef QUARTUS_TOP
+$(error QUARTUS_TOP not defined)
+endif
+ifndef QUARTUS_PGM_OPT
+QUARTUS_PGM_OPT=-m jtag -c 1
+endif
+
+QUARTUS_QPF_FILE=$(QUARTUS_DIR)/$(QUARTUS_TOP).qpf
+QUARTUS_MAP_FILE=$(QUARTUS_DIR)/db/$(QUARTUS_TOP).map.cdb
+QUARTUS_FIT_FILE=$(QUARTUS_DIR)/db/$(QUARTUS_TOP).cmp.cdb
+QUARTUS_SOF_FILE=$(QUARTUS_TOP).sof
+QUARTUS_RBF_FILE=$(QUARTUS_TOP).rbf
+
+# TODO recipe
+
+qpf: $(QUARTUS_QPF_FILE)
+$(QUARTUS_QPF_FILE): $(QUARTUS_TCL) | $(QUARTUS_QIP) $(QUARTUS_MIF) $(QUARTUS_SIP) $(QUARTUS_VHDL) $(QUARTUS_VLOG) $(QUARTUS_SDC)
+	rm -rf $(QUARTUS_DIR)
+	mkdir $(QUARTUS_DIR)
+	$(QUARTUS_SH) --tcl_eval \
+		project_new $(QUARTUS_DIR)/$(QUARTUS_TOP) -revision $(QUARTUS_TOP) -overwrite \;\
+		set_global_assignment -name DEVICE $(QUARTUS_PART) \;\
+		set_global_assignment -name TOP_LEVEL_ENTITY $(QUARTUS_TOP) \;\
+		set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files \;\
+		$(addprefix set_global_assignment -name QIP_FILE ,$(QUARTUS_QIP:=\;)) \
+		$(addprefix set_global_assignment -name SIP_FILE ,$(QUARTUS_SIP:=\;)) \
+		$(addprefix set_global_assignment -name MIF_FILE ,$(QUARTUS_MIF:=\;)) \
+		$(addprefix set_global_assignment -name VHDL_FILE ,$(QUARTUS_VHDL:=\;)) \
+		$(addprefix set_global_assignment -name VERILOG_FILE ,$(QUARTUS_VLOG:=\;)) \
+		$(addprefix set_global_assignment -name SDC_FILE ,$(QUARTUS_SDC:=\;)) \
+		$(subst =, ,$(addprefix set_parameter -name ,$(QUARTUS_GEN:=\;))) \
+		$(addprefix source ,$(QUARTUS_TCL:=\;))
+
+map: $(QUARTUS_MAP_FILE)
+$(QUARTUS_MAP_FILE): $(QUARTUS_QIP) $(QUARTUS_SIP) $(QUARTUS_VHDL) $(QUARTUS_VLOG) | $(QUARTUS_QPF_FILE)
+	$(QUARTUS_MAP) \
+		$(QUARTUS_DIR)/$(QUARTUS_TOP) \
+		--part=$(QUARTUS_PART) \
+		$(addprefix --optimize=,$(QUARTUS_MAP_OPTIMIZE)) \
+		--rev=$(QUARTUS_TOP)
+
+fit: $(QUARTUS_FIT_FILE)
+$(QUARTUS_FIT_FILE): $(QUARTUS_MAP_FILE) $(QUARTUS_MIF) $(QUARTUS_SDC)
+	$(QUARTUS_FIT) \
+		$(QUARTUS_DIR)/$(QUARTUS_TOP) \
+		--effort=$(QUARTUS_FIT_EFFORT) \
+		--rev=$(QUARTUS_TOP)
+
+sof: $(QUARTUS_SOF_FILE)
+$(QUARTUS_SOF_FILE): $(QUARTUS_FIT_FILE)
+	$(QUARTUS_ASM) \
+		$(QUARTUS_DIR)/$(QUARTUS_TOP) \
+		--rev=$(QUARTUS_TOP)
+	mv $(QUARTUS_DIR)/output_files/$(QUARTUS_SOF_FILE) .
+
+rbf: $(QUARTUS_RBF_FILE)
+$(QUARTUS_RBF_FILE): $(QUARTUS_SOF_FILE)
+	$(QUARTUS_CPF) -c $(QUARTUS_SOF_FILE) $(QUARTUS_RBF_FILE)
+
+prog: $(QUARTUS_SOF_FILE)
+	$(QUARTUS_PGM) $(QUARTUS_PGM_OPT) -o P\;$(QUARTUS_SOF_FILE)$(addprefix @,$(QUARTUS_PGM_DEV))
 
 #-------------------------------------------------------------------------------
 # Lattice Radiant
 
 else ifneq (,$(findstring radiant,$(FPGA_TOOL)))
 
+# can't use the name of a phony target as a directory name, so prefix with .
 RADIANT_CMD_DIR?=.radiant_cmd
 RADIANT_IDE_DIR?=.radiant_ide
 
@@ -237,7 +454,6 @@ RADIANT_EXE:=pnmainc
 else
 RADIANT_EXE:=radiantc
 endif
-$(eval $(call check_exe,$(RADIANT_EXE)))
 RADIANT_TCL:=$(RADIANT_EXE) $(MAKE_FPGA_TCL) radiant
 RADIANT_VER:=$(shell $(RADIANT_TCL) script sys_install_version)
 $(call check_shell_status,Could not set RADIANT_VER)
@@ -368,7 +584,7 @@ $(RADIANT_IDE_DIR):
 $(RADIANT_IDE_DIR)/$(RADIANT_RDF): (ALL MAKEFILES) | $(RADIANT_IDE_DIR)
 	cd $(RADIANT_IDE_DIR) && \
 	rm -f $(RADIANT_PROJ).rdf && \
-	$(RADIANT_TCL) script \
+	$(RADIANT_TCL) eval \
 		prj_create \
 		-name		 $(RADIANT_PROJ) \
 		-synthesis	 $(RADIANT_SYNTH) \
@@ -429,10 +645,10 @@ endif
 
 ghdl: sim
 
+# can't use the name of a phony target as a directory name, so prefix with .
 GHDL_DIR?=.ghdl
 SIM_DIR+=$(GHDL_DIR)
 GHDL?=ghdl
-$(eval $(call check_exe,$(GHDL)))
 
 GHDL_SRC?=$(SIM_SRC)
 GHDL_WORK?=$(SIM_WORK)
@@ -509,10 +725,10 @@ endif
 
 nvc: sim
 
+# can't use the name of a phony target as a directory name, so prefix with .
 NVC_DIR?=.nvc
 SIM_DIR+=$(NVC_DIR)
 NVC?=nvc
-$(eval $(call check_exe,$(NVC)))
 
 NVC_SRC?=$(SIM_SRC)
 NVC_WORK?=$(SIM_WORK)
@@ -590,6 +806,7 @@ endif
 
 vsim: sim
 
+# can't use the name of a phony target as a directory name, so prefix with .
 VSIM_DIR?=.vsim
 SIM_DIR+=$(VSIM_DIR)
 VSIM_INI?=modelsim.ini
@@ -615,9 +832,6 @@ VMAP:=$(shell cygpath -m $(VMAP))
 VCOM:=$(shell cygpath -m $(VCOM))
 VSIM:=$(shell cygpath -m $(VSIM))
 endif
-$(eval $(call check_exe,$(VMAP)))
-$(eval $(call check_exe,$(VCOM)))
-$(eval $(call check_exe,$(VSIM)))
 
 VSIM_SRC?=$(SIM_SRC)
 VSIM_WORK?=$(SIM_WORK)
@@ -700,14 +914,12 @@ ifneq (,$(filter xsim_cmd,$(MAKECMDGOALS)))
 
 xsim_cmd: sim
 
+# can't use the name of a phony target as a directory name, so prefix with .
 XSIM_CMD_DIR?=.xsim_cmd
 SIM_DIR+=$(XSIM_CMD_DIR)
 XVHDL?=xvhdl
-$(eval $(call check_exe,$(XVHDL)))
 XELAB?=xelab
-$(eval $(call check_exe,$(XELAB)))
 XSIM?=xsim
-$(eval $(call check_exe,$(XSIM)))
 
 XSIM_CMD_TOUCH_COM:=$(XSIM_CMD_DIR)/touch.com
 XSIM_CMD_TOUCH_RUN:=$(XSIM_CMD_DIR)/touch.run
@@ -840,9 +1052,9 @@ xsim_ide: sim
 
 # basic checks
 VIVADO_EXE:=vivado
-$(eval $(call check_exe,$(VIVADO_EXE)))
-VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs vivado script
+VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs eval
 
+# can't use the name of a phony target as a directory name, so prefix with .
 XSIM_IDE_DIR?=.xsim_ide
 SIM_DIR+=$(XSIM_IDE_DIR)
 
@@ -928,5 +1140,4 @@ vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE) | $(VSCODE_DIR)
 
 clean:
 	find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
-	rm -rf */
-	rm -rf .*/
+	find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +
