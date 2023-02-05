@@ -99,14 +99,9 @@ switch $tool {
 						set d [dict remove $d dsn_xdc_synth]
 					}
 					if {[dict exist $d dsn_xdc_impl]} {
-						puts "dict get d dsn_xdc_impl = [dict get $d dsn_xdc_impl]"
 						add_files -norecurse -fileset [get_filesets constrs_1] [dict get $d dsn_xdc_impl]
-						puts "debug"
-						puts "files : [get_files -of_objects [get_filesets constrs_1] [dict get $d dsn_xdc_impl]]"
 						set_property used_in_synthesis false [get_files -of_objects [get_filesets constrs_1] [dict get $d dsn_xdc_impl]]
-						puts "debug"
 						set_property used_in_implementation true [get_files -of_objects [get_filesets constrs_1] [dict get $d dsn_xdc_impl]]
-						puts "debug"
 						set d [dict remove $d dsn_xdc_impl]
 					}
 					foreach f [get_files -of_objects [get_filesets constrs_1] *.tcl] {
@@ -504,7 +499,7 @@ switch $tool {
 			}
 		} result]
 		puts $result
-		exit $code		
+		exit $code
 	}
 
 	radiant {

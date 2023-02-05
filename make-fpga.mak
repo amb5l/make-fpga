@@ -2,6 +2,8 @@
 # make-fpga.mak
 # Support for using GNU make to drive FPGA builds and simulations.
 ################################################################################
+# TODO
+#	check for old ELF files after Vitis build failures
 
 # supported targets/goals
 SUPPORTED_FPGA_TOOL:=vivado quartus radiant_cmd radiant_ide
@@ -149,25 +151,15 @@ VIVADO_PROJ_RECIPE:=\
 	$(VIVADO_PROJ_RECIPE_SETTINGS)
 
 $(VIVADO_DIR):
-	bash -c "mkdir -p $(VIVADO_DIR)"
+	bash -c "mkdir -p $@"
 
 # recipe file is created when missing, and updated when the recipe changes
-ifneq ($(VIVADO_PROJ_RECIPE),$(file < $(VIVADO_PROJ_RECIPE_FILE)))
-$(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
-	@echo "$(VIVADO_PROJ_RECIPE)" > $@
+ifneq ($(VIVADO_PROJ_RECIPE),$(file <$(VIVADO_PROJ_RECIPE_FILE)))
+$(VIVADO_PROJ_RECIPE_FILE): | $(VIVADO_DIR)
+	$(file >$@,$(VIVADO_PROJ_RECIPE))
 endif
 
-#$(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
-#	@bash -c "\
-#		if [[ ! -f $(VIVADO_PROJ_RECIPE_FILE) ]]; then \
-#			echo \"$(VIVADO_PROJ_RECIPE)\" > $@; \
-#		elif [[ \"$(VIVADO_PROJ_RECIPE)\" != \"$$(<$(VIVADO_PROJ_RECIPE_FILE))\" ]]; then \
-#			echo \"$(VIVADO_PROJ_RECIPE)\" > $@; \
-#		fi \
-#	"
-
-
-# project depends on recipe file and existence of directory and sources
+# project depends on recipe file and existence of sources
 .PHONY: xpr
 xpr: $(VIVADO_PROJ_FILE)
 $(VIVADO_PROJ_FILE): $(VIVADO_PROJ_RECIPE_FILE) | $(VIVADO_PROJ_RECIPE_SOURCES)
@@ -187,9 +179,11 @@ $(VIVADO_PROJ_FILE): $(VIVADO_PROJ_RECIPE_FILE) | $(VIVADO_PROJ_RECIPE_SOURCES)
 		sim_top:        $(VIVADO_SIM_TOP) \
 		sim_gen:        $(VIVADO_SIM_GENERICS)
 
-# BD files depend on BD TCL scripts (and existence of project)
+# BD files depend on BD TCL scripts and project
+.PHONY: bd
 define RR_VIVADO_BD
-$1: $2 | $(VIVADO_PROJ_FILE)
+bd:: $1
+$1: $2 $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: build block diagrams from TCL
 	@echo -------------------------------------------------------------------------------
@@ -197,9 +191,9 @@ $1: $2 | $(VIVADO_PROJ_FILE)
 endef
 $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd,$X)))
 
-# BD hardware definitions depend on BD files (and existence of project)
+# BD hardware definitions depend on BD files and project
 define RR_VIVADO_BD_HWDEF
-$1: $2 | $(VIVADO_PROJ_FILE)
+$1: $2 $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: build block diagram hardware definitions
 	@echo -------------------------------------------------------------------------------
@@ -207,16 +201,16 @@ $1: $2 | $(VIVADO_PROJ_FILE)
 endef
 $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD_HWDEF,$(VIVADO_BD_HWDEF_PATH)/$(basename $(notdir $X))/synth/$(basename $(notdir $X)).hwdef,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd)))
 
-# hardware handoff (XSA) file depends on BD hwdef(s) (and existence of project)
-$(VIVADO_XSA_FILE): $(VIVADO_DSN_BD_HWDEF) | $(VIVADO_PROJ_FILE)
+# hardware handoff (XSA) file depends on BD hwdef(s) and project
+$(VIVADO_XSA_FILE): $(VIVADO_DSN_BD_HWDEF) $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: build hardware handoff (XSA) file
 	@echo -------------------------------------------------------------------------------
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build xsa
 
-# IP XCI files and simulation models depend on IP TCL scripts (and existence of project)
+# IP XCI files and simulation models depend on IP TCL scripts and project
 define RR_VIVADO_IP_XCI
-$1 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X) &: $2 | $(VIVADO_PROJ_FILE)
+$1 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X) &: $2 $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: build IP XCI file and simulation model(s)
 	@echo -------------------------------------------------------------------------------
@@ -224,16 +218,16 @@ $1 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$
 endef
 $(foreach X,$(VIVADO_DSN_IP_TCL),$(eval $(call RR_VIVADO_IP_XCI,$(VIVADO_DSN_IP_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).xci,$X)))
 
-# synthesis file depends on design sources and relevant constraints (and existence of project)
-$(VIVADO_SYNTH_FILE): $(VIVADO_DSN_IP_XCI) $(VIVADO_DSN_BD_HWDEF) $(VIVADO_DSN_VHDL) $(VIVADO_DSN_VHDL_2008) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) | $(VIVADO_PROJ_FILE)
+# synthesis file depends on design sources, relevant constraints and project
+$(VIVADO_SYNTH_FILE): $(VIVADO_DSN_IP_XCI) $(VIVADO_DSN_BD_HWDEF) $(VIVADO_DSN_VHDL) $(VIVADO_DSN_VHDL_2008) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: synthesis
 	@echo -------------------------------------------------------------------------------
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build synth $(VIVADO_JOBS)
 
-# implementation file depends on synthesis file, ELF file, and relevant constraints (and existence of project)
+# implementation file depends on synthesis file, ELF file, and relevant constraints and project
 # we also carry out simulation prep here so that project is left ready for interactive simulation
-$(VIVADO_IMPL_FILE): $(VIVADO_SYNTH_FILE) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_XDC) | $(VIVADO_PROJ_FILE)
+$(VIVADO_IMPL_FILE): $(VIVADO_SYNTH_FILE) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_XDC) $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: implementation
 	@echo -------------------------------------------------------------------------------
@@ -279,7 +273,7 @@ prog: $(VIVADO_BIT_FILE)
 # update BD source TCL scripts from changed BD files
 .PHONY: bd_update
 define RR_VIVADO_UPDATE_BD
-bd_update:: $1 | $(VIVADO_PROJ_FILE)
+bd_update:: $1 $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: update block diagram TCL
 	@echo -------------------------------------------------------------------------------
@@ -302,12 +296,12 @@ VITIS_PROJ_RECIPE:=\
 	$(VITIS_PROJ_RECIPE_SETTINGS)
 
 $(VITIS_DIR):
-	bash -c "mkdir -p $(VITIS_DIR)"
+	bash -c "mkdir -p $@"
 
 # recipe file is created when missing, and updated when the recipe changes
-ifneq ($(VITIS_PROJ_RECIPE),$(file < $(VITIS_PROJ_RECIPE_FILE)))
-$(VITIS_PROJ_RECIPE_FILE): force | $(VITIS_DIR)
-	@echo "$(VITIS_PROJ_RECIPE)" > $@
+ifneq ($(VITIS_PROJ_RECIPE),$(file <$(VITIS_PROJ_RECIPE_FILE)))
+$(VITIS_PROJ_RECIPE_FILE): | $(VITIS_DIR)
+	$(file >$@,$(VITIS_PROJ_RECIPE))
 endif
 
 # project depends on XSA and recipe files (and existence of sources)
@@ -324,15 +318,15 @@ $(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) $(VITIS_PROJ_RECIPE_FILE) | $(VITIS_SRC)
 		sym_rls: $(VITIS_SYMBOL_RELEASE) \
 		sym_dbg: $(VITIS_SYMBOL_DEBUG)
 
-# ELF files depend on XSA file and source (and existence of project)
+# ELF files depend on XSA file, source and project
 .PHONY: elf
 elf: $(VITIS_ELF_RELEASE) $(VITIS_ELF_DEBUG)
-$(VITIS_ELF_RELEASE) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_RELEASE) | $(VITIS_PROJ_FILE)
+$(VITIS_ELF_RELEASE) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_RELEASE) $(VITIS_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vitis: build release binary
 	@echo -------------------------------------------------------------------------------
 	cd $(VITIS_DIR) && $(VITIS_TCL) build release
-$(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) | $(VITIS_PROJ_FILE)
+$(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) $(VITIS_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vitis: build debug binary
 	@echo -------------------------------------------------------------------------------
