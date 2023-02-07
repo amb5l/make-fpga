@@ -255,8 +255,12 @@ else
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) simprep \
 		gen: $(VIVADO_SIM_GENERICS)
 endif
+ifneq (,$(VIVADO_DSN_BD_HWDEF))
 	touch $(VIVADO_DSN_BD_HWDEF)
+endif
+ifneq (,$(VIVADO_XSA_FILE))
 	touch $(VIVADO_XSA_FILE)
+endif
 ifdef VITIS_APP
 	touch $(VITIS_PROJ_FILE)
 	touch $(VITIS_ELF_RELEASE)
