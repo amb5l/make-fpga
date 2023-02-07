@@ -153,6 +153,18 @@ VIVADO_PROJ_RECIPE:=\
 $(VIVADO_DIR):
 	bash -c "mkdir -p $@"
 
+.PHONY: ts
+ts:
+	@ls --full-time $(VIVADO_PROJ_RECIPE_FILE)
+	@ls --full-time $(VIVADO_PROJ_FILE)
+	@ls --full-time $(VIVADO_DSN_BD_TCL)
+	@ls --full-time $(VIVADO_DSN_BD)
+	@ls --full-time $(VIVADO_DSN_BD_HWDEF)
+	@ls --full-time $(VIVADO_XSA_FILE)
+	@ls --full-time $(VIVADO_SYNTH_FILE)
+	@ls --full-time $(VIVADO_IMPL_FILE)
+	@ls --full-time $(VIVADO_BIT_FILE)
+
 # recipe file is created when missing, and updated when the recipe changes
 ifneq ($(VIVADO_PROJ_RECIPE),$(file <$(VIVADO_PROJ_RECIPE_FILE)))
 $(VIVADO_PROJ_RECIPE_FILE): | $(VIVADO_DIR)
@@ -179,11 +191,11 @@ $(VIVADO_PROJ_FILE): $(VIVADO_PROJ_RECIPE_FILE) | $(VIVADO_PROJ_RECIPE_SOURCES)
 		sim_top:        $(VIVADO_SIM_TOP) \
 		sim_gen:        $(VIVADO_SIM_GENERICS)
 
-# BD files depend on BD TCL scripts and project
+# BD files depend on BD TCL scripts and existence of project
 .PHONY: bd
 define RR_VIVADO_BD
 bd:: $1
-$1: $2 $(VIVADO_PROJ_FILE)
+$1: $2 | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: build block diagrams from TCL
 	@echo -------------------------------------------------------------------------------
@@ -191,9 +203,9 @@ $1: $2 $(VIVADO_PROJ_FILE)
 endef
 $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd,$X)))
 
-# BD hardware definitions depend on BD files and project
+# BD hardware definitions depend on BD files and existence of project
 define RR_VIVADO_BD_HWDEF
-$1: $2 $(VIVADO_PROJ_FILE)
+$1: $2 | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: build block diagram hardware definitions
 	@echo -------------------------------------------------------------------------------
@@ -201,33 +213,33 @@ $1: $2 $(VIVADO_PROJ_FILE)
 endef
 $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD_HWDEF,$(VIVADO_BD_HWDEF_PATH)/$(basename $(notdir $X))/synth/$(basename $(notdir $X)).hwdef,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd)))
 
-# hardware handoff (XSA) file depends on BD hwdef(s) and project
-$(VIVADO_XSA_FILE): $(VIVADO_DSN_BD_HWDEF) $(VIVADO_PROJ_FILE)
+# hardware handoff (XSA) file depends on BD hwdef(s) and existence of project
+$(VIVADO_XSA_FILE): $(VIVADO_DSN_BD_HWDEF) | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
-	@echo Vivado: build hardware handoff (XSA) file
+	@echo Vivado: build hardware handoff \(XSA\) file
 	@echo -------------------------------------------------------------------------------
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build xsa
 
-# IP XCI files and simulation models depend on IP TCL scripts and project
+# IP XCI files and simulation models depend on IP TCL scripts and existence of project
 define RR_VIVADO_IP_XCI
-$1 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X) &: $2 $(VIVADO_PROJ_FILE)
+$1 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X) &: $2 | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
-	@echo Vivado: build IP XCI file and simulation model(s)
+	@echo Vivado: build IP XCI file and simulation model\(s\)
 	@echo -------------------------------------------------------------------------------
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build ip $1 $2 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X)
 endef
 $(foreach X,$(VIVADO_DSN_IP_TCL),$(eval $(call RR_VIVADO_IP_XCI,$(VIVADO_DSN_IP_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).xci,$X)))
 
-# synthesis file depends on design sources, relevant constraints and project
-$(VIVADO_SYNTH_FILE): $(VIVADO_DSN_IP_XCI) $(VIVADO_DSN_BD_HWDEF) $(VIVADO_DSN_VHDL) $(VIVADO_DSN_VHDL_2008) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) $(VIVADO_PROJ_FILE)
+# synthesis file depends on design sources, relevant constraints and existence of project
+$(VIVADO_SYNTH_FILE): $(VIVADO_DSN_IP_XCI) $(VIVADO_DSN_BD_HWDEF) $(VIVADO_DSN_VHDL) $(VIVADO_DSN_VHDL_2008) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: synthesis
 	@echo -------------------------------------------------------------------------------
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build synth $(VIVADO_JOBS)
 
-# implementation file depends on synthesis file, ELF file, and relevant constraints and project
+# implementation file depends on synthesis file, ELF file, relevant constraints and existence of project
 # we also carry out simulation prep here so that project is left ready for interactive simulation
-$(VIVADO_IMPL_FILE): $(VIVADO_SYNTH_FILE) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_XDC) $(VIVADO_PROJ_FILE)
+$(VIVADO_IMPL_FILE): $(VIVADO_SYNTH_FILE) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_XDC) | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: implementation
 	@echo -------------------------------------------------------------------------------
@@ -283,32 +295,13 @@ $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_UPDATE_BD,$(VIVADO_BD_P
 
 ifdef VITIS_APP
 
-VITIS_PROJ_RECIPE_FILE:=$(VITIS_ABS_DIR)/$(VITIS_APP)_recipe.txt
-VITIS_PROJ_RECIPE_SETTINGS:=\
-	$(VITIS_INCLUDE) \
-	$(VITIS_INCLUDE_RELEASE) \
-	$(VITIS_INCLUDE_DEBUG) \
-	$(VITIS_SYMBOL) \
-	$(VITIS_SYMBOL_RELEASE) \
-	$(VITIS_SYMBOL_DEBUG)
-VITIS_PROJ_RECIPE:=\
-	$(VITIS_SRC) \
-	$(VITIS_PROJ_RECIPE_SETTINGS)
-
-$(VITIS_DIR):
-	bash -c "mkdir -p $@"
-
-# recipe file is created when missing, and updated when the recipe changes
-ifneq ($(VITIS_PROJ_RECIPE),$(file <$(VITIS_PROJ_RECIPE_FILE)))
-$(VITIS_PROJ_RECIPE_FILE): | $(VITIS_DIR)
-	$(file >$@,$(VITIS_PROJ_RECIPE))
-endif
-
-# project depends on XSA and recipe files (and existence of sources)
-$(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) $(VITIS_PROJ_RECIPE_FILE) | $(VITIS_SRC)
+# project depends on XSA file (and existence of sources)
+$(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
 	@echo -------------------------------------------------------------------------------
 	@echo Vitis: create project
 	@echo -------------------------------------------------------------------------------
+	rm -rf $(VITIS_DIR)
+	bash -c "mkdir -p $(VITIS_DIR)"
 	cd $(VITIS_DIR) && $(VITIS_TCL) create $(VITIS_APP) $(VIVADO_XSA_FILE) $(VIVADO_DSN_PROC_INST) \
 		src:     $(VITIS_SRC) \
 		inc:     $(VITIS_INCLUDE) \
@@ -950,7 +943,7 @@ $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
 			-L $$(SIM_WORK) \
 			-top $$(word 2,$1) \
 			-snapshot $$(word 2,$1)_$$(word 1,$1) \
-			$$(addprefix -generic_top ",$$(addsuffix ",$$(subst ;, ,$$(word 3,$1)))) \
+			$$(addprefix -generic_top ",$$(addsuffix ",$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))) \
 		&& \
 		$$(XSIM).bat \
 			$$(XSIM_OPTS) \
@@ -1104,12 +1097,13 @@ VSCODE:=code
 VSCODE_DIR:=.vscode
 $(VSCODE_DIR):
 	mkdir $(VSCODE_DIR)
-VSCODE_SRC+=$(foreach x,$(V4P_LIB_SRC),$(word 2,$(subst ;, ,$x)))
+VSCODE_SRC+=$(foreach x,$(V4P_LIB_SRC),$(word 2,$(subst $(SEMICOLON),$(SPACE),$x)))
 VSCODE_SYMLINKS:=$(addprefix $(VSCODE_DIR)/,$(notdir $(VSCODE_SRC)))
 define RR_VSCODE_SYMLINK
 ifeq ($(OS),Windows_NT)
 $(VSCODE_DIR)/$(notdir $1): $1 | $(VSCODE_DIR)
-	cmd.exe //C "mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)"
+	rm -f $$@
+	bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 else
 $(VSCODE_DIR)/$(notdir $1): $1
 	ln $$< $$@
@@ -1119,13 +1113,13 @@ $(foreach s,$(VSCODE_SRC),$(eval $(call RR_VSCODE_SYMLINK,$s)))
 CONFIG_V4P_FILE:=$(VSCODE_DIR)/config.v4p
 CONFIG_V4P_LINES:= \
 	[libraries] \
-	$(foreach x,$(V4P_LIB_SRC),$(notdir $(word 2,$(subst ;, ,$x)))=$(word 1,$(subst ;, ,$x))) \
+	$(foreach x,$(V4P_LIB_SRC),$(notdir $(word 2,$(subst $(SEMICOLON),$(SPACE),$x)))=$(word 1,$(subst $(SEMICOLON),$(SPACE),$x))) \
 	*.vh*=work \
 	[settings] \
 	V4p.Settings.Basics.TopLevelEntities=$(V4P_TOP)
 FORCE:
 $(CONFIG_V4P_FILE): FORCE
-	l=( $(CONFIG_V4P_LINES) ); printf "%s\n" "$${l[@]}" > $(CONFIG_V4P_FILE)
+	bash -c 'l=( $(CONFIG_V4P_LINES) ); printf "%s\n" "$${l[@]}" > $(CONFIG_V4P_FILE)'
 vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE) | $(VSCODE_DIR)
 	$(VSCODE) $(VSCODE_DIR)
 
