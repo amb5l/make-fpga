@@ -63,6 +63,10 @@ switch $tool {
 			set args [lrange $args 2 end]
 			switch $cmd {
 
+				eval {
+					eval [join $args " "]
+				}
+
 				create {
 					# create fpga_part proj_lang [[cat: cat_items] [cat: cat_items]...]
 					set fpga_part [lindex $args 0]
@@ -277,13 +281,50 @@ switch $tool {
 				}
 
 				prog {
-					# prog file
+					# prog file <hw_spec> - where hw_spec = hardware or hardware.device
 					set file [lindex $args 0]
-					open_hw
+					if {[llength $args] > 1} {
+						set hw_spec [lindex $args 1]
+						if {[string first . $hw_spec] != -1} {
+							hw_spec_list [split $hw_spec .]
+							set hw_target [lindex $hw_spec_list 0]
+							set hw_device [lindex $hw_spec_list 0]
+						} else {
+							set hw_target $hw_spec
+						}
+					}
+					open_hw_manager
 					connect_hw_server
-					current_hw_target [lindex [get_hw_targets] 0]
-					open_hw_target
-					current_hw_device [lindex [get_hw_devices] 0]
+					set hw_target_list [get_hw_targets]
+					puts "-------------------------------------------------------------------------------"
+					puts "interfaces:"
+					for {set x 0} {$x < [llength $hw_target_list]} {incr x} {
+						puts "  $x: [lindex $hw_target_list $x]"
+					}
+					if {[llength $hw_target_list] > 1} {
+						if {![info exists hw_target]} {
+							error_exit {"prog - hardware interface not specified (e.g. make prog HW=0)"}
+						}
+					} else {
+						set hw_target 0
+					}
+					puts "opening $hw_target: [lindex $hw_target_list $hw_target]"
+					open_hw_target -quiet [lindex $hw_target_list $hw_target]
+					set hw_device_list [get_hw_devices]
+					puts "devices:"
+					for {set x 0} {$x < [llength $hw_device_list]} {incr x} {
+						puts "  $x: [lindex $hw_device_list $x]"
+					}
+					if {[llength $hw_device_list] > 1} {
+						if {![info exists hw_device]} {
+							error_exit {"prog - hardware device not specified (e.g. make prog HW=0.1)"}
+						}
+					} else {
+						set hw_device 0
+					}					
+					puts "programming $hw_device: [lindex $hw_device_list $hw_device]"
+					puts "-------------------------------------------------------------------------------"
+					current_hw_device [lindex $hw_device_list $hw_device]
 					set_property PROGRAM.FILE $file [current_hw_device]
 					program_hw_devices [current_hw_device]
 				}

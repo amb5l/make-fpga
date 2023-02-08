@@ -153,6 +153,7 @@ VIVADO_PROJ_RECIPE:=\
 $(VIVADO_DIR):
 	bash -c "mkdir -p $@"
 
+# useful for dependency debug
 .PHONY: ts
 ts:
 	@ls --full-time $(VIVADO_PROJ_RECIPE_FILE)
@@ -279,12 +280,17 @@ $(VIVADO_BIT_FILE): $(VIVADO_IMPL_FILE)
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bit $@
 
 # program FPGA
+ifndef hw
+ifdef HW
+hw:=$(HW)
+endif
+endif
 .PHONY: prog
 prog: $(VIVADO_BIT_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: program FPGA
 	@echo -------------------------------------------------------------------------------
-	cd $(VIVADO_DIR) && $(VIVADO_TCL) prog $<
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) prog $< $(hw)
 
 # update BD source TCL scripts from changed BD files
 .PHONY: bd_update
