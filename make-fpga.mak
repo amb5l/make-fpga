@@ -659,8 +659,8 @@ ifeq ($(OS),Windows_NT)
 GHDL_PREFIX:=$(shell cygpath -m $(GHDL_PREFIX))
 endif
 
-GHDL_AOPTS+=--std=08 -fsynopsys -frelaxed -Wno-hide -Wno-shared $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_LIBS))
-GHDL_EOPTS+=--std=08 -fsynopsys -frelaxed $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_LIBS))
+GHDL_AOPTS+=--std=08 -fsynopsys -frelaxed -Wno-hide -Wno-shared $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_VENDOR_LIBS))
+GHDL_EOPTS+=--std=08 -fsynopsys -frelaxed $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_VENDOR_LIBS))
 GHDL_ROPTS+=--unbuffered --max-stack-alloc=0 --ieee-asserts=disable
 
 define ghdl_com
