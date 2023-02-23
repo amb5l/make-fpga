@@ -618,6 +618,9 @@ endif
 ################################################################################
 # simulation targets
 
+# default to all
+SIMULATOR?=SUPPORTED_SIMULATOR
+
 SIM_DIR:=
 SIM_WORK?=work
 
@@ -897,7 +900,7 @@ endif
 
 ifneq (,$(filter xsim_cmd xsim_ide,$(MAKECMDGOALS)))
 
-ifeq (,$(filter xsim,$(SIMULATOR)))
+ifeq (,$(filter xsim_cmd xsim_ide,$(SIMULATOR)))
 $(error This makefile does not support XSim)
 endif
 
