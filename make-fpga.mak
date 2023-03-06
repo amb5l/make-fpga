@@ -624,11 +624,10 @@ SIMULATOR?=SUPPORTED_SIMULATOR
 # this variable gathers the directories used for the user makefile to refer to
 SIM_DIR:=
 
-# default library and source
-ifndef SIM_LIB
-SIM_LIB:=work
-SIM_SRC.work:=$(SIM_SRC)
-endif
+# defaults
+SIM_WORK?=work
+SIM_LIB?=$(SIM_WORK)
+SIM_SRC.$(SIM_WORK)?=$(SIM_SRC)
 
 # single run: SIM_RUN=top[,generics]
 # multiple runs: SIM_RUN=name1,top1[,generics1] name2,top2[,generics2] ...
@@ -656,8 +655,9 @@ GHDL_DIR?=.ghdl
 SIM_DIR+=$(GHDL_DIR)
 GHDL?=ghdl
 
+GHDL_WORK?=$(SIM_WORK)
 GHDL_LIB?=$(SIM_LIB)
-$(foreach l,$(GHDL_LIB),$(eval GHDL_SRC.$1?=$(SIM_SRC.$l))
+$(foreach l,$(GHDL_LIB),$(eval GHDL_SRC.$l?=$(SIM_SRC.$l)))
 GHDL_TOUCH_COM:=$(GHDL_DIR)/touch.com
 GHDL_TOUCH_RUN:=$(GHDL_DIR)/touch.run
 GHDL_PREFIX?=$(dir $(shell which $(GHDL)))/..
@@ -673,7 +673,7 @@ define ghdl_com
 $(GHDL_TOUCH_COM):: $2 | $(GHDL_DIR)
 	cd $$(GHDL_DIR) && $$(GHDL) \
 		-a \
-		--work=$$1 \
+		--work=$1 \
 		$$(GHDL_AOPTS) \
 		$2
 	touch $(GHDL_TOUCH_COM)
@@ -741,7 +741,7 @@ SIM_DIR+=$(NVC_DIR)
 NVC?=nvc
 
 NVC_LIB?=$(SIM_LIB)
-$(foreach l,$(NVC_LIB),$(eval NVC_SRC.$1?=$(SIM_SRC.$l)))
+$(foreach l,$(NVC_LIB),$(eval NVC_SRC.$l?=$(SIM_SRC.$l)))
 NVC_TOUCH_COM:=$(NVC_DIR)/touch.com
 NVC_TOUCH_RUN:=$(NVC_DIR)/touch.run
 
@@ -754,7 +754,7 @@ define nvc_com
 $(NVC_TOUCH_COM):: $2 | $(NVC_DIR)
 	cd $$(NVC_DIR) && $$(NVC) \
 		$$(NVC_GOPTS) \
-		--work=$$1 \
+		--work=$1 \
 		-a $$(NVC_AOPTS) \
 		$2
 	touch $(NVC_TOUCH_COM)
@@ -829,7 +829,6 @@ VCOM?=vcom
 VSIM?=vsim
 
 ifdef VSIM_BIN_DIR
-$(info VSIM_BIN_DIR=$(VSIM_BIN_DIR))
 VSIM_BIN_PREFIX:=$(if $(VSIM_BIN_DIR),$(VSIM_BIN_DIR)/,)
 ifeq ($(VMAP),$(notdir $(VMAP)))
 VMAP:=$(if $(VSIM_BIN_DIR),$(VSIM_BIN_DIR)/,)$(VMAP)
@@ -847,8 +846,9 @@ VCOM:=$(shell cygpath -m $(VCOM))
 VSIM:=$(shell cygpath -m $(VSIM))
 endif
 
+VSIM_WORK?=$(SIM_WORK)
 VSIM_LIB?=$(SIM_LIB)
-$(foreach l,$(VSIM_LIB),$(eval VSIM_SRC.$1?=$(SIM_SRC.$l)))
+$(foreach l,$(VSIM_LIB),$(eval VSIM_SRC.$l?=$(SIM_SRC.$l)))
 VSIM_TOUCH_COM:=$(VSIM_DIR)/touch.com
 VSIM_TOUCH_RUN:=$(VSIM_DIR)/touch.run
 
@@ -860,7 +860,7 @@ define vsim_com
 $(VSIM_TOUCH_COM):: $2 | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
 	cd $$(VSIM_DIR) && $$(VCOM) \
 		-modelsimini $(VSIM_INI) \
-		-work $$1 \
+		-work $1 \
 		$$(VCOM_OPTS) \
 		$2
 	touch $(VSIM_TOUCH_COM)
@@ -937,7 +937,7 @@ XELAB?=xelab
 XSIM?=xsim
 
 XSIM_CMD_LIB?=$(SIM_LIB)
-$(foreach l,$(XSIM_CMD_LIB),$(eval XSIM_CMD_SRC.$1?=$(SIM_SRC.$l)))
+$(foreach l,$(XSIM_CMD_LIB),$(eval XSIM_CMD_SRC.$l?=$(SIM_SRC.$l)))
 XSIM_CMD_TOUCH_COM:=$(XSIM_CMD_DIR)/touch.com
 XSIM_CMD_TOUCH_RUN:=$(XSIM_CMD_DIR)/touch.run
 
@@ -1088,12 +1088,6 @@ VIVADO_PROJ_FILE?=$(XSIM_IDE_DIR)/$(VIVADO_PROJ).xpr
 $(XSIM_IDE_DIR):
 	bash -c "mkdir -p $(XSIM_IDE_DIR)"
 
-$(info SIM_LIB=$(SIM_LIB))
-$(info SIM_SRC.work=$(SIM_SRC.work))
-
-$(info XSIM_IDE_LIB=$(XSIM_IDE_LIB))
-$(info XSIM_IDE_SRC.work=$(XSIM_IDE_SRC.work))
-
 $(VIVADO_PROJ_FILE): $(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l)) | $(XSIM_IDE_DIR)
 	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"create_project -force $(VIVADO_PROJ); \
@@ -1138,9 +1132,14 @@ endif
 
 VSCODE:=code
 VSCODE_DIR:=.vscode
+
 ifndef VSCODE_LIB
-VSCODE_LIB?=$(SIM_LIB)
-$(foreach l,$(SIM_LIB),$(eval VSCODE_SRC.$l:=$(SIM_SRC.$l)))
+VSCODE_LIB:=$(SIM_LIB)
+endif
+ifdef VSCODE_SRC
+VSCODE_SRC.work:=$(VSCODE_SRC)
+else
+$(foreach l,$(VSCODE_LIB),$(eval VSCODE_SRC.$l?=$(SIM_SRC.$l)))
 endif
 VSCODE_TOP?=$(SIM_TOP)
 V4P_TOP?=$(VSCODE_TOP)
