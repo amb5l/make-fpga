@@ -958,10 +958,6 @@ $(XSIM_CMD_TOUCH_COM):: $2 | $(XSIM_CMD_DIR)
 
 endef
 
-define xsim_cmd_com_lib
-$(foreach s,$(XSIM_CMD_SRC.$1),$(eval $(call xsim_cmd_com,$1,$s)))
-endef
-
 define xsim_cmd_run
 
 $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
@@ -1055,6 +1051,10 @@ gtkwave:: $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw
 endef
 
 endif
+
+define xsim_cmd_com_lib
+$(foreach s,$(XSIM_CMD_SRC.$1),$(eval $(call xsim_cmd_com,$1,$s)))
+endef
 
 $(XSIM_CMD_DIR):
 	bash -c "mkdir -p $(XSIM_CMD_DIR)"
