@@ -621,11 +621,17 @@ endif
 # default to all
 SIMULATOR?=SUPPORTED_SIMULATOR
 
+# this variable gathers the directories used for the user makefile to refer to
 SIM_DIR:=
-SIM_WORK?=work
+
+# default library and source
+ifndef SIM_LIB
+SIM_LIB:=work
+SIM_SRC.work:=$(SIM_SRC)
+endif
 
 # single run: SIM_RUN=top[,generics]
-# multiple runs: SIM_RUN=name1,top1[,generics1] name2,top2[generics2] ...
+# multiple runs: SIM_RUN=name1,top1[,generics1] name2,top2[,generics2] ...
 ifeq ($(words $(SIM_RUN)),1)
 SIM_RUN:=$(subst $(COMMA),$(SPACE),$(SIM_RUN))
 ifneq (3,$(words $(word 1,$(SIM_RUN))))
@@ -650,8 +656,8 @@ GHDL_DIR?=.ghdl
 SIM_DIR+=$(GHDL_DIR)
 GHDL?=ghdl
 
-GHDL_SRC?=$(SIM_SRC)
-GHDL_WORK?=$(SIM_WORK)
+GHDL_LIB?=$(SIM_LIB)
+$(foreach l,$(GHDL_LIB),$(eval GHDL_SRC.$1?=$(SIM_SRC.$l))
 GHDL_TOUCH_COM:=$(GHDL_DIR)/touch.com
 GHDL_TOUCH_RUN:=$(GHDL_DIR)/touch.run
 GHDL_PREFIX?=$(dir $(shell which $(GHDL)))/..
@@ -664,13 +670,17 @@ GHDL_EOPTS+=--std=08 -fsynopsys -frelaxed $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/
 GHDL_ROPTS+=--unbuffered --max-stack-alloc=0 --ieee-asserts=disable
 
 define ghdl_com
-$(GHDL_TOUCH_COM):: $1 | $(GHDL_DIR)
+$(GHDL_TOUCH_COM):: $2 | $(GHDL_DIR)
 	cd $$(GHDL_DIR) && $$(GHDL) \
 		-a \
-		--work=$$(GHDL_WORK) \
+		--work=$$1 \
 		$$(GHDL_AOPTS) \
-		$1
+		$2
 	touch $(GHDL_TOUCH_COM)
+endef
+
+define ghdl_com_lib
+$(foreach s,$(GHDL_SRC.$1),$(eval $(call ghdl_com,$1,$s)))
 endef
 
 define ghdl_run
@@ -709,7 +719,7 @@ endef
 $(GHDL_DIR):
 	bash -c "mkdir -p $(GHDL_DIR)"
 
-$(foreach s,$(GHDL_SRC),$(eval $(call ghdl_com,$s)))
+$(foreach l,$(GHDL_LIB),$(eval $(call ghdl_com_lib,$l)))
 $(foreach r,$(SIM_RUN),$(eval $(call ghdl_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
@@ -730,8 +740,8 @@ NVC_DIR?=.nvc
 SIM_DIR+=$(NVC_DIR)
 NVC?=nvc
 
-NVC_SRC?=$(SIM_SRC)
-NVC_WORK?=$(SIM_WORK)
+NVC_LIB?=$(SIM_LIB)
+$(foreach l,$(NVC_LIB),$(eval NVC_SRC.$1?=$(SIM_SRC.$l)))
 NVC_TOUCH_COM:=$(NVC_DIR)/touch.com
 NVC_TOUCH_RUN:=$(NVC_DIR)/touch.run
 
@@ -741,13 +751,17 @@ NVC_EOPTS+=
 NVC_ROPTS+=--ieee-warnings=off
 
 define nvc_com
-$(NVC_TOUCH_COM):: $1 | $(NVC_DIR)
+$(NVC_TOUCH_COM):: $2 | $(NVC_DIR)
 	cd $$(NVC_DIR) && $$(NVC) \
 		$$(NVC_GOPTS) \
-		--work=$$(SIM_WORK) \
+		--work=$$1 \
 		-a $$(NVC_AOPTS) \
-		$1
+		$2
 	touch $(NVC_TOUCH_COM)
+endef
+
+define nvc_com_lib
+$(foreach s,$(NVC_SRC.$1),$(eval $(call nvc_com,$1,$s)))
 endef
 
 define nvc_run
@@ -790,7 +804,7 @@ endef
 $(NVC_DIR):
 	bash -c "mkdir -p $(NVC_DIR)"
 
-$(foreach s,$(NVC_SRC),$(eval $(call nvc_com,$s)))
+$(foreach l,$(NVC_LIB),$(eval $(call nvc_com_lib,$l)))
 $(foreach r,$(SIM_RUN),$(eval $(call nvc_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
@@ -833,8 +847,8 @@ VCOM:=$(shell cygpath -m $(VCOM))
 VSIM:=$(shell cygpath -m $(VSIM))
 endif
 
-VSIM_SRC?=$(SIM_SRC)
-VSIM_WORK?=$(SIM_WORK)
+VSIM_LIB?=$(SIM_LIB)
+$(foreach l,$(VSIM_LIB),$(eval VSIM_SRC.$1?=$(SIM_SRC.$l)))
 VSIM_TOUCH_COM:=$(VSIM_DIR)/touch.com
 VSIM_TOUCH_RUN:=$(VSIM_DIR)/touch.run
 
@@ -843,13 +857,17 @@ VSIM_TCL+=set NumericStdNoWarnings 1; onfinish exit; run -all; exit
 VSIM_OPTS+=-t ps -c -onfinish stop -do "$(VSIM_TCL)"
 
 define vsim_com
-$(VSIM_TOUCH_COM):: $1 | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
+$(VSIM_TOUCH_COM):: $2 | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
 	cd $$(VSIM_DIR) && $$(VCOM) \
 		-modelsimini $(VSIM_INI) \
-		-work $$(VSIM_WORK) \
+		-work $$1 \
 		$$(VCOM_OPTS) \
-		$1
+		$2
 	touch $(VSIM_TOUCH_COM)
+endef
+
+define vsim_com_lib
+$(foreach s,$(VSIM_SRC.$1),$(eval $(call vsim_com,$1,$s)))
 endef
 
 define vsim_run
@@ -890,7 +908,7 @@ $(VSIM_DIR):
 $(VSIM_DIR)/$(VSIM_INI): | $(VSIM_DIR)
 	cd $(VSIM_DIR) && $(VMAP) -c && mv modelsim.ini $(VSIM_INI)
 
-$(foreach s,$(VSIM_SRC),$(eval $(call vsim_com,$s)))
+$(foreach l,$(VSIM_LIB),$(eval $(call vsim_com_lib,$l)))
 $(foreach r,$(SIM_RUN),$(eval $(call vsim_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
@@ -903,9 +921,6 @@ ifneq (,$(filter xsim_cmd xsim_ide,$(MAKECMDGOALS)))
 ifeq (,$(filter xsim_cmd xsim_ide,$(SIMULATOR)))
 $(error This makefile does not support XSim)
 endif
-
-XSIM_SRC?=$(SIM_SRC)
-XSIM_WORK?=$(SIM_WORK)
 
 #...............................................................................
 # command line flow
@@ -921,6 +936,8 @@ XVHDL?=xvhdl
 XELAB?=xelab
 XSIM?=xsim
 
+XSIM_CMD_LIB?=$(SIM_LIB)
+$(foreach l,$(XSIM_CMD_LIB),$(eval XSIM_CMD_SRC.$1?=$(SIM_SRC.$l)))
 XSIM_CMD_TOUCH_COM:=$(XSIM_CMD_DIR)/touch.com
 XSIM_CMD_TOUCH_RUN:=$(XSIM_CMD_DIR)/touch.run
 
@@ -932,13 +949,17 @@ ifeq ($(OS),Windows_NT)
 
 define xsim_cmd_com
 
-$(XSIM_CMD_TOUCH_COM):: $1 | $(XSIM_CMD_DIR)
+$(XSIM_CMD_TOUCH_COM):: $2 | $(XSIM_CMD_DIR)
 	cd $$(XSIM_CMD_DIR) && cmd.exe //C $(XVHDL).bat \
 		$$(XVHDL_OPTS) \
-		-work $$(SIM_WORK) \
-		$1
+		-work $$1 \
+		$2
 	touch $(XSIM_CMD_TOUCH_COM)
 
+endef
+
+define xsim_cmd_com_lib
+$(foreach s,$(XSIM_CMD_SRC.$1),$(eval $(call xsim_cmd_com,$1,$s)))
 endef
 
 define xsim_cmd_run
@@ -1038,7 +1059,7 @@ endif
 $(XSIM_CMD_DIR):
 	bash -c "mkdir -p $(XSIM_CMD_DIR)"
 
-$(foreach s,$(XSIM_SRC),$(eval $(call xsim_cmd_com,$s)))
+$(foreach l,$(XSIM_CMD_LIB),$(eval $(call xsim_cmd_com_lib,$l)))
 $(foreach r,$(SIM_RUN),$(eval $(call xsim_cmd_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
@@ -1058,20 +1079,29 @@ VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FP
 XSIM_IDE_DIR?=.xsim_ide
 SIM_DIR+=$(XSIM_IDE_DIR)
 
+XSIM_IDE_LIB?=$(SIM_LIB)
+$(foreach l,$(XSIM_IDE_LIB),$(eval XSIM_IDE_SRC.$l?=$(SIM_SRC.$l)))
+
 VIVADO_PROJ?=xsim
 VIVADO_PROJ_FILE?=$(XSIM_IDE_DIR)/$(VIVADO_PROJ).xpr
 
 $(XSIM_IDE_DIR):
 	bash -c "mkdir -p $(XSIM_IDE_DIR)"
 
-$(VIVADO_PROJ_FILE): $(XSIM_SRC) | $(XSIM_IDE_DIR)
+$(info SIM_LIB=$(SIM_LIB))
+$(info SIM_SRC.work=$(SIM_SRC.work))
+
+$(info XSIM_IDE_LIB=$(XSIM_IDE_LIB))
+$(info XSIM_IDE_SRC.work=$(XSIM_IDE_SRC.work))
+
+$(VIVADO_PROJ_FILE): $(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l)) | $(XSIM_IDE_DIR)
 	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"create_project -force $(VIVADO_PROJ); \
 		set_property target_language VHDL [get_projects $(VIVADO_PROJ)]; \
-		add_files -norecurse -fileset [get_filesets sim_1] $(XSIM_SRC); \
-		set_property file_type \"VHDL 2008\" [get_files -of_objects [get_filesets sim_1] {$(XSIM_SRC)}]; \
+		add_files -norecurse -fileset [get_filesets sim_1] {$(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l))}; \
+		set_property file_type \"VHDL 2008\" [get_files -of_objects [get_filesets sim_1] {$(foreach l,$(SIM_LIB),$(SIM_SRC.$l))}]; \
 		set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets sim_1]; \
-		exit"
+		$(foreach l,$(XSIM_IDE_LIB),set_property library $l [get_files -of_objects [get_filesets sim_1] {$(XSIM_IDE_SRC.$l)}]; ) exit"
 
 define xsim_ide_run
 
@@ -1108,32 +1138,43 @@ endif
 
 VSCODE:=code
 VSCODE_DIR:=.vscode
-$(VSCODE_DIR):
-	mkdir $(VSCODE_DIR)
-VSCODE_SRC+=$(foreach x,$(V4P_LIB_SRC),$(word 2,$(subst $(SEMICOLON),$(SPACE),$x)))
-VSCODE_SYMLINKS:=$(addprefix $(VSCODE_DIR)/,$(notdir $(VSCODE_SRC)))
+ifndef VSCODE_LIB
+VSCODE_LIB?=$(SIM_LIB)
+$(foreach l,$(SIM_LIB),$(eval VSCODE_SRC.$l:=$(SIM_SRC.$l)))
+endif
+VSCODE_TOP?=$(SIM_TOP)
+V4P_TOP?=$(VSCODE_TOP)
+VSCODE_LIBX:=$(filter-out $(VSCODE_LIB),$(VSCODE_XLIB))
+VSCODE_LIB+=$(VSCODE_LIBX)
+$(foreach l,$(VSCODE_XLIB),$(eval VSCODE_SRC.$l+=$(VSCODE_XSRC.$l)))
+define RR_VSCODE_DIR
+$1:
+	bash -c "mkdir -p $1"
+endef
+$(eval $(call RR_VSCODE_DIR,$(VSCODE_DIR)))
+$(foreach l,$(VSCODE_LIB),$(eval $(call RR_VSCODE_DIR,$(VSCODE_DIR)/$l)))
 define RR_VSCODE_SYMLINK
 ifeq ($(OS),Windows_NT)
-$(VSCODE_DIR)/$(notdir $1): $1 | $(VSCODE_DIR)
+$(VSCODE_DIR)/$1/$(notdir $2): $2 | $(VSCODE_DIR)/$1
 	rm -f $$@
 	bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 else
-$(VSCODE_DIR)/$(notdir $1): $1
+$(VSCODE_DIR)/$1/$(notdir $2): $2 | $(VSCODE_DIR)/$1
 	ln $$< $$@
 endif
 endef
-$(foreach s,$(VSCODE_SRC),$(eval $(call RR_VSCODE_SYMLINK,$s)))
+$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),$(eval $(call RR_VSCODE_SYMLINK,$l,$s))))
+VSCODE_SYMLINKS:=$(foreach l,$(VSCODE_LIB),$(addprefix $(VSCODE_DIR)/$l/,$(notdir $(VSCODE_SRC.$l))))
 CONFIG_V4P_FILE:=$(VSCODE_DIR)/config.v4p
 CONFIG_V4P_LINES:= \
 	[libraries] \
-	$(foreach x,$(V4P_LIB_SRC),$(notdir $(word 2,$(subst $(SEMICOLON),$(SPACE),$x)))=$(word 1,$(subst $(SEMICOLON),$(SPACE),$x))) \
-	*.vh*=work \
+	$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),$l/$(notdir $s)=$l)) \
 	[settings] \
 	V4p.Settings.Basics.TopLevelEntities=$(V4P_TOP)
 FORCE:
-$(CONFIG_V4P_FILE): FORCE
+$(CONFIG_V4P_FILE): FORCE | $(VSCODE_DIR)
 	bash -c 'l=( $(CONFIG_V4P_LINES) ); printf "%s\n" "$${l[@]}" > $(CONFIG_V4P_FILE)'
-vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE) | $(VSCODE_DIR)
+vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE)
 	$(VSCODE) $(VSCODE_DIR)
 
 #################################################################################
