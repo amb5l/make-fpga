@@ -745,7 +745,7 @@ $(foreach l,$(NVC_LIB),$(eval NVC_SRC.$l?=$(SIM_SRC.$l)))
 NVC_TOUCH_COM:=$(NVC_DIR)/touch.com
 NVC_TOUCH_RUN:=$(NVC_DIR)/touch.run
 
-NVC_GOPTS+=--std=2008
+NVC_GOPTS+=--std=2008 -L.
 NVC_AOPTS+=--relaxed
 NVC_EOPTS+=
 NVC_ROPTS+=--ieee-warnings=off
@@ -952,7 +952,7 @@ define xsim_cmd_com
 $(XSIM_CMD_TOUCH_COM):: $2 | $(XSIM_CMD_DIR)
 	cd $$(XSIM_CMD_DIR) && cmd.exe //C $(XVHDL).bat \
 		$$(XVHDL_OPTS) \
-		-work $$1 \
+		-work $1 \
 		$2
 	touch $(XSIM_CMD_TOUCH_COM)
 
@@ -1010,8 +1010,8 @@ define xsim_cmd_com
 $(XSIM_CMD_TOUCH_COM):: $1 | $(XSIM_CMD_DIR)
 	cd $$(SIM_DIR) && $$(XVHDL) \
 		$$(XVHDL_OPTS) \
-		-work $$(SIM_WORK) \
-		$1
+		-work $1 \
+		$2
 	touch $(XSIM_CMD_TOUCH_COM)
 
 endef
