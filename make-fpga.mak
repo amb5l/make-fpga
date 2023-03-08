@@ -709,7 +709,7 @@ $(GHDL_DIR)/$(word 1,$1).gtkw: $(GHDL_DIR)/$(word 1,$1).vcd
 
 gtkwave:: $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw
 ifeq ($(OS),Windows_NT)
-	start cmd.exe //C \"gtkwave $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw\"
+	start gtkwave $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw
 else
 	gtkwave $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw &
 endif
@@ -794,7 +794,7 @@ $(NVC_DIR)/$(word 1,$1).gtkw: $(NVC_DIR)/$(word 1,$1).vcd
 
 gtkwave:: $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw
 ifeq ($(OS),Windows_NT)
-	start cmd.exe //C \"gtkwave $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw\"
+	start gtkwave $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw
 else
 	gtkwave $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw &
 endif
@@ -950,7 +950,7 @@ ifeq ($(OS),Windows_NT)
 define xsim_cmd_com
 
 $(XSIM_CMD_TOUCH_COM):: $2 | $(XSIM_CMD_DIR)
-	cd $$(XSIM_CMD_DIR) && cmd.exe //C $(XVHDL).bat \
+	cd $$(XSIM_CMD_DIR) && cmd.exe /C $(XVHDL).bat \
 		$$(XVHDL_OPTS) \
 		-work $1 \
 		$2
@@ -980,7 +980,7 @@ $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
 			-tclbatch $$(word 1,$1)_run.tcl \
 			$$(word 2,$1)_$$(word 1,$1) \
 	)
-	cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_run.bat
+	cd $$(XSIM_CMD_DIR) && cmd.exe /C $$(word 1,$1)_run.bat
 	touch $(XSIM_CMD_TOUCH_RUN)
 
 sim:: $(XSIM_CMD_TOUCH_RUN)
@@ -1094,6 +1094,7 @@ $(VIVADO_PROJ_FILE): $(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l)) | $(XSIM_ID
 		set_property target_language VHDL [get_projects $(VIVADO_PROJ)]; \
 		add_files -norecurse -fileset [get_filesets sim_1] {$(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l))}; \
 		set_property file_type \"VHDL 2008\" [get_files -of_objects [get_filesets sim_1] {$(foreach l,$(SIM_LIB),$(SIM_SRC.$l))}]; \
+		set_property used_in_synthesis false [get_files -of_objects [get_filesets sim_1] {$(foreach l,$(SIM_LIB),$(SIM_SRC.$l))}]; \
 		set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets sim_1]; \
 		$(foreach l,$(XSIM_IDE_LIB),set_property library $l [get_files -of_objects [get_filesets sim_1] {$(XSIM_IDE_SRC.$l)}]; ) exit"
 
