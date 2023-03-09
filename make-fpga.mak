@@ -21,11 +21,11 @@ endif
 else
 $(error FPGA_TOOL not defined, simulator not specified)
 endif
+MAKECMDGOALS:=all
 endif
 
-ifneq (,$(FPGA_TOOL))
 all: $(FPGA_TOOL)
-endif
+force:
 
 # useful functions
 define check_null_error
@@ -1239,7 +1239,6 @@ CONFIG_V4P_LINES:= \
 	$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),$l/$(notdir $s)=$l)) \
 	[settings] \
 	V4p.Settings.Basics.TopLevelEntities=$(V4P_TOP)
-force:
 $(CONFIG_V4P_FILE): force | $(VSCODE_DIR)
 	bash -c 'l=( $(CONFIG_V4P_LINES) ); printf "%s\n" "$${l[@]}" > $(CONFIG_V4P_FILE)'
 vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE)
