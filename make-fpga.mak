@@ -10,7 +10,7 @@ SUPPORTED_FPGA_TOOL:=vivado quartus radiant_cmd radiant_ide
 SUPPORTED_SIMULATOR:=ghdl nvc vsim xsim_cmd xsim_ide
 SUPPORTED_OTHER:=vcd gtkwave vscode clean
 
-.PHONY: all sim clean force
+.PHONY: all sim force
 .PHONY: $(SUPPORTED_FPGA_TOOL) $(SUPPORTED_SIMULATOR) $(SUPPORTED_OTHER)
 
 ifeq (,$(MAKECMDGOALS))
@@ -18,10 +18,13 @@ ifdef FPGA_TOOL
 ifneq (,$(filter-out $(SUPPORTED_FPGA_TOOL),$(FPGA_TOOL)))
 $(error FPGA_TOOL specifies unsupported tool(s): $(filter-out $(SUPPORTED_FPGA_TOOLS),$(FPGA_TOOL)))
 endif
-all: $(FPGA_TOOL)
 else
 $(error FPGA_TOOL not defined, simulator not specified)
 endif
+endif
+
+ifneq (,$(FPGA_TOOL))
+all: $(FPGA_TOOL)
 endif
 
 # useful functions
@@ -342,7 +345,6 @@ endif
 
 else ifneq (,$(filter quartus,$(FPGA_TOOL)))
 
-.PHONY: sof rbf
 quartus: sof rbf
 
 # can't use the name of a phony target as a directory name, so prefix with .
@@ -417,6 +419,7 @@ $(QUARTUS_FIT_FILE): $(QUARTUS_MAP_FILE) $(QUARTUS_MIF) $(QUARTUS_SDC)
 		--effort=$(QUARTUS_FIT_EFFORT) \
 		--rev=$(QUARTUS_TOP)
 
+.PHONY: sof
 sof: $(QUARTUS_SOF_FILE)
 $(QUARTUS_SOF_FILE): $(QUARTUS_FIT_FILE)
 	$(QUARTUS_ASM) \
@@ -424,6 +427,7 @@ $(QUARTUS_SOF_FILE): $(QUARTUS_FIT_FILE)
 		--rev=$(QUARTUS_TOP)
 	mv $(QUARTUS_DIR)/output_files/$(QUARTUS_SOF_FILE) .
 
+.PHONY: rbf
 rbf: $(QUARTUS_RBF_FILE)
 $(QUARTUS_RBF_FILE): $(QUARTUS_SOF_FILE)
 	$(QUARTUS_CPF) -c $(QUARTUS_SOF_FILE) $(QUARTUS_RBF_FILE)
@@ -452,8 +456,8 @@ else
 RADIANT_EXE:=radiantc
 endif
 RADIANT_TCL:=$(RADIANT_EXE) $(MAKE_FPGA_TCL) radiant
-RADIANT_VER:=$(shell $(RADIANT_TCL) script sys_install_version)
-$(call check_shell_status,Could not set RADIANT_VER)
+#RADIANT_VER:=$(shell $(RADIANT_TCL) script sys_install_version)
+#$(call check_shell_status,Could not set RADIANT_VER)
 
 # defaults
 RADIANT_PROJ?=fpga
@@ -484,7 +488,6 @@ $(call check_null_warning,RADIANT_PDC)
 
 ifneq (,$(filter radiant_cmd,$(FPGA_TOOL)))
 
-.PHONY: bin nvcm
 radiant_cmd: bin nvcm
 
 $(info Lattice Radiant version $(RADIANT_VER) - Command Line Flow)
@@ -558,8 +561,10 @@ $(RADIANT_BIN): $(RADIANT_CMD_DIR)/$(RADIANT_PAR_UDB)
 $(RADIANT_NVCM): $(RADIANT_CMD_DIR)/$(RADIANT_PAR_UDB)
 	cd $(RADIANT_CMD_DIR) && bitgen -w -nvcm -nvcmsecurity $(notdir $<) $(basename $@) && mv $@ ..
 
+.PHONY: bin
 bin: $(RADIANT_BIN)
 
+.PHONY: nvcm
 nvcm: $(RADIANT_NVCM)
 
 #...............................................................................
@@ -601,7 +606,7 @@ $(RADIANT_IDE_DIR)/$(RADIANT_RDF): (ALL MAKEFILES) | $(RADIANT_IDE_DIR)
 
 else
 
-$(error Lattice Radiant version $(RADIANT_VER) - unknown flow: $(FPGA_TOOL))
+$(error Lattice Radiant - unknown flow: $(FPGA_TOOL))
 
 endif
 
@@ -1240,8 +1245,8 @@ CONFIG_V4P_LINES:= \
 	$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),$l/$(notdir $s)=$l)) \
 	[settings] \
 	V4p.Settings.Basics.TopLevelEntities=$(V4P_TOP)
-FORCE:
-$(CONFIG_V4P_FILE): FORCE | $(VSCODE_DIR)
+force:
+$(CONFIG_V4P_FILE): force | $(VSCODE_DIR)
 	bash -c 'l=( $(CONFIG_V4P_LINES) ); printf "%s\n" "$${l[@]}" > $(CONFIG_V4P_FILE)'
 vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE)
 	$(VSCODE) $(VSCODE_DIR)
