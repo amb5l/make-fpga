@@ -998,10 +998,11 @@ ifeq ($(OS),Windows_NT)
 define xsim_cmd_com
 
 $(XSIM_CMD_TOUCH_COM):: $2 | $(XSIM_CMD_DIR)
-	cd $$(XSIM_CMD_DIR) && cmd.exe /C $(XVHDL).bat \
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C \"$(XVHDL).bat \
 		$$(XVHDL_OPTS) \
 		-work $1 \
-		$2
+		$(shell cygpath -w $2) \
+		\""
 	touch $(XSIM_CMD_TOUCH_COM)
 
 endef
