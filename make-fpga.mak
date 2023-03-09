@@ -63,6 +63,13 @@ COMMA:=,
 SEMICOLON:=;
 SPACE:=$(subst x, ,x)
 
+#################################################################################
+# cleanup
+
+clean:
+	find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
+	find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +
+
 ################################################################################
 # FPGA build targets
 
@@ -1241,10 +1248,3 @@ $(CONFIG_V4P_FILE): force | $(VSCODE_DIR)
 	bash -c 'l=( $(CONFIG_V4P_LINES) ); printf "%s\n" "$${l[@]}" > $(CONFIG_V4P_FILE)'
 vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE)
 	$(VSCODE) $(VSCODE_DIR)
-
-#################################################################################
-# cleanup
-
-clean:
-	find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
-	find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +
