@@ -355,9 +355,6 @@ $(call check_null_error,QUARTUS_ROOTDIR)
 ifeq ($(OS),Windows_NT)
 QUARTUS_ROOTDIR:=$(shell cygpath -m $(QUARTUS_ROOTDIR))
 endif
-QUARTUS_EXE:=vivado
-#QUARTUS_VER:=$(shell quartus_sh --tcl_eval regexp {[\.0-9]+} $quartus(version) ver; puts $ver)
-#$(info Intel/Altera Quartus version $(QUARTUS_VER))
 
 QUARTUS_SH=$(QUARTUS_PATH:=/)quartus_sh
 QUARTUS_MAP=$(QUARTUS_PATH:=/)quartus_map
@@ -366,6 +363,7 @@ QUARTUS_ASM=$(QUARTUS_PATH:=/)quartus_asm
 QUARTUS_PGM=$(QUARTUS_PATH:=/)quartus_pgm
 QUARTUS_CPF=$(QUARTUS_PATH:=/)quartus_cpf
 
+#QUARTUS_VER:=$(shell $(QUARTUS_SH) --tcl_eval regexp {[\.0-9]+} $quartus(version) ver; puts $ver)
 QUARTUS_DIR=quartus
 
 ifndef QUARTUS_PART
@@ -479,18 +477,12 @@ endif
 endif
 $(call check_null_error,RADIANT_TOP)
 
-# warnings
-$(call check_null_warning,RADIANT_LDC)
-$(call check_null_warning,RADIANT_PDC)
-
 #...............................................................................
 # command line flow
 
 ifneq (,$(filter radiant_cmd,$(FPGA_TOOL)))
 
 radiant_cmd: bin nvcm
-
-$(info Lattice Radiant version $(RADIANT_VER) - Command Line Flow)
 
 # warnings
 $(call check_null_warning,RADIANT_FREQ)
@@ -574,8 +566,6 @@ else ifneq (,$(filter radiant_ide,$(FPGA_TOOL)))
 
 .PHONY: bin nvcm
 radiant_ide: bin nvcm
-
-$(info Lattice Radiant version $(RADIANT_VER) - IDE Flow)
 
 RADIANT_RDF?=$(RADIANT_PROJ).rdf
 RADIANT_IMPL?=impl_1
