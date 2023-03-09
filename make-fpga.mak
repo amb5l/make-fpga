@@ -360,6 +360,8 @@ quartus: sof rbf
 # can't use the name of a phony target as a directory name, so prefix with .
 QUARTUS_DIR?=.quartus
 
+QUARTUS_PART?=$(FPGA_DEVICE)
+
 # basic checks
 $(call check_null_error,QUARTUS_ROOTDIR)
 ifeq ($(OS),Windows_NT)
@@ -376,12 +378,6 @@ QUARTUS_CPF=$(QUARTUS_PATH:=/)quartus_cpf
 #QUARTUS_VER:=$(shell $(QUARTUS_SH) --tcl_eval regexp {[\.0-9]+} $quartus(version) ver; puts $ver)
 QUARTUS_DIR=quartus
 
-ifndef QUARTUS_PART
-$(error QUARTUS_PART not defined)
-endif
-ifndef QUARTUS_TOP
-$(error QUARTUS_TOP not defined)
-endif
 ifndef QUARTUS_PGM_OPT
 QUARTUS_PGM_OPT=-m jtag -c 1
 endif
