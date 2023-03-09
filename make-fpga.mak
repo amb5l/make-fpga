@@ -662,7 +662,7 @@ endif
 
 GHDL_AOPTS+=--std=08 -fsynopsys -frelaxed -Wno-hide -Wno-shared $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_VENDOR_LIBS))
 GHDL_EOPTS+=--std=08 -fsynopsys -frelaxed $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_VENDOR_LIBS))
-GHDL_ROPTS+=--unbuffered --max-stack-alloc=0 --ieee-asserts=disable
+GHDL_ROPTS+=--max-stack-alloc=0 --ieee-asserts=disable
 
 define ghdl_com
 $(GHDL_TOUCH_COM):: $2 | $(GHDL_DIR)
