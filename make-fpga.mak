@@ -178,8 +178,8 @@ ts:
 
 # recipe file is created/updated as required
 $(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
-	[ -f $@ ] && r=$$(< $@) || r=""; if [[ $$r != "$(VIVADO_PROJ_RECIPE)" ]]; then \
-	echo "$(VIVADO_PROJ_RECIPE)" > $@; fi
+	bash -c "[ -f $@ ] && r=\$$\(< $@\) || r=\"\"; if [[ \$$r != \"$(VIVADO_PROJ_RECIPE)\" ]]; then \
+	echo \"$(VIVADO_PROJ_RECIPE)\" > $@; fi"
 
 # project depends on recipe file and existence of sources
 .PHONY: xpr
