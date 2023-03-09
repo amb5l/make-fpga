@@ -83,6 +83,8 @@ endif
 # AMD/Xilinx Vivado (plus Vitis for MicroBlaze designs)
 
 ifneq (,$(filter vivado,$(FPGA_TOOL)))
+VIVADO_TARGETS:=all ts xpr bd bit bit prog elf bd_update
+ifneq (,$(filter $(VIVADO_TARGETS),$(MAKECMDGOALS)))
 
 vivado: bit
 
@@ -344,10 +346,14 @@ $(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) $(VITIS_
 
 endif
 
+endif
+
 #-------------------------------------------------------------------------------
 # Intel/Altera Quartus
 
 else ifneq (,$(filter quartus,$(FPGA_TOOL)))
+QUARTUS_TARGETS:=all qpf map fit sof rbf prog
+ifneq (,$(filter $(QUARTUS_TARGETS),$(MAKECMDGOALS)))
 
 quartus: sof rbf
 
@@ -437,6 +443,8 @@ $(QUARTUS_RBF_FILE): $(QUARTUS_SOF_FILE)
 prog: $(QUARTUS_SOF_FILE)
 	$(QUARTUS_PGM) $(QUARTUS_PGM_OPT) -o P\;$(QUARTUS_SOF_FILE)$(addprefix @,$(QUARTUS_PGM_DEV))
 
+endif
+
 #-------------------------------------------------------------------------------
 # Lattice Radiant
 
@@ -485,6 +493,8 @@ $(call check_null_error,RADIANT_TOP)
 # command line flow
 
 ifneq (,$(filter radiant_cmd,$(FPGA_TOOL)))
+RADIANT_TARGETS:=all bin nvcm
+ifneq (,$(filter $(RADIANT_TARGETS),$(MAKECMDGOALS)))
 
 radiant_cmd: bin nvcm
 
@@ -563,10 +573,14 @@ bin: $(RADIANT_BIN)
 .PHONY: nvcm
 nvcm: $(RADIANT_NVCM)
 
+endif
+
 #...............................................................................
 # IDE flow
 
 else ifneq (,$(filter radiant_ide,$(FPGA_TOOL)))
+RADIANT_TARGETS:=all bin nvcm
+ifneq (,$(filter $(RADIANT_TARGETS),$(MAKECMDGOALS)))
 
 .PHONY: bin nvcm
 radiant_ide: bin nvcm
@@ -596,6 +610,8 @@ $(RADIANT_IDE_DIR)/$(RADIANT_RDF): (ALL MAKEFILES) | $(RADIANT_IDE_DIR)
 
 # NOT COMPLETE
 
+endif
+
 #-------------------------------------------------------------------------------
 
 else
@@ -617,6 +633,8 @@ endif
 ################################################################################
 # simulation targets
 
+ifneq (,$(filter $(SUPPORTED_SIMULATOR),$(MAKECMDGOALS)))
+
 # default to all
 SIMULATOR?=SUPPORTED_SIMULATOR
 
@@ -636,6 +654,8 @@ ifneq (3,$(words $(word 1,$(SIM_RUN))))
 SIM_RUN:=sim $(SIM_RUN)
 endif
 SIM_RUN:=$(subst $(SPACE),$(COMMA),$(SIM_RUN))
+endif
+
 endif
 
 #-------------------------------------------------------------------------------
