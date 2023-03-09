@@ -884,8 +884,13 @@ VCOM_OPTS+=-2008 -explicit -stats=none
 VSIM_TCL+=set NumericStdNoWarnings 1; onfinish exit; run -all; exit
 VSIM_OPTS+=-t ps -c -onfinish stop -do "$(VSIM_TCL)"
 
+define vsim_lib
+$(VSIM_DIR)/$1:
+	vlib $1
+endef
+
 define vsim_com
-$(VSIM_TOUCH_COM):: $2 | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
+$(VSIM_TOUCH_COM):: $2 | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI) $(VSIM_DIR)/$1
 	cd $$(VSIM_DIR) && $$(VCOM) \
 		-modelsimini $(VSIM_INI) \
 		-work $1 \
@@ -950,6 +955,7 @@ $(VSIM_DIR):
 $(VSIM_DIR)/$(VSIM_INI): | $(VSIM_DIR)
 	cd $(VSIM_DIR) && $(VMAP) -c && mv modelsim.ini $(VSIM_INI)
 
+$(foreach l,$(VSIM_LIB),$(eval $(call vsim_lib,$l)))
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_com_lib,$l)))
 $(foreach r,$(SIM_RUN),$(eval $(call vsim_run,$(subst $(COMMA),$(SPACE),$r))))
 
