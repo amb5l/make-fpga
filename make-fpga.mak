@@ -682,7 +682,7 @@ define ghdl_run
 
 $(GHDL_TOUCH_RUN):: $(GHDL_TOUCH_COM) | $(GHDL_DIR)
 	@echo -------------------------------------------------------------------------------
-ifeq ($(OS),Windows_NT)	
+ifeq ($(OS),Windows_NT)
 	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
@@ -697,7 +697,7 @@ endif
 		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),--vcd=$$(word 1,$1).vcd) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
-ifeq ($(OS),Windows_NT)	
+ifeq ($(OS),Windows_NT)
 	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
@@ -783,7 +783,7 @@ $(NVC_TOUCH_RUN):: $(NVC_TOUCH_COM) | $(NVC_DIR)
 		$$(NVC_EOPTS) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
-ifeq ($(OS),Windows_NT)	
+ifeq ($(OS),Windows_NT)
 	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
@@ -796,7 +796,7 @@ endif
 		$$(NVC_ROPTS) \
 		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),--format=vcd --wave=$$(word 1,$1).vcd)
 	@echo -------------------------------------------------------------------------------
-ifeq ($(OS),Windows_NT)	
+ifeq ($(OS),Windows_NT)
 	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
@@ -902,7 +902,7 @@ define vsim_run
 
 $(VSIM_TOUCH_RUN):: $(VSIM_TOUCH_COM) | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
 	@echo -------------------------------------------------------------------------------
-ifeq ($(OS),Windows_NT)	
+ifeq ($(OS),Windows_NT)
 	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
@@ -916,7 +916,7 @@ endif
 		$$(word 2,$1) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
-ifeq ($(OS),Windows_NT)	
+ifeq ($(OS),Windows_NT)
 	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
