@@ -686,6 +686,13 @@ endef
 define ghdl_run
 
 $(GHDL_TOUCH_RUN):: $(GHDL_TOUCH_COM) | $(GHDL_DIR)
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)	
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	cd $$(GHDL_DIR) && $$(GHDL) \
 		--elab-run \
 		--work=$$(GHDL_WORK) \
@@ -694,6 +701,13 @@ $(GHDL_TOUCH_RUN):: $(GHDL_TOUCH_COM) | $(GHDL_DIR)
 		$$(GHDL_ROPTS) \
 		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),--vcd=$$(word 1,$1).vcd) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)	
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	touch $(GHDL_TOUCH_RUN)
 
 sim:: $(GHDL_TOUCH_RUN)
@@ -773,12 +787,26 @@ $(NVC_TOUCH_RUN):: $(NVC_TOUCH_COM) | $(NVC_DIR)
 		-e $$(word 2,$1) \
 		$$(NVC_EOPTS) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)	
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	cd $$(NVC_DIR) && $$(NVC) \
 		$$(NVC_GOPTS) \
 		--work=$$(SIM_WORK) \
 		-r $$(word 2,$1) \
 		$$(NVC_ROPTS) \
 		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),--format=vcd --wave=$$(word 1,$1).vcd)
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)	
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	touch $(NVC_TOUCH_RUN)
 
 sim:: $(NVC_TOUCH_RUN)
@@ -873,6 +901,13 @@ endef
 define vsim_run
 
 $(VSIM_TOUCH_RUN):: $(VSIM_TOUCH_COM) | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)	
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	cd $$(VSIM_DIR) && $$(VSIM) \
 		-modelsimini $(VSIM_INI) \
 		-work $$(VSIM_WORK) \
@@ -880,6 +915,13 @@ $(VSIM_TOUCH_RUN):: $(VSIM_TOUCH_COM) | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
 		$$(VSIM_OPTS) \
 		$$(word 2,$1) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)	
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	touch $(VSIM_TOUCH_RUN)
 
 sim:: $(VSIM_TOUCH_RUN)
@@ -967,20 +1009,28 @@ $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
 		run all; quit \
 		) \
 	)
-	$$(file >$$(XSIM_CMD_DIR)/$$(word 1,$1)_run.bat, \
+	$$(file >$$(XSIM_CMD_DIR)/$$(word 1,$1)_elab.bat, \
 		$$(XELAB).bat \
 			$$(XELAB_OPTS) \
 			-L $$(SIM_WORK) \
 			-top $$(word 2,$1) \
 			-snapshot $$(word 2,$1)_$$(word 1,$1) \
 			$$(addprefix -generic_top ",$$(addsuffix ",$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))) \
-		&& \
+	)
+	$$(file >$$(XSIM_CMD_DIR)/$$(word 1,$1)_sim.bat, \
 		$$(XSIM).bat \
 			$$(XSIM_OPTS) \
 			-tclbatch $$(word 1,$1)_run.tcl \
 			$$(word 2,$1)_$$(word 1,$1) \
 	)
-	cd $$(XSIM_CMD_DIR) && cmd.exe /C $$(word 1,$1)_run.bat
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_elab.bat"
+	@echo -------------------------------------------------------------------------------
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@echo -------------------------------------------------------------------------------
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_sim.bat"
+	@echo -------------------------------------------------------------------------------
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@echo -------------------------------------------------------------------------------
 	touch $(XSIM_CMD_TOUCH_RUN)
 
 sim:: $(XSIM_CMD_TOUCH_RUN)
@@ -1028,10 +1078,16 @@ $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
 		-top $$(word 2,$1) \
 		-snapshot $$(word 2,$1)_$$(word 1,$1) $$(word 2,$1) \
 		$(addprefix -generic_top ,$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	@echo -------------------------------------------------------------------------------
+	echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+	@echo -------------------------------------------------------------------------------
 	cd $$(XSIM_CMD_DIR) && $$(XSIM) \
 		$$(XSIM_OPTS) \
 		-tclbatch $$(word 1,$1)_run.tcl \
 		$$(word 2,$1)_$$(word 1,$1)
+	@echo -------------------------------------------------------------------------------
+	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
+	@echo -------------------------------------------------------------------------------
 	touch $(XSIM_CMD_TOUCH_RUN)
 
 sim:: $(XSIM_CMD_TOUCH_RUN)
@@ -1101,6 +1157,9 @@ $(VIVADO_PROJ_FILE): $(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l)) | $(XSIM_ID
 define xsim_ide_run
 
 sim:: | $(VIVADO_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@echo -------------------------------------------------------------------------------
 	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"open_project $(VIVADO_PROJ); \
 		set_property top $$(word 2,$1) [get_filesets sim_1]; \
@@ -1109,6 +1168,9 @@ sim:: | $(VIVADO_PROJ_FILE)
 		launch_simulation; \
 		run all; \
 		exit"
+	@echo -------------------------------------------------------------------------------
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@echo -------------------------------------------------------------------------------
 
 endef
 
