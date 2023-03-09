@@ -177,11 +177,10 @@ ts:
 	@ls --full-time $(VIVADO_IMPL_FILE)
 	@ls --full-time $(VIVADO_BIT_FILE)
 
-# recipe file is created when missing, and updated when the recipe changes
-ifneq ($(VIVADO_PROJ_RECIPE),$(file <$(VIVADO_PROJ_RECIPE_FILE)))
-$(VIVADO_PROJ_RECIPE_FILE): | $(VIVADO_DIR)
-	$(file >$@,$(VIVADO_PROJ_RECIPE))
-endif
+# recipe file is created/updated as required
+$(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
+	[ -f $@ ] && r=$$(< $@) || r=""; if [[ $$r != "$(VIVADO_PROJ_RECIPE)" ]]; then \
+	echo "$(VIVADO_PROJ_RECIPE)" > $@; fi
 
 # project depends on recipe file and existence of sources
 .PHONY: xpr
