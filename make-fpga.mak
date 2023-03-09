@@ -464,8 +464,8 @@ RADIANT_CORES?=8
 RADIANT_DEV_ARCH?=$(FPGA_FAMILY)
 RADIANT_DEV?=$(FPGA_DEVICE)
 RADIANT_DEV_BASE?=$(word 1,$(subst -, ,$(RADIANT_DEV)))
-RADIANT_DEV_PKG?=$(shell echo "iCE40UP5K-SG48I" | grep -Po "(?<=-)(.+\d+)")
-ifeq (ICE40UP,$(shell echo '$(RADIANT_DEV_ARCH)' | tr '[:lower:]' '[:upper:]'))
+RADIANT_DEV_PKG?=$(shell echo $(RADIANT_DEV)| grep -Po "(?<=-)(.+\d+)")
+ifeq (ICE40UP,$(shell echo $(RADIANT_DEV_ARCH)| tr '[:lower:]' '[:upper:]'))
 RADIANT_PERF?=High-Performance_1.2V
 endif
 
@@ -948,7 +948,7 @@ $(VSIM_DIR):
 	bash -c "mkdir -p $(VSIM_DIR)"
 
 $(VSIM_DIR)/$(VSIM_INI): | $(VSIM_DIR)
-	cd $(VSIM_DIR) && $(VMAP) -c && mv modelsim.ini $(VSIM_INI)
+	bash -c "cd $(VSIM_DIR) && $(VMAP) -c && [ -f $(VSIM_INI) ] || mv modelsim.ini $(VSIM_INI)"
 
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_lib,$l)))
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_com_lib,$l)))
