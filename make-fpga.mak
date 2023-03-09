@@ -10,7 +10,7 @@ SUPPORTED_FPGA_TOOL:=vivado quartus radiant_cmd radiant_ide
 SUPPORTED_SIMULATOR:=ghdl nvc vsim xsim_cmd xsim_ide
 SUPPORTED_OTHER:=vcd gtkwave vscode clean
 
-.PHONY: all sim clean force
+.PHONY: all sim force
 .PHONY: $(SUPPORTED_FPGA_TOOL) $(SUPPORTED_SIMULATOR) $(SUPPORTED_OTHER)
 
 ifeq (,$(MAKECMDGOALS))
@@ -18,11 +18,14 @@ ifdef FPGA_TOOL
 ifneq (,$(filter-out $(SUPPORTED_FPGA_TOOL),$(FPGA_TOOL)))
 $(error FPGA_TOOL specifies unsupported tool(s): $(filter-out $(SUPPORTED_FPGA_TOOLS),$(FPGA_TOOL)))
 endif
-all: $(FPGA_TOOL)
 else
 $(error FPGA_TOOL not defined, simulator not specified)
 endif
+MAKECMDGOALS:=all
 endif
+
+all: $(FPGA_TOOL)
+force:
 
 # useful functions
 define check_null_error
@@ -60,6 +63,13 @@ COMMA:=,
 SEMICOLON:=;
 SPACE:=$(subst x, ,x)
 
+#################################################################################
+# cleanup
+
+clean:
+	find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
+	find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +
+
 ################################################################################
 # FPGA build targets
 
@@ -69,13 +79,12 @@ FPGA_FAMILY?=$(word 2,$(FPGA))
 FPGA_DEVICE?=$(word 3,$(FPGA))
 endif
 
-ifeq (,$(MAKECMDGOALS))
-endif
-
 #-------------------------------------------------------------------------------
 # AMD/Xilinx Vivado (plus Vitis for MicroBlaze designs)
 
 ifneq (,$(filter vivado,$(FPGA_TOOL)))
+VIVADO_TARGETS:=all ts xpr bd bit bit prog elf bd_update
+ifneq (,$(filter $(VIVADO_TARGETS),$(MAKECMDGOALS)))
 
 vivado: bit
 
@@ -115,10 +124,11 @@ VIVADO_BIT_FILE?=$(MAKE_DIR)/$(VIVADO_DSN_TOP).bit
 VIVADO_IMPL_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
 VIVADO_SYNTH_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_XSA_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_DSN_TOP).xsa
+VIVADO_DSN_IP_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).srcs/sources_1/ip
 VIVADO_BD_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).srcs/sources_1/bd
 VIVADO_BD_HWDEF_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).gen/sources_1/bd
-VIVADO_SIM_PATH?=$(VIVADO_DIR)/$(VIVADO_PROJ).sim/sim_1/behav/xsim
-VIVADO_SIM_IP_PATH?=$(VIVADO_DIR)/$(VIVADO_PROJ).gen/sources_1/ip
+VIVADO_SIM_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).sim/sim_1/behav/xsim
+VIVADO_SIM_IP_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).gen/sources_1/ip
 VIVADO_DSN_IP_XCI?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_IP_TCL))),$(VIVADO_DSN_IP_PATH)/$X/$X.xci)
 VIVADO_DSN_BD?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_BD_TCL))),$(VIVADO_BD_PATH)/$X/$X.bd)
 VIVADO_DSN_BD_HWDEF?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_BD_TCL))),$(VIVADO_BD_HWDEF_PATH)/$X/synth/$X.hwdef)
@@ -166,11 +176,10 @@ ts:
 	@ls --full-time $(VIVADO_IMPL_FILE)
 	@ls --full-time $(VIVADO_BIT_FILE)
 
-# recipe file is created when missing, and updated when the recipe changes
-ifneq ($(VIVADO_PROJ_RECIPE),$(file <$(VIVADO_PROJ_RECIPE_FILE)))
-$(VIVADO_PROJ_RECIPE_FILE): | $(VIVADO_DIR)
-	$(file >$@,$(VIVADO_PROJ_RECIPE))
-endif
+# recipe file is created/updated as required
+$(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
+	[ -f $@ ] && r=$$(< $@) || r=""; if [[ $$r != "$(VIVADO_PROJ_RECIPE)" ]]; then \
+	echo "$(VIVADO_PROJ_RECIPE)" > $@; fi
 
 # project depends on recipe file and existence of sources
 .PHONY: xpr
@@ -337,25 +346,27 @@ $(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) $(VITIS_
 
 endif
 
+endif
+
 #-------------------------------------------------------------------------------
 # Intel/Altera Quartus
 
 else ifneq (,$(filter quartus,$(FPGA_TOOL)))
+QUARTUS_TARGETS:=all qpf map fit sof rbf prog
+ifneq (,$(filter $(QUARTUS_TARGETS),$(MAKECMDGOALS)))
 
-.PHONY: sof rbf
 quartus: sof rbf
 
 # can't use the name of a phony target as a directory name, so prefix with .
 QUARTUS_DIR?=.quartus
+
+QUARTUS_PART?=$(FPGA_DEVICE)
 
 # basic checks
 $(call check_null_error,QUARTUS_ROOTDIR)
 ifeq ($(OS),Windows_NT)
 QUARTUS_ROOTDIR:=$(shell cygpath -m $(QUARTUS_ROOTDIR))
 endif
-QUARTUS_EXE:=vivado
-#QUARTUS_VER:=$(shell quartus_sh --tcl_eval regexp {[\.0-9]+} $quartus(version) ver; puts $ver)
-#$(info Intel/Altera Quartus version $(QUARTUS_VER))
 
 QUARTUS_SH=$(QUARTUS_PATH:=/)quartus_sh
 QUARTUS_MAP=$(QUARTUS_PATH:=/)quartus_map
@@ -364,14 +375,9 @@ QUARTUS_ASM=$(QUARTUS_PATH:=/)quartus_asm
 QUARTUS_PGM=$(QUARTUS_PATH:=/)quartus_pgm
 QUARTUS_CPF=$(QUARTUS_PATH:=/)quartus_cpf
 
+#QUARTUS_VER:=$(shell $(QUARTUS_SH) --tcl_eval regexp {[\.0-9]+} $quartus(version) ver; puts $ver)
 QUARTUS_DIR=quartus
 
-ifndef QUARTUS_PART
-$(error QUARTUS_PART not defined)
-endif
-ifndef QUARTUS_TOP
-$(error QUARTUS_TOP not defined)
-endif
 ifndef QUARTUS_PGM_OPT
 QUARTUS_PGM_OPT=-m jtag -c 1
 endif
@@ -417,6 +423,7 @@ $(QUARTUS_FIT_FILE): $(QUARTUS_MAP_FILE) $(QUARTUS_MIF) $(QUARTUS_SDC)
 		--effort=$(QUARTUS_FIT_EFFORT) \
 		--rev=$(QUARTUS_TOP)
 
+.PHONY: sof
 sof: $(QUARTUS_SOF_FILE)
 $(QUARTUS_SOF_FILE): $(QUARTUS_FIT_FILE)
 	$(QUARTUS_ASM) \
@@ -424,12 +431,15 @@ $(QUARTUS_SOF_FILE): $(QUARTUS_FIT_FILE)
 		--rev=$(QUARTUS_TOP)
 	mv $(QUARTUS_DIR)/output_files/$(QUARTUS_SOF_FILE) .
 
+.PHONY: rbf
 rbf: $(QUARTUS_RBF_FILE)
 $(QUARTUS_RBF_FILE): $(QUARTUS_SOF_FILE)
 	$(QUARTUS_CPF) -c $(QUARTUS_SOF_FILE) $(QUARTUS_RBF_FILE)
 
 prog: $(QUARTUS_SOF_FILE)
 	$(QUARTUS_PGM) $(QUARTUS_PGM_OPT) -o P\;$(QUARTUS_SOF_FILE)$(addprefix @,$(QUARTUS_PGM_DEV))
+
+endif
 
 #-------------------------------------------------------------------------------
 # Lattice Radiant
@@ -452,8 +462,8 @@ else
 RADIANT_EXE:=radiantc
 endif
 RADIANT_TCL:=$(RADIANT_EXE) $(MAKE_FPGA_TCL) radiant
-RADIANT_VER:=$(shell $(RADIANT_TCL) script sys_install_version)
-$(call check_shell_status,Could not set RADIANT_VER)
+#RADIANT_VER:=$(shell $(RADIANT_TCL) script sys_install_version)
+#$(call check_shell_status,Could not set RADIANT_VER)
 
 # defaults
 RADIANT_PROJ?=fpga
@@ -462,8 +472,8 @@ RADIANT_CORES?=8
 RADIANT_DEV_ARCH?=$(FPGA_FAMILY)
 RADIANT_DEV?=$(FPGA_DEVICE)
 RADIANT_DEV_BASE?=$(word 1,$(subst -, ,$(RADIANT_DEV)))
-RADIANT_DEV_PKG?=$(shell echo "iCE40UP5K-SG48I" | grep -Po "(?<=-)(.+\d+)")
-ifeq (ICE40UP,$(shell echo '$(RADIANT_DEV_ARCH)' | tr '[:lower:]' '[:upper:]'))
+RADIANT_DEV_PKG?=$(shell echo $(RADIANT_DEV)| grep -Po "(?<=-)(.+\d+)")
+ifeq (ICE40UP,$(shell echo $(RADIANT_DEV_ARCH)| tr '[:lower:]' '[:upper:]'))
 RADIANT_PERF?=High-Performance_1.2V
 endif
 
@@ -475,19 +485,14 @@ endif
 endif
 $(call check_null_error,RADIANT_TOP)
 
-# warnings
-$(call check_null_warning,RADIANT_LDC)
-$(call check_null_warning,RADIANT_PDC)
-
 #...............................................................................
 # command line flow
 
 ifneq (,$(filter radiant_cmd,$(FPGA_TOOL)))
+RADIANT_TARGETS:=all bin nvcm
+ifneq (,$(filter $(RADIANT_TARGETS),$(MAKECMDGOALS)))
 
-.PHONY: bin nvcm
 radiant_cmd: bin nvcm
-
-$(info Lattice Radiant version $(RADIANT_VER) - Command Line Flow)
 
 # warnings
 $(call check_null_warning,RADIANT_FREQ)
@@ -558,19 +563,23 @@ $(RADIANT_BIN): $(RADIANT_CMD_DIR)/$(RADIANT_PAR_UDB)
 $(RADIANT_NVCM): $(RADIANT_CMD_DIR)/$(RADIANT_PAR_UDB)
 	cd $(RADIANT_CMD_DIR) && bitgen -w -nvcm -nvcmsecurity $(notdir $<) $(basename $@) && mv $@ ..
 
+.PHONY: bin
 bin: $(RADIANT_BIN)
 
+.PHONY: nvcm
 nvcm: $(RADIANT_NVCM)
+
+endif
 
 #...............................................................................
 # IDE flow
 
 else ifneq (,$(filter radiant_ide,$(FPGA_TOOL)))
+RADIANT_TARGETS:=all bin nvcm
+ifneq (,$(filter $(RADIANT_TARGETS),$(MAKECMDGOALS)))
 
 .PHONY: bin nvcm
 radiant_ide: bin nvcm
-
-$(info Lattice Radiant version $(RADIANT_VER) - IDE Flow)
 
 RADIANT_RDF?=$(RADIANT_PROJ).rdf
 RADIANT_IMPL?=impl_1
@@ -597,11 +606,13 @@ $(RADIANT_IDE_DIR)/$(RADIANT_RDF): (ALL MAKEFILES) | $(RADIANT_IDE_DIR)
 
 # NOT COMPLETE
 
+endif
+
 #-------------------------------------------------------------------------------
 
 else
 
-$(error Lattice Radiant version $(RADIANT_VER) - unknown flow: $(FPGA_TOOL))
+$(error Lattice Radiant - unknown flow: $(FPGA_TOOL))
 
 endif
 
@@ -618,20 +629,29 @@ endif
 ################################################################################
 # simulation targets
 
-# default to all
-SIMULATOR?=SUPPORTED_SIMULATOR
+ifneq (,$(filter $(SUPPORTED_SIMULATOR),$(MAKECMDGOALS)))
 
+# default to all
+SIMULATOR?=$(SUPPORTED_SIMULATOR)
+
+# this variable gathers the directories used for the user makefile to refer to
 SIM_DIR:=
+
+# defaults
 SIM_WORK?=work
+SIM_LIB?=$(SIM_WORK)
+SIM_SRC.$(SIM_WORK)?=$(SIM_SRC)
 
 # single run: SIM_RUN=top[,generics]
-# multiple runs: SIM_RUN=name1,top1[,generics1] name2,top2[generics2] ...
+# multiple runs: SIM_RUN=name1,top1[,generics1] name2,top2[,generics2] ...
 ifeq ($(words $(SIM_RUN)),1)
 SIM_RUN:=$(subst $(COMMA),$(SPACE),$(SIM_RUN))
 ifneq (3,$(words $(word 1,$(SIM_RUN))))
 SIM_RUN:=sim $(SIM_RUN)
 endif
 SIM_RUN:=$(subst $(SPACE),$(COMMA),$(SIM_RUN))
+endif
+
 endif
 
 #-------------------------------------------------------------------------------
@@ -650,8 +670,9 @@ GHDL_DIR?=.ghdl
 SIM_DIR+=$(GHDL_DIR)
 GHDL?=ghdl
 
-GHDL_SRC?=$(SIM_SRC)
 GHDL_WORK?=$(SIM_WORK)
+GHDL_LIB?=$(SIM_LIB)
+$(foreach l,$(GHDL_LIB),$(eval GHDL_SRC.$l?=$(SIM_SRC.$l)))
 GHDL_TOUCH_COM:=$(GHDL_DIR)/touch.com
 GHDL_TOUCH_RUN:=$(GHDL_DIR)/touch.run
 GHDL_PREFIX?=$(dir $(shell which $(GHDL)))/..
@@ -659,23 +680,34 @@ ifeq ($(OS),Windows_NT)
 GHDL_PREFIX:=$(shell cygpath -m $(GHDL_PREFIX))
 endif
 
-GHDL_AOPTS+=--std=08 -fsynopsys -frelaxed -Wno-hide -Wno-shared $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_LIBS))
-GHDL_EOPTS+=--std=08 -fsynopsys -frelaxed $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_LIBS))
-GHDL_ROPTS+=--unbuffered --max-stack-alloc=0 --ieee-asserts=disable
+GHDL_AOPTS+=--std=08 -fsynopsys -frelaxed -Wno-hide -Wno-shared $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_VENDOR_LIBS))
+GHDL_EOPTS+=--std=08 -fsynopsys -frelaxed $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_VENDOR_LIBS))
+GHDL_ROPTS+=--max-stack-alloc=0 --ieee-asserts=disable
 
 define ghdl_com
-$(GHDL_TOUCH_COM):: $1 | $(GHDL_DIR)
+$(GHDL_TOUCH_COM):: $2 | $(GHDL_DIR)
 	cd $$(GHDL_DIR) && $$(GHDL) \
 		-a \
-		--work=$$(GHDL_WORK) \
+		--work=$1 \
 		$$(GHDL_AOPTS) \
-		$1
+		$2
 	touch $(GHDL_TOUCH_COM)
+endef
+
+define ghdl_com_lib
+$(foreach s,$(GHDL_SRC.$1),$(eval $(call ghdl_com,$1,$s)))
 endef
 
 define ghdl_run
 
 $(GHDL_TOUCH_RUN):: $(GHDL_TOUCH_COM) | $(GHDL_DIR)
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	cd $$(GHDL_DIR) && $$(GHDL) \
 		--elab-run \
 		--work=$$(GHDL_WORK) \
@@ -684,6 +716,13 @@ $(GHDL_TOUCH_RUN):: $(GHDL_TOUCH_COM) | $(GHDL_DIR)
 		$$(GHDL_ROPTS) \
 		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),--vcd=$$(word 1,$1).vcd) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	touch $(GHDL_TOUCH_RUN)
 
 sim:: $(GHDL_TOUCH_RUN)
@@ -699,7 +738,7 @@ $(GHDL_DIR)/$(word 1,$1).gtkw: $(GHDL_DIR)/$(word 1,$1).vcd
 
 gtkwave:: $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw
 ifeq ($(OS),Windows_NT)
-	start cmd.exe //C \"gtkwave $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw\"
+	start gtkwave $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw
 else
 	gtkwave $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw &
 endif
@@ -709,7 +748,7 @@ endef
 $(GHDL_DIR):
 	bash -c "mkdir -p $(GHDL_DIR)"
 
-$(foreach s,$(GHDL_SRC),$(eval $(call ghdl_com,$s)))
+$(foreach l,$(GHDL_LIB),$(eval $(call ghdl_com_lib,$l)))
 $(foreach r,$(SIM_RUN),$(eval $(call ghdl_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
@@ -730,24 +769,28 @@ NVC_DIR?=.nvc
 SIM_DIR+=$(NVC_DIR)
 NVC?=nvc
 
-NVC_SRC?=$(SIM_SRC)
-NVC_WORK?=$(SIM_WORK)
+NVC_LIB?=$(SIM_LIB)
+$(foreach l,$(NVC_LIB),$(eval NVC_SRC.$l?=$(SIM_SRC.$l)))
 NVC_TOUCH_COM:=$(NVC_DIR)/touch.com
 NVC_TOUCH_RUN:=$(NVC_DIR)/touch.run
 
-NVC_GOPTS+=--std=2008
+NVC_GOPTS+=--std=2008 -L.
 NVC_AOPTS+=--relaxed
 NVC_EOPTS+=
 NVC_ROPTS+=--ieee-warnings=off
 
 define nvc_com
-$(NVC_TOUCH_COM):: $1 | $(NVC_DIR)
+$(NVC_TOUCH_COM):: $2 | $(NVC_DIR)
 	cd $$(NVC_DIR) && $$(NVC) \
 		$$(NVC_GOPTS) \
-		--work=$$(SIM_WORK) \
+		--work=$1 \
 		-a $$(NVC_AOPTS) \
-		$1
+		$2
 	touch $(NVC_TOUCH_COM)
+endef
+
+define nvc_com_lib
+$(foreach s,$(NVC_SRC.$1),$(eval $(call nvc_com,$1,$s)))
 endef
 
 define nvc_run
@@ -759,12 +802,26 @@ $(NVC_TOUCH_RUN):: $(NVC_TOUCH_COM) | $(NVC_DIR)
 		-e $$(word 2,$1) \
 		$$(NVC_EOPTS) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	cd $$(NVC_DIR) && $$(NVC) \
 		$$(NVC_GOPTS) \
 		--work=$$(SIM_WORK) \
 		-r $$(word 2,$1) \
 		$$(NVC_ROPTS) \
 		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),--format=vcd --wave=$$(word 1,$1).vcd)
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	touch $(NVC_TOUCH_RUN)
 
 sim:: $(NVC_TOUCH_RUN)
@@ -780,7 +837,7 @@ $(NVC_DIR)/$(word 1,$1).gtkw: $(NVC_DIR)/$(word 1,$1).vcd
 
 gtkwave:: $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw
 ifeq ($(OS),Windows_NT)
-	start cmd.exe //C \"gtkwave $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw\"
+	start gtkwave $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw
 else
 	gtkwave $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw &
 endif
@@ -790,7 +847,7 @@ endef
 $(NVC_DIR):
 	bash -c "mkdir -p $(NVC_DIR)"
 
-$(foreach s,$(NVC_SRC),$(eval $(call nvc_com,$s)))
+$(foreach l,$(NVC_LIB),$(eval $(call nvc_com_lib,$l)))
 $(foreach r,$(SIM_RUN),$(eval $(call nvc_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
@@ -815,7 +872,6 @@ VCOM?=vcom
 VSIM?=vsim
 
 ifdef VSIM_BIN_DIR
-$(info VSIM_BIN_DIR=$(VSIM_BIN_DIR))
 VSIM_BIN_PREFIX:=$(if $(VSIM_BIN_DIR),$(VSIM_BIN_DIR)/,)
 ifeq ($(VMAP),$(notdir $(VMAP)))
 VMAP:=$(if $(VSIM_BIN_DIR),$(VSIM_BIN_DIR)/,)$(VMAP)
@@ -833,8 +889,9 @@ VCOM:=$(shell cygpath -m $(VCOM))
 VSIM:=$(shell cygpath -m $(VSIM))
 endif
 
-VSIM_SRC?=$(SIM_SRC)
 VSIM_WORK?=$(SIM_WORK)
+VSIM_LIB?=$(SIM_LIB)
+$(foreach l,$(VSIM_LIB),$(eval VSIM_SRC.$l?=$(SIM_SRC.$l)))
 VSIM_TOUCH_COM:=$(VSIM_DIR)/touch.com
 VSIM_TOUCH_RUN:=$(VSIM_DIR)/touch.run
 
@@ -842,19 +899,35 @@ VCOM_OPTS+=-2008 -explicit -stats=none
 VSIM_TCL+=set NumericStdNoWarnings 1; onfinish exit; run -all; exit
 VSIM_OPTS+=-t ps -c -onfinish stop -do "$(VSIM_TCL)"
 
+define vsim_lib
+$(VSIM_DIR)/$1:
+	vlib $1
+endef
+
 define vsim_com
-$(VSIM_TOUCH_COM):: $1 | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
+$(VSIM_TOUCH_COM):: $2 | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI) $(VSIM_DIR)/$1
 	cd $$(VSIM_DIR) && $$(VCOM) \
 		-modelsimini $(VSIM_INI) \
-		-work $$(VSIM_WORK) \
+		-work $1 \
 		$$(VCOM_OPTS) \
-		$1
+		$2
 	touch $(VSIM_TOUCH_COM)
+endef
+
+define vsim_com_lib
+$(foreach s,$(VSIM_SRC.$1),$(eval $(call vsim_com,$1,$s)))
 endef
 
 define vsim_run
 
 $(VSIM_TOUCH_RUN):: $(VSIM_TOUCH_COM) | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	cd $$(VSIM_DIR) && $$(VSIM) \
 		-modelsimini $(VSIM_INI) \
 		-work $$(VSIM_WORK) \
@@ -862,6 +935,13 @@ $(VSIM_TOUCH_RUN):: $(VSIM_TOUCH_COM) | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
 		$$(VSIM_OPTS) \
 		$$(word 2,$1) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	@echo -------------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+else
+	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
+endif
+	@echo -------------------------------------------------------------------------------
 	touch $(VSIM_TOUCH_RUN)
 
 sim:: $(VSIM_TOUCH_RUN)
@@ -888,9 +968,10 @@ $(VSIM_DIR):
 	bash -c "mkdir -p $(VSIM_DIR)"
 
 $(VSIM_DIR)/$(VSIM_INI): | $(VSIM_DIR)
-	cd $(VSIM_DIR) && $(VMAP) -c && mv modelsim.ini $(VSIM_INI)
+	bash -c "cd $(VSIM_DIR) && $(VMAP) -c && [ -f $(VSIM_INI) ] || mv modelsim.ini $(VSIM_INI)"
 
-$(foreach s,$(VSIM_SRC),$(eval $(call vsim_com,$s)))
+$(foreach l,$(VSIM_LIB),$(eval $(call vsim_lib,$l)))
+$(foreach l,$(VSIM_LIB),$(eval $(call vsim_com_lib,$l)))
 $(foreach r,$(SIM_RUN),$(eval $(call vsim_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
@@ -903,9 +984,6 @@ ifneq (,$(filter xsim_cmd xsim_ide,$(MAKECMDGOALS)))
 ifeq (,$(filter xsim_cmd xsim_ide,$(SIMULATOR)))
 $(error This makefile does not support XSim)
 endif
-
-XSIM_SRC?=$(SIM_SRC)
-XSIM_WORK?=$(SIM_WORK)
 
 #...............................................................................
 # command line flow
@@ -921,6 +999,8 @@ XVHDL?=xvhdl
 XELAB?=xelab
 XSIM?=xsim
 
+XSIM_CMD_LIB?=$(SIM_LIB)
+$(foreach l,$(XSIM_CMD_LIB),$(eval XSIM_CMD_SRC.$l?=$(SIM_SRC.$l)))
 XSIM_CMD_TOUCH_COM:=$(XSIM_CMD_DIR)/touch.com
 XSIM_CMD_TOUCH_RUN:=$(XSIM_CMD_DIR)/touch.run
 
@@ -932,11 +1012,12 @@ ifeq ($(OS),Windows_NT)
 
 define xsim_cmd_com
 
-$(XSIM_CMD_TOUCH_COM):: $1 | $(XSIM_CMD_DIR)
-	cd $$(XSIM_CMD_DIR) && cmd.exe //C $(XVHDL).bat \
+$(XSIM_CMD_TOUCH_COM):: $2 | $(XSIM_CMD_DIR)
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C \"$(XVHDL).bat \
 		$$(XVHDL_OPTS) \
-		-work $$(SIM_WORK) \
-		$1
+		-work $1 \
+		$(shell cygpath -w $2) \
+		\""
 	touch $(XSIM_CMD_TOUCH_COM)
 
 endef
@@ -950,20 +1031,28 @@ $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
 		run all; quit \
 		) \
 	)
-	$$(file >$$(XSIM_CMD_DIR)/$$(word 1,$1)_run.bat, \
+	$$(file >$$(XSIM_CMD_DIR)/$$(word 1,$1)_elab.bat, \
 		$$(XELAB).bat \
 			$$(XELAB_OPTS) \
 			-L $$(SIM_WORK) \
 			-top $$(word 2,$1) \
 			-snapshot $$(word 2,$1)_$$(word 1,$1) \
 			$$(addprefix -generic_top ",$$(addsuffix ",$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))) \
-		&& \
+	)
+	$$(file >$$(XSIM_CMD_DIR)/$$(word 1,$1)_sim.bat, \
 		$$(XSIM).bat \
 			$$(XSIM_OPTS) \
 			-tclbatch $$(word 1,$1)_run.tcl \
 			$$(word 2,$1)_$$(word 1,$1) \
 	)
-	cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_run.bat
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_elab.bat"
+	@echo -------------------------------------------------------------------------------
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@echo -------------------------------------------------------------------------------
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_sim.bat"
+	@echo -------------------------------------------------------------------------------
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@echo -------------------------------------------------------------------------------
 	touch $(XSIM_CMD_TOUCH_RUN)
 
 sim:: $(XSIM_CMD_TOUCH_RUN)
@@ -989,8 +1078,8 @@ define xsim_cmd_com
 $(XSIM_CMD_TOUCH_COM):: $1 | $(XSIM_CMD_DIR)
 	cd $$(SIM_DIR) && $$(XVHDL) \
 		$$(XVHDL_OPTS) \
-		-work $$(SIM_WORK) \
-		$1
+		-work $1 \
+		$2
 	touch $(XSIM_CMD_TOUCH_COM)
 
 endef
@@ -1011,10 +1100,16 @@ $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
 		-top $$(word 2,$1) \
 		-snapshot $$(word 2,$1)_$$(word 1,$1) $$(word 2,$1) \
 		$(addprefix -generic_top ,$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	@echo -------------------------------------------------------------------------------
+	echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+	@echo -------------------------------------------------------------------------------
 	cd $$(XSIM_CMD_DIR) && $$(XSIM) \
 		$$(XSIM_OPTS) \
 		-tclbatch $$(word 1,$1)_run.tcl \
 		$$(word 2,$1)_$$(word 1,$1)
+	@echo -------------------------------------------------------------------------------
+	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
+	@echo -------------------------------------------------------------------------------
 	touch $(XSIM_CMD_TOUCH_RUN)
 
 sim:: $(XSIM_CMD_TOUCH_RUN)
@@ -1035,10 +1130,14 @@ endef
 
 endif
 
+define xsim_cmd_com_lib
+$(foreach s,$(XSIM_CMD_SRC.$1),$(eval $(call xsim_cmd_com,$1,$s)))
+endef
+
 $(XSIM_CMD_DIR):
 	bash -c "mkdir -p $(XSIM_CMD_DIR)"
 
-$(foreach s,$(XSIM_SRC),$(eval $(call xsim_cmd_com,$s)))
+$(foreach l,$(XSIM_CMD_LIB),$(eval $(call xsim_cmd_com_lib,$l)))
 $(foreach r,$(SIM_RUN),$(eval $(call xsim_cmd_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
@@ -1058,24 +1157,31 @@ VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FP
 XSIM_IDE_DIR?=.xsim_ide
 SIM_DIR+=$(XSIM_IDE_DIR)
 
+XSIM_IDE_LIB?=$(SIM_LIB)
+$(foreach l,$(XSIM_IDE_LIB),$(eval XSIM_IDE_SRC.$l?=$(SIM_SRC.$l)))
+
 VIVADO_PROJ?=xsim
 VIVADO_PROJ_FILE?=$(XSIM_IDE_DIR)/$(VIVADO_PROJ).xpr
 
 $(XSIM_IDE_DIR):
 	bash -c "mkdir -p $(XSIM_IDE_DIR)"
 
-$(VIVADO_PROJ_FILE): $(XSIM_SRC) | $(XSIM_IDE_DIR)
+$(VIVADO_PROJ_FILE): $(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l)) | $(XSIM_IDE_DIR)
 	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"create_project -force $(VIVADO_PROJ); \
 		set_property target_language VHDL [get_projects $(VIVADO_PROJ)]; \
-		add_files -norecurse -fileset [get_filesets sim_1] $(XSIM_SRC); \
-		set_property file_type \"VHDL 2008\" [get_files -of_objects [get_filesets sim_1] {$(XSIM_SRC)}]; \
+		add_files -norecurse -fileset [get_filesets sim_1] {$(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l))}; \
+		set_property file_type \"VHDL 2008\" [get_files -of_objects [get_filesets sim_1] {$(foreach l,$(SIM_LIB),$(SIM_SRC.$l))}]; \
+		set_property used_in_synthesis false [get_files -of_objects [get_filesets sim_1] {$(foreach l,$(SIM_LIB),$(SIM_SRC.$l))}]; \
 		set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets sim_1]; \
-		exit"
+		$(foreach l,$(XSIM_IDE_LIB),set_property library $l [get_files -of_objects [get_filesets sim_1] {$(XSIM_IDE_SRC.$l)}]; ) exit"
 
 define xsim_ide_run
 
 sim:: | $(VIVADO_PROJ_FILE)
+	@echo -------------------------------------------------------------------------------
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@echo -------------------------------------------------------------------------------
 	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"open_project $(VIVADO_PROJ); \
 		set_property top $$(word 2,$1) [get_filesets sim_1]; \
@@ -1084,6 +1190,9 @@ sim:: | $(VIVADO_PROJ_FILE)
 		launch_simulation; \
 		run all; \
 		exit"
+	@echo -------------------------------------------------------------------------------
+	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@echo -------------------------------------------------------------------------------
 
 endef
 
@@ -1108,37 +1217,45 @@ endif
 
 VSCODE:=code
 VSCODE_DIR:=.vscode
-$(VSCODE_DIR):
-	mkdir $(VSCODE_DIR)
-VSCODE_SRC+=$(foreach x,$(V4P_LIB_SRC),$(word 2,$(subst $(SEMICOLON),$(SPACE),$x)))
-VSCODE_SYMLINKS:=$(addprefix $(VSCODE_DIR)/,$(notdir $(VSCODE_SRC)))
+
+ifndef VSCODE_LIB
+VSCODE_LIB:=$(SIM_LIB)
+endif
+ifdef VSCODE_SRC
+VSCODE_SRC.work:=$(VSCODE_SRC)
+else
+$(foreach l,$(VSCODE_LIB),$(eval VSCODE_SRC.$l?=$(SIM_SRC.$l)))
+endif
+VSCODE_TOP?=$(SIM_TOP)
+V4P_TOP?=$(VSCODE_TOP)
+VSCODE_LIBX:=$(filter-out $(VSCODE_LIB),$(VSCODE_XLIB))
+VSCODE_LIB+=$(VSCODE_LIBX)
+$(foreach l,$(VSCODE_XLIB),$(eval VSCODE_SRC.$l+=$(VSCODE_XSRC.$l)))
+define RR_VSCODE_DIR
+$1:
+	bash -c "mkdir -p $1"
+endef
+$(eval $(call RR_VSCODE_DIR,$(VSCODE_DIR)))
+$(foreach l,$(VSCODE_LIB),$(eval $(call RR_VSCODE_DIR,$(VSCODE_DIR)/$l)))
 define RR_VSCODE_SYMLINK
 ifeq ($(OS),Windows_NT)
-$(VSCODE_DIR)/$(notdir $1): $1 | $(VSCODE_DIR)
+$(VSCODE_DIR)/$1/$(notdir $2): $2 | $(VSCODE_DIR)/$1
 	rm -f $$@
 	bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 else
-$(VSCODE_DIR)/$(notdir $1): $1
+$(VSCODE_DIR)/$1/$(notdir $2): $2 | $(VSCODE_DIR)/$1
 	ln $$< $$@
 endif
 endef
-$(foreach s,$(VSCODE_SRC),$(eval $(call RR_VSCODE_SYMLINK,$s)))
+$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),$(eval $(call RR_VSCODE_SYMLINK,$l,$s))))
+VSCODE_SYMLINKS:=$(foreach l,$(VSCODE_LIB),$(addprefix $(VSCODE_DIR)/$l/,$(notdir $(VSCODE_SRC.$l))))
 CONFIG_V4P_FILE:=$(VSCODE_DIR)/config.v4p
 CONFIG_V4P_LINES:= \
 	[libraries] \
-	$(foreach x,$(V4P_LIB_SRC),$(notdir $(word 2,$(subst $(SEMICOLON),$(SPACE),$x)))=$(word 1,$(subst $(SEMICOLON),$(SPACE),$x))) \
-	*.vh*=work \
+	$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),$l/$(notdir $s)=$l)) \
 	[settings] \
 	V4p.Settings.Basics.TopLevelEntities=$(V4P_TOP)
-FORCE:
-$(CONFIG_V4P_FILE): FORCE
+$(CONFIG_V4P_FILE): force | $(VSCODE_DIR)
 	bash -c 'l=( $(CONFIG_V4P_LINES) ); printf "%s\n" "$${l[@]}" > $(CONFIG_V4P_FILE)'
-vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE) | $(VSCODE_DIR)
+vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE)
 	$(VSCODE) $(VSCODE_DIR)
-
-#################################################################################
-# cleanup
-
-clean:
-	find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
-	find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +

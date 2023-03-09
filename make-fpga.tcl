@@ -122,7 +122,7 @@ switch $tool {
 							append s "[lindex $g 0]=[lindex $g 1] "
 							set g [lrange $g 2 end]
 						}
-						append s "} [get_filesets sources_1]"
+						append s "} \[get_filesets sources_1\]"
 						eval $s
 						set d [dict remove $d dsn_gen]
 					}
@@ -146,7 +146,7 @@ switch $tool {
 							append s "[lindex $g 0]=[lindex $g 1] "
 							set g [lrange $g 2 end]
 						}
-						append s "} [get_filesets sim_1]"
+						append s "} \[get_filesets sim_1\]"
 						eval $s
 						set d [dict remove $d sim_gen]
 					}
@@ -265,7 +265,7 @@ switch $tool {
 							append s "[lindex $g 0]=[lindex $g 1] "
 							set g [lrange $g 2 end]
 						}
-						append s "} [get_filesets sim_1]"
+						append s "} \[get_filesets sim_1\]"
 						eval $s
 					}
 					if {[dict exist $d elf]} {
@@ -341,7 +341,7 @@ switch $tool {
 							append s "[lindex $g 0]=[lindex $g 1] "
 							set g [lrange $g 2 end]
 						}
-						append s "} [get_filesets sim_1]"
+						append s "} \[get_filesets sim_1\]"
 						eval $s
 					}
 					if {[dict exist $d elf]} {
