@@ -636,7 +636,7 @@ endif
 ifneq (,$(filter $(SUPPORTED_SIMULATOR),$(MAKECMDGOALS)))
 
 # default to all
-SIMULATOR?=SUPPORTED_SIMULATOR
+SIMULATOR?=$(SUPPORTED_SIMULATOR)
 
 # this variable gathers the directories used for the user makefile to refer to
 SIM_DIR:=
