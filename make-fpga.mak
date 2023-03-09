@@ -79,9 +79,6 @@ FPGA_FAMILY?=$(word 2,$(FPGA))
 FPGA_DEVICE?=$(word 3,$(FPGA))
 endif
 
-ifeq (,$(MAKECMDGOALS))
-endif
-
 #-------------------------------------------------------------------------------
 # AMD/Xilinx Vivado (plus Vitis for MicroBlaze designs)
 
