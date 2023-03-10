@@ -629,6 +629,11 @@ endif
 ################################################################################
 # simulation targets
 
+# defaults
+SIM_WORK?=work
+SIM_LIB?=$(SIM_WORK)
+SIM_SRC.$(SIM_WORK)?=$(SIM_SRC)
+
 ifneq (,$(filter $(SUPPORTED_SIMULATOR),$(MAKECMDGOALS)))
 
 # default to all
@@ -636,11 +641,6 @@ SIMULATOR?=$(SUPPORTED_SIMULATOR)
 
 # this variable gathers the directories used for the user makefile to refer to
 SIM_DIR:=
-
-# defaults
-SIM_WORK?=work
-SIM_LIB?=$(SIM_WORK)
-SIM_SRC.$(SIM_WORK)?=$(SIM_SRC)
 
 # single run: SIM_RUN=top[,generics]
 # multiple runs: SIM_RUN=name1,top1[,generics1] name2,top2[,generics2] ...
