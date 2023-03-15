@@ -19,7 +19,9 @@ ifneq (,$(filter-out $(SUPPORTED_FPGA_TOOL),$(FPGA_TOOL)))
 $(error FPGA_TOOL specifies unsupported tool(s): $(filter-out $(SUPPORTED_FPGA_TOOLS),$(FPGA_TOOL)))
 endif
 else
+ifneq (default,$(.DEFAULT_GOAL))
 $(error FPGA_TOOL not defined, simulator not specified)
+endif
 endif
 MAKECMDGOALS:=all
 endif
