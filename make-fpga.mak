@@ -1220,14 +1220,11 @@ endif
 VSCODE:=code
 VSCODE_DIR:=.vscode
 
-ifndef VSCODE_LIB
-VSCODE_LIB:=$(SIM_LIB)
-endif
+VSCODE_LIB?=$(SIM_LIB)
 ifdef VSCODE_SRC
-VSCODE_SRC.work:=$(VSCODE_SRC)
-else
-$(foreach l,$(VSCODE_LIB),$(eval VSCODE_SRC.$l?=$(SIM_SRC.$l)))
+VSCODE_SRC.$(SIM_WORK)?=$(VSCODE_SRC)
 endif
+$(foreach l,$(VSCODE_LIB),$(eval VSCODE_SRC.$l?=$(SIM_SRC.$l)))
 VSCODE_TOP?=$(SIM_TOP)
 V4P_TOP?=$(VSCODE_TOP)
 VSCODE_LIBX:=$(filter-out $(VSCODE_LIB),$(VSCODE_XLIB))
