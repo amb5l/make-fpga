@@ -69,8 +69,13 @@ SPACE:=$(subst x, ,x)
 # cleanup
 
 clean:
+ifeq ($(OS),Windows_NT)
+	/usr/bin/find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
+	/usr/bin/find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +\
+else
 	find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
-	find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +
+	find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +\
+endif
 
 ################################################################################
 # FPGA build targets
@@ -1220,11 +1225,14 @@ endif
 VSCODE:=code
 VSCODE_DIR:=.vscode
 
-VSCODE_LIB?=$(SIM_LIB)
-ifdef VSCODE_SRC
-VSCODE_SRC.$(SIM_WORK)?=$(VSCODE_SRC)
+ifndef VSCODE_LIB
+VSCODE_LIB:=$(SIM_LIB)
 endif
+ifdef VSCODE_SRC
+VSCODE_SRC.work:=$(VSCODE_SRC)
+else
 $(foreach l,$(VSCODE_LIB),$(eval VSCODE_SRC.$l?=$(SIM_SRC.$l)))
+endif
 VSCODE_TOP?=$(SIM_TOP)
 V4P_TOP?=$(VSCODE_TOP)
 VSCODE_LIBX:=$(filter-out $(VSCODE_LIB),$(VSCODE_XLIB))
