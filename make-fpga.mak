@@ -70,8 +70,8 @@ SPACE:=$(subst x, ,x)
 
 clean:
 ifeq ($(OS),Windows_NT)
-	/usr/bin/find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
-	/usr/bin/find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +
+	bash -c "/usr/bin/find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete"
+	bash -c "/usr/bin/find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +"
 else
 	find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
 	find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +
