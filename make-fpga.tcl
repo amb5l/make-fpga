@@ -286,11 +286,9 @@ switch $tool {
 					if {[llength $args] > 1} {
 						set hw_spec [lindex $args 1]
 						if {[string first . $hw_spec] != -1} {
-							hw_spec_list [split $hw_spec .]
+							set hw_spec_list [split $hw_spec .]
 							set hw_target [lindex $hw_spec_list 0]
-							set hw_device [lindex $hw_spec_list 0]
-						} else {
-							set hw_target $hw_spec
+							set hw_device [lindex $hw_spec_list 1]
 						}
 					}
 					open_hw_manager
@@ -303,12 +301,16 @@ switch $tool {
 					}
 					if {[llength $hw_target_list] > 1} {
 						if {![info exists hw_target]} {
-							error_exit {"prog - hardware interface not specified (e.g. make prog HW=0)"}
+							if {![info exists hw_spec]} {
+								error_exit {"prog - hardware interface not specified (e.g. make prog HW=0.1)"}
+							} else {
+								set hw_target $hw_spec
+							}
 						}
 					} else {
 						set hw_target 0
 					}
-					puts "opening $hw_target: [lindex $hw_target_list $hw_target]"
+					puts "opening target $hw_target: [lindex $hw_target_list $hw_target]"
 					open_hw_target -quiet [lindex $hw_target_list $hw_target]
 					set hw_device_list [get_hw_devices]
 					puts "devices:"
@@ -317,12 +319,16 @@ switch $tool {
 					}
 					if {[llength $hw_device_list] > 1} {
 						if {![info exists hw_device]} {
-							error_exit {"prog - hardware device not specified (e.g. make prog HW=0.1)"}
+							if {![info exists hw_spec]} {
+								error_exit {"prog - hardware device not specified (e.g. make prog HW=0.1)"}
+							} else {
+								set hw_device $hw_spec
+							}
 						}
 					} else {
 						set hw_device 0
-					}					
-					puts "programming $hw_device: [lindex $hw_device_list $hw_device]"
+					}
+					puts "programming device $hw_device: [lindex $hw_device_list $hw_device]"
 					puts "-------------------------------------------------------------------------------"
 					current_hw_device [lindex $hw_device_list $hw_device]
 					set_property PROGRAM.FILE $file [current_hw_device]
