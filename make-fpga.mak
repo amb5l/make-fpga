@@ -185,8 +185,8 @@ ts:
 
 # recipe file is created/updated as required
 $(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
-	@bash -c "[ -f $@ ] && r=$$(< $@) || r=\"\"; if [[ $$r != \"$(VIVADO_PROJ_RECIPE)\" ]]; then \
-	echo \"$(VIVADO_PROJ_RECIPE)\" > $@; fi"
+	@bash -c '[ -f $@ ] && r=$$(< $@) || r=""; if [[ $$r != "$(VIVADO_PROJ_RECIPE)" ]]; then
+	echo "$(VIVADO_PROJ_RECIPE)" > $@; fi'
 
 # project depends on recipe file and existence of sources
 .PHONY: xpr
@@ -459,6 +459,7 @@ RADIANT_IDE_DIR?=.radiant_ide
 
 # basic checks
 $(call check_null_error,LATTICE_RADIANT)
+$(call check_null_error,FOUNDRY)
 ifeq ($(OS),Windows_NT)
 LATTICE_RADIANT:=$(shell cygpath -m $(LATTICE_RADIANT))
 endif
@@ -470,10 +471,6 @@ endif
 RADIANT_TCL:=$(RADIANT_EXE) $(MAKE_FPGA_TCL) radiant
 #RADIANT_VER:=$(shell $(RADIANT_TCL) script sys_install_version)
 #$(call check_shell_status,Could not set RADIANT_VER)
-FOUNDRY?=$(LATTICE_RADIANT)/ispfpga
-ifeq ($(OS),Windows_NT)
-FOUNDRY:=$(shell cygpath -w $(FOUNDRY))
-endif
 
 # defaults
 RADIANT_PROJ?=fpga
