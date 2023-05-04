@@ -1263,6 +1263,6 @@ CONFIG_V4P_LINES:= \
 	[settings] \
 	V4p.Settings.Basics.TopLevelEntities=$(V4P_TOP)
 $(CONFIG_V4P_FILE): force | $(VSCODE_DIR)
-	bash -c 'l=( $(CONFIG_V4P_LINES) ); printf "%s\n" "$${l[@]}" > $(CONFIG_V4P_FILE)'
+	@echo $(CONFIG_V4P_LINES) | tr " " "\n" > $(CONFIG_V4P_FILE)
 vscode: $(VSCODE_SYMLINKS) $(CONFIG_V4P_FILE)
 	$(VSCODE) $(VSCODE_DIR)
