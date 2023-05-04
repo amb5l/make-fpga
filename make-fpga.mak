@@ -1248,7 +1248,7 @@ define RR_VSCODE_SYMLINK
 ifeq ($(OS),Windows_NT)
 $(VSCODE_DIR)/$1/$(notdir $2): $2 | $(VSCODE_DIR)/$1
 	rm -f $$@
-	bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
+	bash -c "cmd.exe /C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 else
 $(VSCODE_DIR)/$1/$(notdir $2): $2 | $(VSCODE_DIR)/$1
 	ln $$< $$@
