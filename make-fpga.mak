@@ -646,18 +646,9 @@ ifneq (,$(filter $(SUPPORTED_SIMULATOR),$(MAKECMDGOALS)))
 # default to all
 SIMULATOR?=$(SUPPORTED_SIMULATOR)
 
-# this variable gathers the directories used for the user makefile to refer to
-SIM_DIR:=
-
 # single run: SIM_RUN=top[,generics]
 # multiple runs: SIM_RUN=name1,top1[,generics1] name2,top2[,generics2] ...
-ifeq ($(words $(SIM_RUN)),1)
-SIM_RUN:=$(subst $(COMMA),$(SPACE),$(SIM_RUN))
-ifneq (3,$(words $(word 1,$(SIM_RUN))))
-SIM_RUN:=sim $(SIM_RUN)
-endif
-SIM_RUN:=$(subst $(SPACE),$(COMMA),$(SIM_RUN))
-endif
+SIM_RUNX=$(if $(word 2,$(SIM_RUN)),$(SIM_RUN),sim,$(SIM_RUN))
 
 endif
 
@@ -674,7 +665,7 @@ ghdl: sim
 
 # can't use the name of a phony target as a directory name, so prefix with .
 GHDL_DIR?=.ghdl
-SIM_DIR+=$(GHDL_DIR)
+SIM_DIR:=$(MAKE_DIR)/$(GHDL_DIR)
 GHDL?=ghdl
 
 GHDL_WORK?=$(SIM_WORK)
@@ -756,7 +747,7 @@ $(GHDL_DIR):
 	bash -c "mkdir -p $(GHDL_DIR)"
 
 $(foreach l,$(GHDL_LIB),$(eval $(call ghdl_com_lib,$l)))
-$(foreach r,$(SIM_RUN),$(eval $(call ghdl_run,$(subst $(COMMA),$(SPACE),$r))))
+$(foreach r,$(SIM_RUNX),$(eval $(call ghdl_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
 
@@ -773,7 +764,7 @@ nvc: sim
 
 # can't use the name of a phony target as a directory name, so prefix with .
 NVC_DIR?=.nvc
-SIM_DIR+=$(NVC_DIR)
+SIM_DIR:=$(MAKE_DIR)/$(NVC_DIR)
 NVC?=nvc
 
 NVC_LIB?=$(SIM_LIB)
@@ -855,7 +846,7 @@ $(NVC_DIR):
 	bash -c "mkdir -p $(NVC_DIR)"
 
 $(foreach l,$(NVC_LIB),$(eval $(call nvc_com_lib,$l)))
-$(foreach r,$(SIM_RUN),$(eval $(call nvc_run,$(subst $(COMMA),$(SPACE),$r))))
+$(foreach r,$(SIM_RUNX),$(eval $(call nvc_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
 
@@ -872,7 +863,7 @@ vsim: sim
 
 # can't use the name of a phony target as a directory name, so prefix with .
 VSIM_DIR?=.vsim
-SIM_DIR+=$(VSIM_DIR)
+SIM_DIR:=$(MAKE_DIR)/$(VSIM_DIR)
 VSIM_INI?=modelsim.ini
 VMAP?=vmap
 VCOM?=vcom
@@ -979,7 +970,7 @@ $(VSIM_DIR)/$(VSIM_INI): | $(VSIM_DIR)
 
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_lib,$l)))
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_com_lib,$l)))
-$(foreach r,$(SIM_RUN),$(eval $(call vsim_run,$(subst $(COMMA),$(SPACE),$r))))
+$(foreach r,$(SIM_RUNX),$(eval $(call vsim_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
 
@@ -1001,7 +992,7 @@ xsim_cmd: sim
 
 # can't use the name of a phony target as a directory name, so prefix with .
 XSIM_CMD_DIR?=.xsim_cmd
-SIM_DIR+=$(XSIM_CMD_DIR)
+SIM_DIR:=$(MAKE_DIR)/$(XSIM_CMD_DIR)
 XVHDL?=xvhdl
 XELAB?=xelab
 XSIM?=xsim
@@ -1145,7 +1136,7 @@ $(XSIM_CMD_DIR):
 	bash -c "mkdir -p $(XSIM_CMD_DIR)"
 
 $(foreach l,$(XSIM_CMD_LIB),$(eval $(call xsim_cmd_com_lib,$l)))
-$(foreach r,$(SIM_RUN),$(eval $(call xsim_cmd_run,$(subst $(COMMA),$(SPACE),$r))))
+$(foreach r,$(SIM_RUNX),$(eval $(call xsim_cmd_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
 
@@ -1162,7 +1153,7 @@ VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FP
 
 # can't use the name of a phony target as a directory name, so prefix with .
 XSIM_IDE_DIR?=.xsim_ide
-SIM_DIR+=$(XSIM_IDE_DIR)
+SIM_DIR:=$(MAKE_DIR)/$(XSIM_IDE_DIR)
 
 XSIM_IDE_LIB?=$(SIM_LIB)
 $(foreach l,$(XSIM_IDE_LIB),$(eval XSIM_IDE_SRC.$l?=$(SIM_SRC.$l)))
@@ -1208,15 +1199,15 @@ sim:: | $(VIVADO_PROJ_FILE)
 
 endef
 
-$(foreach r,$(SIM_RUN),$(eval $(call xsim_ide_run,$(subst $(COMMA),$(SPACE),$r))))
+$(foreach r,$(SIM_RUNX),$(eval $(call xsim_ide_run,$(subst $(COMMA),$(SPACE),$r))))
 
 ifneq (,$(word 2,$(SIM_RUN)))
 # ensure that simulator is left set up for first run
 sim::
 	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"open_project $(VIVADO_PROJ); \
-		set_property top $(word 2,$(subst $(COMMA),$(SPACE),$(word 1,$(SIM_RUN)))) [get_filesets sim_1]; \
-		set_property generic {$(subst $(SEMICOLON),$(SPACE),$(word 3,$(subst $(COMMA),$(SPACE),$(word 1,$(SIM_RUN)))))} [get_filesets sim_1]; \
+		set_property top $(word 2,$(subst $(COMMA),$(SPACE),$(word 1,$(SIM_RUNX)))) [get_filesets sim_1]; \
+		set_property generic {$(subst $(SEMICOLON),$(SPACE),$(word 3,$(subst $(COMMA),$(SPACE),$(word 1,$(SIM_RUNX)))))} [get_filesets sim_1]; \
 		exit"
 endif
 
