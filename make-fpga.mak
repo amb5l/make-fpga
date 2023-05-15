@@ -1173,15 +1173,20 @@ VIVADO_PROJ_FILE?=$(XSIM_IDE_DIR)/$(VIVADO_PROJ).xpr
 $(XSIM_IDE_DIR):
 	bash -c "mkdir -p $(XSIM_IDE_DIR)"
 
+# workaround for limited Windows command line length
+create_project.tcl:=\
+	create_project -force $(VIVADO_PROJ); \
+	set_property target_language VHDL [get_projects $(VIVADO_PROJ)]; \
+	add_files -norecurse -fileset [get_filesets sim_1] {$(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l))}; \
+	set_property file_type "VHDL 2008" [get_files -of_objects [get_filesets sim_1] {$(foreach l,$(SIM_LIB),$(SIM_SRC.$l))}]; \
+	set_property used_in_synthesis false [get_files -of_objects [get_filesets sim_1] {$(foreach l,$(SIM_LIB),$(SIM_SRC.$l))}]; \
+	set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets sim_1]; \
+	$(foreach l,$(XSIM_IDE_LIB),set_property library $l [get_files -of_objects [get_filesets sim_1] {$(XSIM_IDE_SRC.$l)}]; ) \
+	exit
+
 $(VIVADO_PROJ_FILE): $(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l)) | $(XSIM_IDE_DIR)
-	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
-		"create_project -force $(VIVADO_PROJ); \
-		set_property target_language VHDL [get_projects $(VIVADO_PROJ)]; \
-		add_files -norecurse -fileset [get_filesets sim_1] {$(foreach l,$(XSIM_IDE_LIB),$(XSIM_IDE_SRC.$l))}; \
-		set_property file_type \"VHDL 2008\" [get_files -of_objects [get_filesets sim_1] {$(foreach l,$(SIM_LIB),$(SIM_SRC.$l))}]; \
-		set_property used_in_synthesis false [get_files -of_objects [get_filesets sim_1] {$(foreach l,$(SIM_LIB),$(SIM_SRC.$l))}]; \
-		set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets sim_1]; \
-		$(foreach l,$(XSIM_IDE_LIB),set_property library $l [get_files -of_objects [get_filesets sim_1] {$(XSIM_IDE_SRC.$l)}]; ) exit"
+	$(file >$(XSIM_IDE_DIR)/create_project.tcl,$(create_project.tcl))
+	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) "source create_project.tcl"
 
 define xsim_ide_run
 
