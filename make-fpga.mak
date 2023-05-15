@@ -48,6 +48,9 @@ endef
 
 # check OS
 ifeq ($(OS),Windows_NT)
+$(call check_null_error,MSYS2)
+MSYS2:=$(shell cygpath -m $(MSYS2))
+BASH:=$(MSYS2)/usr/bin/bash.exe
 DUMMY:=$(shell cygpath -w ~)
 $(call check_shell_error,Could not run cygpath)
 endif
@@ -70,8 +73,8 @@ SPACE:=$(subst x, ,x)
 
 clean:
 ifeq ($(OS),Windows_NT)
-	bash -c "/usr/bin/find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete"
-	bash -c "/usr/bin/find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +"
+	$(BASH) -c "/usr/bin/find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete"
+	$(BASH) -c "/usr/bin/find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +"
 else
 	find . -type f -not \( -name 'makefile' -or -name '.gitignore' \) -delete
 	find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} +
@@ -168,7 +171,7 @@ VIVADO_PROJ_RECIPE:=\
 	$(VIVADO_PROJ_RECIPE_SETTINGS)
 
 $(VIVADO_DIR):
-	bash -c "mkdir -p $@"
+	$(BASH) -c "mkdir -p $@"
 
 # useful for dependency debug
 .PHONY: ts
@@ -185,7 +188,7 @@ ts:
 
 # recipe file is created/updated as required
 $(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
-	@bash -c '[ -f $@ ] && r=$$(< $@) || r=""; if [[ $$r != "$(VIVADO_PROJ_RECIPE)" ]]; then
+	@$(BASH) -c '[ -f $@ ] && r=$$(< $@) || r=""; if [[ $$r != "$(VIVADO_PROJ_RECIPE)" ]]; then
 	echo "$(VIVADO_PROJ_RECIPE)" > $@; fi'
 
 # project depends on recipe file and existence of sources
@@ -327,7 +330,7 @@ $(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
 	@echo Vitis: create project
 	@echo -------------------------------------------------------------------------------
 	rm -rf $(VITIS_DIR)
-	bash -c "mkdir -p $(VITIS_DIR)"
+	$(BASH) -c "mkdir -p $(VITIS_DIR)"
 	cd $(VITIS_DIR) && $(VITIS_TCL) create $(VITIS_APP) $(VIVADO_XSA_FILE) $(VIVADO_DSN_PROC_INST) \
 		src:     $(VITIS_SRC) \
 		inc:     $(VITIS_INCLUDE) \
@@ -515,7 +518,7 @@ RADIANT_NVCM:=$(RADIANT_PROJ).nvcm
 # rules and recipes
 
 $(RADIANT_CMD_DIR):
-	bash -c "mkdir -p $(RADIANT_CMD_DIR)"
+	$(BASH) -c "mkdir -p $(RADIANT_CMD_DIR)"
 
 $(RADIANT_CMD_DIR)/$(RADIANT_SYNTHESIS_VM): $(RADIANT_VHDL) $(RADIANT_VLOG) $(RADIANT_LDC) | $(RADIANT_CMD_DIR)
 	cd $(RADIANT_CMD_DIR) && synthesis \
@@ -592,7 +595,7 @@ RADIANT_RDF?=$(RADIANT_PROJ).rdf
 RADIANT_IMPL?=impl_1
 
 $(RADIANT_IDE_DIR):
-	bash -c "mkdir -p $(RADIANT_IDE_DIR)"
+	$(BASH) -c "mkdir -p $(RADIANT_IDE_DIR)"
 
 $(RADIANT_IDE_DIR)/$(RADIANT_RDF): (ALL MAKEFILES) | $(RADIANT_IDE_DIR)
 	cd $(RADIANT_IDE_DIR) && \
@@ -701,7 +704,7 @@ define ghdl_run
 $(GHDL_TOUCH_RUN):: $(GHDL_TOUCH_COM) | $(GHDL_DIR)
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
 endif
@@ -716,7 +719,7 @@ endif
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
 endif
@@ -744,7 +747,7 @@ endif
 endef
 
 $(GHDL_DIR):
-	bash -c "mkdir -p $(GHDL_DIR)"
+	$(BASH) -c "mkdir -p $(GHDL_DIR)"
 
 $(foreach l,$(GHDL_LIB),$(eval $(call ghdl_com_lib,$l)))
 $(foreach r,$(SIM_RUNX),$(eval $(call ghdl_run,$(subst $(COMMA),$(SPACE),$r))))
@@ -802,7 +805,7 @@ $(NVC_TOUCH_RUN):: $(NVC_TOUCH_COM) | $(NVC_DIR)
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
 endif
@@ -815,7 +818,7 @@ endif
 		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),--format=vcd --wave=$$(word 1,$1).vcd)
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
 endif
@@ -843,7 +846,7 @@ endif
 endef
 
 $(NVC_DIR):
-	bash -c "mkdir -p $(NVC_DIR)"
+	$(BASH) -c "mkdir -p $(NVC_DIR)"
 
 $(foreach l,$(NVC_LIB),$(eval $(call nvc_com_lib,$l)))
 $(foreach r,$(SIM_RUNX),$(eval $(call nvc_run,$(subst $(COMMA),$(SPACE),$r))))
@@ -921,7 +924,7 @@ define vsim_run
 $(VSIM_TOUCH_RUN):: $(VSIM_TOUCH_COM) | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
 endif
@@ -935,7 +938,7 @@ endif
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
 endif
@@ -955,7 +958,7 @@ $(VSIM_DIR)/$(word 1,$1).gtkw: $(VSIM_DIR)/$(word 1,$1).vcd
 
 gtkwave:: $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw
 ifeq ($(OS),Windows_NT)
-	start cmd.exe /C \"gtkwave $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw\"
+	start cmd.exe //C \"gtkwave $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw\"
 else
 	gtkwave $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw &
 endif
@@ -963,10 +966,10 @@ endif
 endef
 
 $(VSIM_DIR):
-	bash -c "mkdir -p $(VSIM_DIR)"
+	$(BASH) -c "mkdir -p $(VSIM_DIR)"
 
 $(VSIM_DIR)/$(VSIM_INI): | $(VSIM_DIR)
-	bash -c "cd $(VSIM_DIR) && $(VMAP) -c && [ -f $(VSIM_INI) ] || mv modelsim.ini $(VSIM_INI)"
+	$(BASH) -c "cd $(VSIM_DIR) && $(VMAP) -c && [ -f $(VSIM_INI) ] || mv modelsim.ini $(VSIM_INI)"
 
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_lib,$l)))
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_com_lib,$l)))
@@ -1011,7 +1014,7 @@ ifeq ($(OS),Windows_NT)
 define xsim_cmd_com
 
 $(XSIM_CMD_TOUCH_COM):: $2 | $(XSIM_CMD_DIR)
-	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe /C \"$(XVHDL).bat \
+	$(BASH) -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C \"$(XVHDL).bat \
 		$$(XVHDL_OPTS) \
 		-work $1 \
 		$(shell cygpath -w $2) \
@@ -1043,13 +1046,13 @@ $(XSIM_CMD_TOUCH_RUN):: $(XSIM_CMD_TOUCH_COM)
 			-tclbatch $$(word 1,$1)_run.tcl \
 			$$(word 2,$1)_$$(word 1,$1) \
 	)
-	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe /C $$(word 1,$1)_elab.bat"
+	$(BASH) -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_elab.bat"
 	@echo -------------------------------------------------------------------------------
-	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 	@echo -------------------------------------------------------------------------------
-	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe /C $$(word 1,$1)_sim.bat"
+	$(BASH) -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_sim.bat"
 	@echo -------------------------------------------------------------------------------
-	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 	@echo -------------------------------------------------------------------------------
 	touch $(XSIM_CMD_TOUCH_RUN)
 
@@ -1065,7 +1068,7 @@ $(XSIM_CMD_DIR)/$(word 1,$1).gtkw: $(XSIM_CMD_DIR)/$(word 1,$1).vcd
 	$(XSIM_CMD_DIR)/$(word 1,$1).gtkw
 
 gtkwave:: $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw
-	start cmd.exe /C \"gtkwave $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw\"
+	start cmd.exe //C \"gtkwave $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw\"
 
 endef
 
@@ -1133,7 +1136,7 @@ $(foreach s,$(XSIM_CMD_SRC.$1),$(eval $(call xsim_cmd_com,$1,$s)))
 endef
 
 $(XSIM_CMD_DIR):
-	bash -c "mkdir -p $(XSIM_CMD_DIR)"
+	$(BASH) -c "mkdir -p $(XSIM_CMD_DIR)"
 
 $(foreach l,$(XSIM_CMD_LIB),$(eval $(call xsim_cmd_com_lib,$l)))
 $(foreach r,$(SIM_RUNX),$(eval $(call xsim_cmd_run,$(subst $(COMMA),$(SPACE),$r))))
@@ -1162,7 +1165,7 @@ VIVADO_PROJ?=xsim
 VIVADO_PROJ_FILE?=$(XSIM_IDE_DIR)/$(VIVADO_PROJ).xpr
 
 $(XSIM_IDE_DIR):
-	bash -c "mkdir -p $(XSIM_IDE_DIR)"
+	$(BASH) -c "mkdir -p $(XSIM_IDE_DIR)"
 
 # workaround for limited Windows command line length
 create_project.tcl:=\
@@ -1183,7 +1186,7 @@ define xsim_ide_run
 
 sim:: | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
-	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 	@echo -------------------------------------------------------------------------------
 	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"open_project $(VIVADO_PROJ); \
@@ -1194,7 +1197,7 @@ sim:: | $(VIVADO_PROJ_FILE)
 		run all; \
 		exit"
 	@echo -------------------------------------------------------------------------------
-	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 	@echo -------------------------------------------------------------------------------
 
 endef
@@ -1236,7 +1239,7 @@ VSCODE_LIB+=$(VSCODE_LIBX)
 $(foreach l,$(VSCODE_XLIB),$(eval VSCODE_SRC.$l+=$(VSCODE_XSRC.$l)))
 define RR_VSCODE_DIR
 $1:
-	bash -c "mkdir -p $1"
+	$(BASH) -c "mkdir -p $1"
 endef
 $(eval $(call RR_VSCODE_DIR,$(VSCODE_DIR)))
 $(foreach l,$(VSCODE_LIB),$(eval $(call RR_VSCODE_DIR,$(VSCODE_DIR)/$l)))
@@ -1244,7 +1247,7 @@ define RR_VSCODE_SYMLINK
 ifeq ($(OS),Windows_NT)
 $(VSCODE_DIR)/$1/$(notdir $2): $2 | $(VSCODE_DIR)/$1
 	rm -f $$@
-	bash -c "cmd.exe /C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
+	$(BASH) -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 else
 $(VSCODE_DIR)/$1/$(notdir $2): $2 | $(VSCODE_DIR)/$1
 	ln $$< $$@
