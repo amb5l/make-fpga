@@ -677,8 +677,7 @@ GHDL?=ghdl
 GHDL_WORK?=$(SIM_WORK)
 GHDL_LIB?=$(SIM_LIB)
 $(foreach l,$(GHDL_LIB),$(eval GHDL_SRC.$l?=$(SIM_SRC.$l)))
-GHDL_TOUCH_COM:=$(GHDL_DIR)/touch.com
-GHDL_TOUCH_RUN:=$(GHDL_DIR)/touch.run
+GHDL_TOUCH_DIR:=$(GHDL_DIR)/.touch
 GHDL_PREFIX?=$(dir $(shell which $(GHDL)))/..
 ifeq ($(OS),Windows_NT)
 GHDL_PREFIX:=$(shell cygpath -m $(GHDL_PREFIX))
@@ -689,22 +688,30 @@ GHDL_EOPTS+=--std=08 -fsynopsys -frelaxed $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/
 GHDL_ROPTS+=--max-stack-alloc=0 --ieee-asserts=disable
 
 define ghdl_com
-$(GHDL_TOUCH_COM):: $2 | $(GHDL_DIR)
+$(GHDL_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix $(GHDL_TOUCH_DIR)/$1/,$(addsuffix .com,$(notdir $(call chop,$2)))) | $(GHDL_TOUCH_DIR)/$1
 	cd $$(GHDL_DIR) && $$(GHDL) \
 		-a \
 		--work=$1 \
 		$$(GHDL_AOPTS) \
 		$2
-	touch $(GHDL_TOUCH_COM)
+	touch $$(GHDL_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
+sim:: $(GHDL_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
+endef
+
+define ghdl_com_lib_recurse
+$(if $(word 2,$2),$(eval $(call ghdl_com_lib_recurse,$1,$(call chop,$2))))
+$(eval $(call ghdl_com,$1,$2))
 endef
 
 define ghdl_com_lib
-$(foreach s,$(GHDL_SRC.$1),$(eval $(call ghdl_com,$1,$s)))
+$(GHDL_TOUCH_DIR)/$1:
+	$(BASH) -c "mkdir -p $(GHDL_TOUCH_DIR)/$1"
+$(eval $(call ghdl_com_lib_recurse,$1,$2))
 endef
 
 define ghdl_run
 
-$(GHDL_TOUCH_RUN):: $(GHDL_TOUCH_COM) | $(GHDL_DIR)
+sim:: force
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
 	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
@@ -727,11 +734,10 @@ else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
 endif
 	@echo -------------------------------------------------------------------------------
-	touch $(GHDL_TOUCH_RUN)
 
 sim:: $(GHDL_TOUCH_RUN)
 
-$(GHDL_DIR)/$(word 1,$1).vcd: $(GHDL_TOUCH_RUN)
+$(GHDL_DIR)/$(word 1,$1).vcd: nvc
 
 vcd:: $(GHDL_DIR)/$(word 1,$1).vcd
 
@@ -752,7 +758,7 @@ endef
 $(GHDL_DIR):
 	$(BASH) -c "mkdir -p $(GHDL_DIR)"
 
-$(foreach l,$(GHDL_LIB),$(eval $(call ghdl_com_lib,$l)))
+$(foreach l,$(GHDL_LIB),$(eval $(call ghdl_com_lib,$l,$(GHDL_SRC.$l))))
 $(foreach r,$(SIM_RUNX),$(eval $(call ghdl_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
