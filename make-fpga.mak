@@ -906,8 +906,7 @@ endif
 VSIM_WORK?=$(SIM_WORK)
 VSIM_LIB?=$(SIM_LIB)
 $(foreach l,$(VSIM_LIB),$(eval VSIM_SRC.$l?=$(SIM_SRC.$l)))
-VSIM_TOUCH_COM:=$(VSIM_DIR)/touch.com
-VSIM_TOUCH_RUN:=$(VSIM_DIR)/touch.run
+VSIM_TOUCH_DIR:=$(VSIM_DIR)/.touch
 
 VCOM_OPTS+=-2008 -explicit -stats=none
 VSIM_TCL+=set NumericStdNoWarnings 1; onfinish exit; run -all; exit
@@ -919,22 +918,30 @@ $(VSIM_DIR)/$1:
 endef
 
 define vsim_com
-$(VSIM_TOUCH_COM):: $2 | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI) $(VSIM_DIR)/$1
+$(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix $(VSIM_TOUCH_DIR)/$1/,$(addsuffix .com,$(notdir $(call chop,$2)))) | $(VSIM_DIR)/$(VSIM_INI) $(VSIM_TOUCH_DIR)/$1
 	cd $$(VSIM_DIR) && $$(VCOM) \
 		-modelsimini $(VSIM_INI) \
 		-work $1 \
 		$$(VCOM_OPTS) \
 		$2
-	touch $(VSIM_TOUCH_COM)
+	touch $$(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
+sim:: $(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
+endef
+
+define vsim_com_lib_recurse
+$(if $(word 2,$2),$(eval $(call vsim_com_lib_recurse,$1,$(call chop,$2))))
+$(eval $(call vsim_com,$1,$2))
 endef
 
 define vsim_com_lib
-$(foreach s,$(VSIM_SRC.$1),$(eval $(call vsim_com,$1,$s)))
+$(VSIM_TOUCH_DIR)/$1:
+	$(BASH) -c "mkdir -p $(VSIM_TOUCH_DIR)/$1"
+$(eval $(call vsim_com_lib_recurse,$1,$2))
 endef
 
 define vsim_run
 
-$(VSIM_TOUCH_RUN):: $(VSIM_TOUCH_COM) | $(VSIM_DIR) $(VSIM_DIR)/$(VSIM_INI)
+sim:: force | $(VSIM_DIR)/$(VSIM_INI)
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
 	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
@@ -956,11 +963,8 @@ else
 	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
 endif
 	@echo -------------------------------------------------------------------------------
-	touch $(VSIM_TOUCH_RUN)
 
-sim:: $(VSIM_TOUCH_RUN)
-
-$(VSIM_DIR)/$(word 1,$1).vcd: $(VSIM_TOUCH_RUN)
+$(VSIM_DIR)/$(word 1,$1).vcd: vsim
 
 vcd:: $(VSIM_DIR)/$(word 1,$1).vcd
 
@@ -985,7 +989,7 @@ $(VSIM_DIR)/$(VSIM_INI): | $(VSIM_DIR)
 	$(BASH) -c "cd $(VSIM_DIR) && $(VMAP) -c && [ -f $(VSIM_INI) ] || mv modelsim.ini $(VSIM_INI)"
 
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_lib,$l)))
-$(foreach l,$(VSIM_LIB),$(eval $(call vsim_com_lib,$l)))
+$(foreach l,$(VSIM_LIB),$(eval $(call vsim_com_lib,$l,$(VSIM_SRC.$l))))
 $(foreach r,$(SIM_RUNX),$(eval $(call vsim_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
