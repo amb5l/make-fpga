@@ -68,6 +68,9 @@ COMMA:=,
 SEMICOLON:=;
 SPACE:=$(subst x, ,x)
 
+# includes
+include $(MAKE_FPGA_DIR)/submodules/gmsl/gmsl
+
 #################################################################################
 # cleanup
 
@@ -772,8 +775,7 @@ NVC?=nvc
 
 NVC_LIB?=$(SIM_LIB)
 $(foreach l,$(NVC_LIB),$(eval NVC_SRC.$l?=$(SIM_SRC.$l)))
-NVC_TOUCH_COM:=$(NVC_DIR)/touch.com
-NVC_TOUCH_RUN:=$(NVC_DIR)/touch.run
+NVC_TOUCH_DIR:=$(NVC_DIR)/.touch
 
 NVC_GOPTS+=--std=2008 -L.
 NVC_AOPTS+=--relaxed
@@ -781,22 +783,30 @@ NVC_EOPTS+=
 NVC_ROPTS+=--ieee-warnings=off
 
 define nvc_com
-$(NVC_TOUCH_COM):: $2 | $(NVC_DIR)
+$(NVC_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix $(NVC_TOUCH_DIR)/$1/,$(addsuffix .com,$(notdir $(call chop,$2)))) | $(NVC_TOUCH_DIR)/$1
 	cd $$(NVC_DIR) && $$(NVC) \
 		$$(NVC_GOPTS) \
 		--work=$1 \
 		-a $$(NVC_AOPTS) \
-		$2
-	touch $(NVC_TOUCH_COM)
+		$(call last,$2)
+	touch $$(NVC_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
+sim:: $(NVC_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
+endef
+
+define nvc_com_lib_recurse
+$(if $(word 2,$2),$(eval $(call nvc_com_lib_recurse,$1,$(call chop,$2))))
+$(eval $(call nvc_com,$1,$2))
 endef
 
 define nvc_com_lib
-$(foreach s,$(NVC_SRC.$1),$(eval $(call nvc_com,$1,$s)))
+$(NVC_TOUCH_DIR)/$1:
+	$(BASH) -c "mkdir -p $(NVC_TOUCH_DIR)/$1"
+$(eval $(call nvc_com_lib_recurse,$1,$2))
 endef
 
 define nvc_run
 
-$(NVC_TOUCH_RUN):: $(NVC_TOUCH_COM) | $(NVC_DIR)
+sim:: force
 	cd $$(NVC_DIR) && $$(NVC) \
 		$$(NVC_GOPTS) \
 		--work=$$(SIM_WORK) \
@@ -823,11 +833,8 @@ else
 	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
 endif
 	@echo -------------------------------------------------------------------------------
-	touch $(NVC_TOUCH_RUN)
 
-sim:: $(NVC_TOUCH_RUN)
-
-$(NVC_DIR)/$(word 1,$1).vcd: $(NVC_TOUCH_RUN)
+$(NVC_DIR)/$(word 1,$1).vcd: nvc
 
 vcd:: $(NVC_DIR)/$(word 1,$1).vcd
 
@@ -848,7 +855,7 @@ endef
 $(NVC_DIR):
 	$(BASH) -c "mkdir -p $(NVC_DIR)"
 
-$(foreach l,$(NVC_LIB),$(eval $(call nvc_com_lib,$l)))
+$(foreach l,$(NVC_LIB),$(eval $(call nvc_com_lib,$l,$(NVC_SRC.$l))))
 $(foreach r,$(SIM_RUNX),$(eval $(call nvc_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
