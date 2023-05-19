@@ -469,18 +469,9 @@ $(call check_null_error,FOUNDRY)
 ifeq ($(OS),Windows_NT)
 LATTICE_RADIANT:=$(shell cygpath -m $(LATTICE_RADIANT))
 endif
-ifeq ($(OS),Windows_NT)
-RADIANT_EXE:=pnmainc
-else
-RADIANT_EXE:=radiantc
-endif
-RADIANT_TCL:=$(RADIANT_EXE) $(MAKE_FPGA_TCL) radiant
-#RADIANT_VER:=$(shell $(RADIANT_TCL) script sys_install_version)
-#$(call check_shell_status,Could not set RADIANT_VER)
 
 # defaults
 RADIANT_PROJ?=fpga
-RADIANT_SYNTH?=lse
 RADIANT_CORES?=8
 RADIANT_DEV_ARCH?=$(FPGA_FAMILY)
 RADIANT_DEV?=$(FPGA_DEVICE)
@@ -507,6 +498,13 @@ ifneq (,$(filter $(RADIANT_TARGETS),$(MAKECMDGOALS)))
 
 radiant_cmd: bin nvcm
 
+# executables
+RADIANT_SYNTHESIS:=synthesis
+RADIANT_POSTSYN:=postsyn
+RADIANT_MAP:=map
+RADIANT_PAR:=par
+RADIANT_BITGEN:=bitgen
+
 # warnings
 $(call check_null_warning,RADIANT_FREQ)
 
@@ -524,7 +522,7 @@ $(RADIANT_CMD_DIR):
 	$(BASH) -c "mkdir -p $(RADIANT_CMD_DIR)"
 
 $(RADIANT_CMD_DIR)/$(RADIANT_SYNTHESIS_VM): $(RADIANT_VHDL) $(RADIANT_VLOG) $(RADIANT_LDC) | $(RADIANT_CMD_DIR)
-	cd $(RADIANT_CMD_DIR) && synthesis \
+	cd $(RADIANT_CMD_DIR) && $(RADIANT_SYNTHESIS) \
 		-output_hdl $(notdir $@) \
 		$(addprefix -vhd ,$(RADIANT_VHDL)) \
 		$(addprefix -ver ,$(RADIANT_VLOG)) \
@@ -539,7 +537,7 @@ $(RADIANT_CMD_DIR)/$(RADIANT_SYNTHESIS_VM): $(RADIANT_VHDL) $(RADIANT_VLOG) $(RA
 		$(RADIANT_SYNTH_OPTS)
 
 $(RADIANT_CMD_DIR)/$(RADIANT_POSTSYN_UDB): $(RADIANT_CMD_DIR)/$(RADIANT_SYNTHESIS_VM) $(RADIANT_LDC)
-	cd $(RADIANT_CMD_DIR) && postsyn \
+	cd $(RADIANT_CMD_DIR) && $(RADIANT_POSTSYN) \
 		-w \
 		$(addprefix -a ,$(RADIANT_DEV_ARCH)) \
 		$(addprefix -p ,$(RADIANT_DEV_BASE)) \
@@ -551,7 +549,7 @@ $(RADIANT_CMD_DIR)/$(RADIANT_POSTSYN_UDB): $(RADIANT_CMD_DIR)/$(RADIANT_SYNTHESI
 		$(notdir $<)
 
 $(RADIANT_CMD_DIR)/$(RADIANT_MAP_UDB): $(RADIANT_CMD_DIR)/$(RADIANT_POSTSYN_UDB) $(RADIANT_PDC)
-	cd $(RADIANT_CMD_DIR) && map \
+	cd $(RADIANT_CMD_DIR) && $(RADIANT_MAP) \
 		$(RADIANT_POSTSYN_UDB) \
 		$(RADIANT_PDC) \
 		-o $(notdir $@) \
@@ -560,7 +558,7 @@ $(RADIANT_CMD_DIR)/$(RADIANT_MAP_UDB): $(RADIANT_CMD_DIR)/$(RADIANT_POSTSYN_UDB)
 		-xref_sym
 
 $(RADIANT_CMD_DIR)/$(RADIANT_PAR_UDB): $(RADIANT_CMD_DIR)/$(RADIANT_MAP_UDB) $(RADIANT_PDC)
-	cd $(RADIANT_CMD_DIR) && par \
+	cd $(RADIANT_CMD_DIR) && $(RADIANT_PAR) \
 		-w \
 		-n 1 \
 		-t 1 \
@@ -571,10 +569,10 @@ $(RADIANT_CMD_DIR)/$(RADIANT_PAR_UDB): $(RADIANT_CMD_DIR)/$(RADIANT_MAP_UDB) $(R
 		$(RADIANT_PDC)
 
 $(RADIANT_BIN): $(RADIANT_CMD_DIR)/$(RADIANT_PAR_UDB)
-	cd $(RADIANT_CMD_DIR) && bitgen -w $(notdir $<) $(basename $@) && mv $@ ..
+	cd $(RADIANT_CMD_DIR) && $(RADIANT_BITGEN) -w $(notdir $<) $(basename $@) && mv $@ ..
 
 $(RADIANT_NVCM): $(RADIANT_CMD_DIR)/$(RADIANT_PAR_UDB)
-	cd $(RADIANT_CMD_DIR) && bitgen -w -nvcm -nvcmsecurity $(notdir $<) $(basename $@) && mv $@ ..
+	cd $(RADIANT_CMD_DIR) && $(RADIANT_BITGEN) -w -nvcm -nvcmsecurity $(notdir $<) $(basename $@) && mv $@ ..
 
 .PHONY: bin
 bin: $(RADIANT_BIN)
@@ -593,6 +591,16 @@ ifneq (,$(filter $(RADIANT_TARGETS),$(MAKECMDGOALS)))
 
 .PHONY: bin nvcm
 radiant_ide: bin nvcm
+
+ifeq ($(OS),Windows_NT)
+RADIANT_EXE:=$(LATTICE_RADIANT)/bin/nt64/pnmainc.exe
+else
+RADIANT_EXE:=radiantc
+endif
+RADIANT_TCL:=$(RADIANT_EXE) $(MAKE_FPGA_TCL) radiant
+#RADIANT_VER:=$(shell $(RADIANT_TCL) script sys_install_version)
+#$(call check_shell_status,Could not set RADIANT_VER)
+RADIANT_SYNTH?=lse
 
 RADIANT_RDF?=$(RADIANT_PROJ).rdf
 RADIANT_IMPL?=impl_1
