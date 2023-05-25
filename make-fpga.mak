@@ -931,7 +931,7 @@ $(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix 
 		-modelsimini $(VSIM_INI) \
 		-work $1 \
 		$$(VCOM_OPTS) \
-		$2
+		$(call last,$2)
 	touch $$(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
 sim:: $(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
 endef
