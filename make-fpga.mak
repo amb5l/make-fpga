@@ -889,6 +889,7 @@ vsim: sim
 VSIM_DIR?=.vsim
 SIM_DIR:=$(MAKE_DIR)/$(VSIM_DIR)
 VSIM_INI?=modelsim.ini
+VSIM_DO?=vsim.do
 VMAP?=vmap
 VCOM?=vcom
 VSIM?=vsim
@@ -926,13 +927,19 @@ $(VSIM_DIR)/$1:
 endef
 
 define vsim_com
-$(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix $(VSIM_TOUCH_DIR)/$1/,$(addsuffix .com,$(notdir $(call chop,$2)))) | $(VSIM_DIR)/$(VSIM_INI) $(VSIM_TOUCH_DIR)/$1
+$(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix $(VSIM_TOUCH_DIR)/$1/,$(addsuffix .com,$(notdir $(call chop,$2)))) | $(VSIM_DIR)/$(VSIM_INI) $(VSIM_TOUCH_DIR)/$1 $(VSIM_DIR)/$(VSIM_DO)
 	cd $$(VSIM_DIR) && $$(VCOM) \
 		-modelsimini $(VSIM_INI) \
 		-work $1 \
 		$$(VCOM_OPTS) \
 		$(call last,$2)
 	touch $$(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
+	@echo $$(VCOM) \
+		-modelsimini $(VSIM_INI) \
+		-work $1 \
+		$$(VCOM_OPTS) \
+		$(call last,$2) \
+		>> $(VSIM_DIR)/$(VSIM_DO)
 sim:: $(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
 endef
 
@@ -964,6 +971,14 @@ endif
 		$$(VSIM_OPTS) \
 		$$(word 2,$1) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	@echo $$(VSIM) \
+		-modelsimini $(VSIM_INI) \
+		-work $$(VSIM_WORK) \
+		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),-do "vcd file $$(word 1,$1).vcd; vcd add -r *") \
+		$$(VSIM_OPTS) \
+		$$(word 2,$1) \
+		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1))) \
+		>> $(VSIM_DIR)/$(VSIM_DO)		
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
 	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
@@ -995,6 +1010,9 @@ $(VSIM_DIR):
 
 $(VSIM_DIR)/$(VSIM_INI): | $(VSIM_DIR)
 	$(BASH) -c "cd $(VSIM_DIR) && $(VMAP) -c && [ -f $(VSIM_INI) ] || mv modelsim.ini $(VSIM_INI)"
+
+$(VSIM_DIR)/$(VSIM_DO): | $(VSIM_DIR)
+	@echo # make-fpga > $(VSIM_DIR)/$(VSIM_DO)
 
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_lib,$l)))
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_com_lib,$l,$(VSIM_SRC.$l))))
