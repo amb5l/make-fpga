@@ -8,7 +8,7 @@
 # supported targets/goals
 SUPPORTED_FPGA_TOOL:=vivado quartus radiant_cmd radiant_ide
 SUPPORTED_SIMULATOR:=ghdl nvc vsim xsim_cmd xsim_ide
-SUPPORTED_OTHER:=vcd gtkwave vscode clean
+SUPPORTED_OTHER:=gtkwave vscode clean
 
 .PHONY: all sim force
 .PHONY: $(SUPPORTED_FPGA_TOOL) $(SUPPORTED_SIMULATOR) $(SUPPORTED_OTHER)
@@ -733,7 +733,7 @@ endif
 		$$(GHDL_EOPTS) \
 		$$(word 2,$1) \
 		$$(GHDL_ROPTS) \
-		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),--vcd=$$(word 1,$1).vcd) \
+		$$(if $$(filter gtkwave,$$(MAKECMDGOALS)),--wave=$$(word 1,$1).ghw) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
@@ -745,20 +745,13 @@ endif
 
 sim:: $(GHDL_TOUCH_RUN)
 
-$(GHDL_DIR)/$(word 1,$1).vcd: nvc
+$(GHDL_DIR)/$(word 1,$1).ghw: ghdl
 
-vcd:: $(GHDL_DIR)/$(word 1,$1).vcd
-
-$(GHDL_DIR)/$(word 1,$1).gtkw: $(GHDL_DIR)/$(word 1,$1).vcd
-	sh $(REPO_ROOT)/submodules/vcd2gtkw/vcd2gtkw.sh \
-	$(GHDL_DIR)/$(word 1,$1).vcd \
-	$(GHDL_DIR)/$(word 1,$1).gtkw
-
-gtkwave:: $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw
+gtkwave:: $(GHDL_DIR)/$(word 1,$1).ghw
 ifeq ($(OS),Windows_NT)
-	start gtkwave $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw
+	start gtkwave $(GHDL_DIR)/$(word 1,$1).ghw
 else
-	gtkwave $(GHDL_DIR)/$(word 1,$1).vcd $(GHDL_DIR)/$(word 1,$1).gtkw &
+	gtkwave $(GHDL_DIR)/$(word 1,$1).ghw
 endif
 
 endef
@@ -839,7 +832,7 @@ endif
 		--work=$$(SIM_WORK) \
 		-r $$(word 2,$1) \
 		$$(NVC_ROPTS) \
-		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),--format=vcd --wave=$$(word 1,$1).vcd)
+		$$(if $$(filter gtkwave,$$(MAKECMDGOALS)),--format=fst --wave=$$(word 1,$1).fst --gtkw=$$(word 1,$1).gtkw)
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
 	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
@@ -848,20 +841,13 @@ else
 endif
 	@echo -------------------------------------------------------------------------------
 
-$(NVC_DIR)/$(word 1,$1).vcd: nvc
+$(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw: nvc
 
-vcd:: $(NVC_DIR)/$(word 1,$1).vcd
-
-$(NVC_DIR)/$(word 1,$1).gtkw: $(NVC_DIR)/$(word 1,$1).vcd
-	sh $(REPO_ROOT)/submodules/vcd2gtkw/vcd2gtkw.sh \
-	$(NVC_DIR)/$(word 1,$1).vcd \
-	$(NVC_DIR)/$(word 1,$1).gtkw
-
-gtkwave:: $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw
+gtkwave:: $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw
 ifeq ($(OS),Windows_NT)
-	start gtkwave $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw
+	start gtkwave $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw
 else
-	gtkwave $(NVC_DIR)/$(word 1,$1).vcd $(NVC_DIR)/$(word 1,$1).gtkw &
+	gtkwave $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw &
 endif
 
 endef
