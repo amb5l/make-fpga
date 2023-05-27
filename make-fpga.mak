@@ -749,7 +749,7 @@ $(GHDL_DIR)/$(word 1,$1).ghw: ghdl
 
 gtkwave:: $(GHDL_DIR)/$(word 1,$1).ghw
 ifeq ($(OS),Windows_NT)
-	start gtkwave $(GHDL_DIR)/$(word 1,$1).ghw
+	$(BASH) -c "cmd.exe //C start gtkwave $(GHDL_DIR)/$(word 1,$1).ghw"
 else
 	gtkwave $(GHDL_DIR)/$(word 1,$1).ghw
 endif
@@ -845,7 +845,7 @@ $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw: nvc
 
 gtkwave:: $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw
 ifeq ($(OS),Windows_NT)
-	start gtkwave $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw
+	$(BASH) -c "cmd.exe //C start gtkwave $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw"
 else
 	gtkwave $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw &
 endif
