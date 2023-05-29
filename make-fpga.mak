@@ -733,7 +733,7 @@ endif
 		$$(GHDL_EOPTS) \
 		$$(word 2,$1) \
 		$$(GHDL_ROPTS) \
-		$$(if $$(filter gtkwave,$$(MAKECMDGOALS)),--wave=$$(word 1,$1).ghw) \
+		$$(if $$(filter gtkwave ghw,$$(MAKECMDGOALS)),--wave=$$(word 1,$1).ghw) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
@@ -832,7 +832,7 @@ endif
 		--work=$$(SIM_WORK) \
 		-r $$(word 2,$1) \
 		$$(NVC_ROPTS) \
-		$$(if $$(filter gtkwave,$$(MAKECMDGOALS)),--format=fst --wave=$$(word 1,$1).fst --gtkw=$$(word 1,$1).gtkw)
+		$$(if $$(filter gtkwave fst,$$(MAKECMDGOALS)),--format=fst --wave=$$(word 1,$1).fst --gtkw=$$(word 1,$1).gtkw)
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
 	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
