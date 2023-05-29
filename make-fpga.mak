@@ -737,9 +737,9 @@ endif
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@$(BASH) -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 else
-	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
+	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
 endif
 	@echo -------------------------------------------------------------------------------
 
