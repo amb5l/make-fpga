@@ -246,7 +246,7 @@ $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD_HWDEF,$(VIVADO_BD_HW
 # hardware handoff (XSA) file depends on BD hwdef(s) and existence of project
 $(VIVADO_XSA_FILE): $(VIVADO_DSN_BD_HWDEF) | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
-	@echo Vivado: build hardware handoff \(XSA\) file
+	@echo Vivado: build hardware handoff (XSA) file
 	@echo -------------------------------------------------------------------------------
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build xsa
 
@@ -254,7 +254,7 @@ $(VIVADO_XSA_FILE): $(VIVADO_DSN_BD_HWDEF) | $(VIVADO_PROJ_FILE)
 define RR_VIVADO_IP_XCI
 $1 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X) &: $2 | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
-	@echo Vivado: build IP XCI file and simulation model\(s\)
+	@echo Vivado: build IP XCI file and simulation model(s)
 	@echo -------------------------------------------------------------------------------
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build ip $1 $2 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X)
 endef
