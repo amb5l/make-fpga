@@ -118,6 +118,13 @@ VITIS_ABS_DIR:=$(MAKE_DIR)/$(VITIS_DIR)
 VITIS_PROJ_FILE?=$(VITIS_ABS_DIR)/$(VITIS_APP)/$(VITIS_APP).prj
 VITIS_ELF_RELEASE?=$(VITIS_ABS_DIR)/$(VITIS_APP)/Release/$(VITIS_APP).elf
 VITIS_ELF_DEBUG?=$(VITIS_ABS_DIR)/$(VITIS_APP)/Debug/$(VITIS_APP).elf
+VITIS_ARCH?=microblaze
+ifeq (microblaze,$(VITIS_ARCH))
+VITIS_PROC?=$(VIVADO_DSN_PROC_INST)
+endif
+ifeq (arm,$(VITIS_ARCH))
+VITIS_PROC?=ps7_cortexa9_0
+endif
 
 endif
 
@@ -266,11 +273,11 @@ $(VIVADO_IMPL_FILE): $(VIVADO_SYNTH_FILE) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: implementation
 	@echo -------------------------------------------------------------------------------
-	cd $(VIVADO_DIR) && $(VIVADO_TCL) build impl $(VIVADO_JOBS) $(if $VITIS_APP,$(VIVADO_DSN_PROC_INST) $(VIVADO_DSN_PROC_REF) $(VIVADO_DSN_ELF))
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build impl $(VIVADO_JOBS) $(if $(filter microblaze,$(VITIS_ARCH)),$(VIVADO_DSN_PROC_INST) $(VIVADO_DSN_PROC_REF) $(VIVADO_DSN_ELF))
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: prepare for simulation
 	@echo -------------------------------------------------------------------------------
-ifdef VITIS_APP
+ifeq (microblaze,$(VITIS_ARCH))
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) simprep \
 		elf: $(VIVADO_DSN_PROC_INST) $(VIVADO_DSN_PROC_REF) $(VIVADO_SIM_ELF) \
 		gen: $(VIVADO_SIM_GENERICS)
@@ -334,7 +341,7 @@ $(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
 	@echo -------------------------------------------------------------------------------
 	rm -rf $(VITIS_DIR)
 	$(BASH) -c "mkdir -p $(VITIS_DIR)"
-	cd $(VITIS_DIR) && $(VITIS_TCL) create $(VITIS_APP) $(VIVADO_XSA_FILE) $(VIVADO_DSN_PROC_INST) \
+	cd $(VITIS_DIR) && $(VITIS_TCL) create $(VITIS_APP) $(VIVADO_XSA_FILE) $(VITIS_PROC) \
 		src:     $(VITIS_SRC) \
 		inc:     $(VITIS_INCLUDE) \
 		inc_rls: $(VITIS_INCLUDE_RELEASE) \
