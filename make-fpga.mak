@@ -96,7 +96,7 @@ endif
 # AMD/Xilinx Vivado (plus Vitis for MicroBlaze designs)
 
 ifneq (,$(filter vivado,$(FPGA_TOOL)))
-VIVADO_TARGETS:=all ts xpr bd bit bit prog elf bd_update
+VIVADO_TARGETS:=all ts xpr bd bit bit prog elf bd_update ts_list ts_reset
 ifneq (,$(filter $(VIVADO_TARGETS),$(MAKECMDGOALS)))
 
 vivado: bit
@@ -184,8 +184,8 @@ $(VIVADO_DIR):
 	$(BASH) -c "mkdir -p $@"
 
 # useful for dependency debug
-.PHONY: ts
-ts:
+.PHONY: ts_list
+ts_list:
 	@ls --full-time $(VIVADO_PROJ_RECIPE_FILE)
 	@ls --full-time $(VIVADO_PROJ_FILE)
 	@ls --full-time $(VIVADO_DSN_BD_TCL)
@@ -195,6 +195,35 @@ ts:
 	@ls --full-time $(VIVADO_SYNTH_FILE)
 	@ls --full-time $(VIVADO_IMPL_FILE)
 	@ls --full-time $(VIVADO_BIT_FILE)
+.PHONY: ts_reset
+ts_reset:
+ifneq (,$(VIVADO_PROJ_RECIPE_FILE))
+	touch $(VIVADO_PROJ_RECIPE_FILE)
+endif
+ifneq (,$(VIVADO_PROJ_FILE))
+	touch $(VIVADO_PROJ_FILE)
+endif
+ifneq (,$(VIVADO_DSN_BD_TCL))
+	touch $(VIVADO_DSN_BD_TCL)
+endif
+ifneq (,$(VIVADO_DSN_BD))
+	touch $(VIVADO_DSN_BD)
+endif
+ifneq (,$(VIVADO_DSN_BD_HWDEF))
+	touch $(VIVADO_DSN_BD_HWDEF)
+endif
+ifneq (,$(VIVADO_XSA_FILE))
+	touch $(VIVADO_XSA_FILE)
+endif
+ifneq (,$(VIVADO_SYNTH_FILE))
+	touch $(VIVADO_SYNTH_FILE)
+endif
+ifneq (,$(VIVADO_IMPL_FILE))
+	touch $(VIVADO_IMPL_FILE)
+endif
+ifneq (,$(VIVADO_BIT_FILE))
+	touch $(VIVADO_BIT_FILE)
+endif
 
 # recipe file is created/updated as required
 $(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
