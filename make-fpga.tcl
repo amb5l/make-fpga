@@ -231,7 +231,7 @@ switch $tool {
 							# build bit filename
 							set filename [lindex $args 1]
 							open_run impl_1
-							write_bitstream -force "$filename"
+							write_bitstream -force -bin_file "$filename"
 						}
 						bd_tcl {
 							# update bd_tcl tcl_file bd_file
