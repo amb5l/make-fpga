@@ -795,26 +795,15 @@ NVC_AOPTS+=--relaxed
 NVC_EOPTS+=
 NVC_ROPTS+=--ieee-warnings=off
 
+# $1 = output touch file
+# $2 = work library
+# $3 = source file
+# $4 = dependencies (touch files)
 define nvc_com
-$(NVC_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix $(NVC_TOUCH_DIR)/$1/,$(addsuffix .com,$(notdir $(call chop,$2)))) | $(NVC_TOUCH_DIR)/$1
-	cd $$(NVC_DIR) && $$(NVC) \
-		$$(NVC_GOPTS) \
-		--work=$1 \
-		-a $$(NVC_AOPTS) \
-		$(call last,$2)
-	touch $$(NVC_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
-sim:: $(NVC_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
-endef
-
-define nvc_com_lib_recurse
-$(if $(word 2,$2),$(eval $(call nvc_com_lib_recurse,$1,$(call chop,$2))))
-$(eval $(call nvc_com,$1,$2))
-endef
-
-define nvc_com_lib
-$(NVC_TOUCH_DIR)/$1:
-	$(BASH) -c "mkdir -p $(NVC_TOUCH_DIR)/$1"
-$(eval $(call nvc_com_lib_recurse,$1,$2))
+$1: $3 $4 | $(dir $1).
+	cd $$(NVC_DIR) && $$(NVC) $$(NVC_GOPTS) --work=$2 -a $$(NVC_AOPTS) $$<
+	@touch $1
+sim:: $1
 endef
 
 define nvc_run
@@ -861,7 +850,7 @@ endef
 $(NVC_DIR):
 	$(BASH) -c "mkdir -p $(NVC_DIR)"
 
-$(foreach l,$(NVC_LIB),$(eval $(call nvc_com_lib,$l,$(NVC_SRC.$l))))
+$(eval $(call sim_com_all,$(NVC_TOUCH_DIR),nvc,NVC_SRC,$(NVC_LIB)))
 $(foreach r,$(SIM_RUNX),$(eval $(call nvc_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
