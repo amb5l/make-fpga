@@ -657,6 +657,7 @@ SIMULATOR?=$(SUPPORTED_SIMULATOR)
 # single run: SIM_RUN=top[,generics]
 # multiple runs: SIM_RUN=name1,top1[,generics1] name2,top2[,generics2] ...
 SIM_RUNX=$(if $(word 2,$(SIM_RUN)),$(SIM_RUN),sim,$(SIM_RUN))
+SIM_RUNX=$(if $(word 2,$(SIM_RUN)),$(SIM_RUN),$(if $(word 3,$(subst $(COMMA),$(SPACE),$(SIM_RUN))),$(SIM_RUN),$(if $(word 2,$(subst $(COMMA),$(SPACE),$(SIM_RUN))),$(if $(findstring =,$(word 2,$(subst $(COMMA),$(SPACE),$(SIM_RUN)))),sim ),sim )$(SIM_RUN)))
 
 endif
 
