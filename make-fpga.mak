@@ -666,7 +666,7 @@ SIM_RUNX=$(if $(word 2,$(SIM_RUN)),$(SIM_RUN),$(if $(word 3,$(subst $(COMMA),$(S
 # $5 = list of sources, last is to be compiled, others are deps
 define sim_com_lib
 $(if $(word 2,$5),$(eval $(call sim_com_lib,$1,$2,$3,$4,$(call chop,$5))))
-$(eval $(call $2_com,$1/$(call last,$4)/$(notdir $(call last,$5)).com,$(call last,$4),$(call last,$5),$(addprefix $1/$(call last,$4)/,$(addsuffix .com,$(notdir $(call chop,$5)))) $(foreach l,$(call chop,$4),$(addprefix $1/$l/,$(addsuffix .com,$(notdir $($3.$l)))))))
+$(eval $(call $2_com,$1/$(call last,$4)/$(notdir $(call last,$5)).com,$(call last,$4),$(call last,$5),$(addprefix $1/$(call last,$4)/,$(addsuffix .com,$(notdir $(call chop,$5)))) $(foreach l,$(call chop,$4),$1/$l)))
 endef
 
 # recursively compile all libs:
@@ -719,7 +719,7 @@ GHDL_ROPTS+=--max-stack-alloc=0 --ieee-asserts=disable
 define ghdl_com
 $1: $3 $4 | $(dir $1).
 	cd $$(GHDL_DIR) && $$(GHDL) -a --work=$2 $$(GHDL_AOPTS) $$<
-	@touch $1
+	@touch $$@ $$(dir $$@).
 sim:: $1
 endef
 
@@ -802,7 +802,7 @@ NVC_ROPTS+=--ieee-warnings=off
 define nvc_com
 $1: $3 $4 | $(dir $1).
 	cd $$(NVC_DIR) && $$(NVC) $$(NVC_GOPTS) --work=$2 -a $$(NVC_AOPTS) $$<
-	@touch $1
+	@touch $$@ $$(dir $$@).
 sim:: $1
 endef
 
@@ -919,7 +919,7 @@ endef
 define vsim_com
 $1: $3 $4 | $(dir $1). $(VSIM_DIR)/$2 $(VSIM_DIR)/$(VSIM_INI) $(VSIM_DIR)/$(VSIM_DO)
 	cd $$(VSIM_DIR) && $$(VCOM) -modelsimini $(VSIM_INI) -work $2 $$(VCOM_OPTS) $$<
-	@touch $1
+	@touch $$@ $$(dir $$@).
 	$$(file >>$(VSIM_DIR)/$(VSIM_DO),vcom -modelsimini $(VSIM_INI) -work $1 $$(VCOM_OPTS) $$<)	
 sim:: $1
 endef
@@ -1030,7 +1030,7 @@ ifeq ($(OS),Windows_NT)
 define xsim_cmd_com
 $1: $3 $4 | $(dir $1).
 	$(BASH) -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C \"$(XVHDL).bat $$(XVHDL_OPTS) -work $2 $(shell cygpath -w $3)\""
-	@touch $1
+	@touch $$@ $$(dir $$@).
 sim:: $1
 endef
 
@@ -1091,7 +1091,7 @@ else
 define xsim_cmd_com
 $1: $3 $4 | $(dir $1).
 	cd $$(SIM_DIR) && $$(XVHDL) $$(XVHDL_OPTS) -work $2 $3
-	@touch $1
+	@touch $$@ $$(dir $$@).
 sim:: $1
 endef
 
