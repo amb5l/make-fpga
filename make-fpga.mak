@@ -658,6 +658,29 @@ SIMULATOR?=$(SUPPORTED_SIMULATOR)
 # multiple runs: SIM_RUN=name1,top1[,generics1] name2,top2[,generics2] ...
 SIM_RUNX=$(if $(word 2,$(SIM_RUN)),$(SIM_RUN),$(if $(word 3,$(subst $(COMMA),$(SPACE),$(SIM_RUN))),$(SIM_RUN),$(if $(word 2,$(subst $(COMMA),$(SPACE),$(SIM_RUN))),$(if $(findstring =,$(word 2,$(subst $(COMMA),$(SPACE),$(SIM_RUN)))),sim ),sim )$(SIM_RUN)))
 
+# recursively compile lib sources:
+# $1 = touch dir e.g. $(GHDL_DIR)/.touch
+# $2 = simulator
+# $3 = root name of source list
+# $4 = list of libs, last is working, others are deps
+# $5 = list of sources, last is to be compiled, others are deps
+define sim_com_lib
+$(if $(word 2,$5),$(eval $(call sim_com_lib,$1,$2,$3,$4,$(call chop,$5))))
+$(eval $(call $2_com,$1/$(call last,$4)/$(notdir $(call last,$5)).com,$(call last,$4),$(call last,$5),$(addprefix $1/$(call last,$4)/,$(addsuffix .com,$(notdir $(call chop,$5)))) $(foreach l,$(call chop,$4),$(addprefix $1/$l/,$(addsuffix .com,$(notdir $($3.$l)))))))
+endef
+
+# recursively compile all libs:
+# $1 = touch dir e.g. $(GHDL_DIR)/.touch
+# $2 = simulator e.g. ghdl
+# $3 = root name of source list e.g. GHDL_SRC
+# $4 = list of libraries
+define sim_com_all
+$(if $(word 2,$4),$(eval $(call sim_com_all,$1,$2,$3,$(call chop,$4))))
+$1/$(call last,$4)/.:
+	$(BASH) -c "mkdir -p $$@"
+$(eval $(call sim_com_lib,$1,$2,$3,$4,$($3.$(call last,$4))))
+endef
+
 endif
 
 #-------------------------------------------------------------------------------
@@ -689,26 +712,15 @@ GHDL_AOPTS+=--std=08 -fsynopsys -frelaxed -Wno-hide -Wno-shared $(addprefix -P$(
 GHDL_EOPTS+=--std=08 -fsynopsys -frelaxed $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_VENDOR_LIBS))
 GHDL_ROPTS+=--max-stack-alloc=0 --ieee-asserts=disable
 
+# $1 = output touch file
+# $2 = work library
+# $3 = source file
+# $4 = dependencies (touch files)
 define ghdl_com
-$(GHDL_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix $(GHDL_TOUCH_DIR)/$1/,$(addsuffix .com,$(notdir $(call chop,$2)))) | $(GHDL_TOUCH_DIR)/$1
-	cd $$(GHDL_DIR) && $$(GHDL) \
-		-a \
-		--work=$1 \
-		$$(GHDL_AOPTS) \
-		$(call last,$2)
-	touch $$(GHDL_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
-sim:: $(GHDL_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
-endef
-
-define ghdl_com_lib_recurse
-$(if $(word 2,$2),$(eval $(call ghdl_com_lib_recurse,$1,$(call chop,$2))))
-$(eval $(call ghdl_com,$1,$2))
-endef
-
-define ghdl_com_lib
-$(GHDL_TOUCH_DIR)/$1:
-	$(BASH) -c "mkdir -p $(GHDL_TOUCH_DIR)/$1"
-$(eval $(call ghdl_com_lib_recurse,$1,$2))
+$1: $3 $4 | $(dir $1).
+	cd $$(GHDL_DIR) && $$(GHDL) -a --work=$2 $$(GHDL_AOPTS) $$<
+	@touch $1
+sim:: $1
 endef
 
 define ghdl_run
@@ -753,7 +765,7 @@ endef
 $(GHDL_DIR):
 	$(BASH) -c "mkdir -p $(GHDL_DIR)"
 
-$(foreach l,$(GHDL_LIB),$(eval $(call ghdl_com_lib,$l,$(GHDL_SRC.$l))))
+$(eval $(call sim_com_all,$(GHDL_TOUCH_DIR),ghdl,GHDL_SRC,$(GHDL_LIB)))
 $(foreach r,$(SIM_RUNX),$(eval $(call ghdl_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
