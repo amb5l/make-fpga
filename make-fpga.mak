@@ -871,12 +871,16 @@ VSIM_DIR?=.vsim
 SIM_DIR:=$(MAKE_DIR)/$(VSIM_DIR)
 VSIM_INI?=modelsim.ini
 VSIM_DO?=vsim.do
+VLIB?=vlib
 VMAP?=vmap
 VCOM?=vcom
 VSIM?=vsim
 
 ifdef VSIM_BIN_DIR
 VSIM_BIN_PREFIX:=$(if $(VSIM_BIN_DIR),$(VSIM_BIN_DIR)/,)
+ifeq ($(VLIB),$(notdir $(VLIB)))
+VLIB:=$(if $(VSIM_BIN_DIR),$(VSIM_BIN_DIR)/,)$(VLIB)
+endif
 ifeq ($(VMAP),$(notdir $(VMAP)))
 VMAP:=$(if $(VSIM_BIN_DIR),$(VSIM_BIN_DIR)/,)$(VMAP)
 endif
@@ -903,36 +907,21 @@ VSIM_TCL+=set NumericStdNoWarnings 1; onfinish exit; run -all; exit
 VSIM_OPTS+=-t ps -c -onfinish stop -do "$(VSIM_TCL)"
 
 define vsim_lib
-$(VSIM_DIR)/$1:
-	vlib $1
+$(VSIM_DIR)/$1: | $(VSIM_DIR)/$(VSIM_INI)
+	cd $$(VSIM_DIR) && vlib $1
+	cd $$(VSIM_DIR) && $(VMAP) -modelsimini $(VSIM_INI) $1 $1
 endef
 
+# $1 = output touch file
+# $2 = work library
+# $3 = source file
+# $4 = dependencies (touch files)
 define vsim_com
-$(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix $(VSIM_TOUCH_DIR)/$1/,$(addsuffix .com,$(notdir $(call chop,$2)))) | $(VSIM_DIR)/$(VSIM_INI) $(VSIM_TOUCH_DIR)/$1 $(VSIM_DIR)/$(VSIM_DO)
-	cd $$(VSIM_DIR) && $$(VCOM) \
-		-modelsimini $(VSIM_INI) \
-		-work $1 \
-		$$(VCOM_OPTS) \
-		$(call last,$2)
-	touch $$(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
-	$$(file >>$(VSIM_DIR)/$(VSIM_DO),vcom \
-		-modelsimini $(VSIM_INI) \
-		-work $1 \
-		$$(VCOM_OPTS) \
-		$(call last,$2) \
-	)
-sim:: $(VSIM_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
-endef
-
-define vsim_com_lib_recurse
-$(if $(word 2,$2),$(eval $(call vsim_com_lib_recurse,$1,$(call chop,$2))))
-$(eval $(call vsim_com,$1,$2))
-endef
-
-define vsim_com_lib
-$(VSIM_TOUCH_DIR)/$1:
-	$(BASH) -c "mkdir -p $(VSIM_TOUCH_DIR)/$1"
-$(eval $(call vsim_com_lib_recurse,$1,$2))
+$1: $3 $4 | $(dir $1). $(VSIM_DIR)/$2 $(VSIM_DIR)/$(VSIM_INI) $(VSIM_DIR)/$(VSIM_DO)
+	cd $$(VSIM_DIR) && $$(VCOM) -modelsimini $(VSIM_INI) -work $2 $$(VCOM_OPTS) $$<
+	@touch $1
+	$$(file >>$(VSIM_DIR)/$(VSIM_DO),vcom -modelsimini $(VSIM_INI) -work $1 $$(VCOM_OPTS) $$<)	
+sim:: $1
 endef
 
 define vsim_run
@@ -996,7 +985,7 @@ $(VSIM_DIR)/$(VSIM_DO): | $(VSIM_DIR)
 	$(file >$(VSIM_DIR)/$(VSIM_DO),# make-fpga)
 
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_lib,$l)))
-$(foreach l,$(VSIM_LIB),$(eval $(call vsim_com_lib,$l,$(VSIM_SRC.$l))))
+$(eval $(call sim_com_all,$(VSIM_TOUCH_DIR),vsim,VSIM_SRC,$(VSIM_LIB)))
 $(foreach r,$(SIM_RUNX),$(eval $(call vsim_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
