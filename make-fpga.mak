@@ -1023,17 +1023,15 @@ XSIM_OPTS+=-onerror quit -onfinish quit
 
 ifeq ($(OS),Windows_NT)
 
+# $1 = output touch file
+# $2 = work library
+# $3 = source file
+# $4 = dependencies (touch files)
 define xsim_cmd_com
-
-$(XSIM_CMD_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix $(XSIM_CMD_TOUCH_DIR)/$1/,$(addsuffix .com,$(notdir $(call chop,$2)))) | $(XSIM_CMD_TOUCH_DIR)/$1
-	$(BASH) -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C \"$(XVHDL).bat \
-		$$(XVHDL_OPTS) \
-		-work $1 \
-		$(shell cygpath -w $2) \
-		\""
-	touch $$(XSIM_CMD_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
-sim:: $(XSIM_CMD_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
-
+$1: $3 $4 | $(dir $1).
+	$(BASH) -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C \"$(XVHDL).bat $$(XVHDL_OPTS) -work $2 $(shell cygpath -w $3)\""
+	@touch $1
+sim:: $1
 endef
 
 define xsim_cmd_run
@@ -1086,16 +1084,15 @@ endef
 
 else
 
+# $1 = output touch file
+# $2 = work library
+# $3 = source file
+# $4 = dependencies (touch files)
 define xsim_cmd_com
-
-$(XSIM_CMD_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com: $(call last,$2) $(addprefix $(XSIM_CMD_TOUCH_DIR)/$1/,$(addsuffix .com,$(notdir $(call chop,$2)))) | $(XSIM_CMD_TOUCH_DIR)/$1
-	cd $$(SIM_DIR) && $$(XVHDL) \
-		$$(XVHDL_OPTS) \
-		-work $1 \
-		$2
-	touch $$(XSIM_CMD_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
-sim:: $(XSIM_CMD_TOUCH_DIR)/$1/$(notdir $(call last,$2)).com
-
+$1: $3 $4 | $(dir $1).
+	cd $$(SIM_DIR) && $$(XVHDL) $$(XVHDL_OPTS) -work $2 $3
+	@touch $1
+sim:: $1
 endef
 
 define xsim_cmd_run
@@ -1143,21 +1140,10 @@ endef
 
 endif
 
-define xsim_cmd_com_lib_recurse
-$(if $(word 2,$2),$(eval $(call xsim_cmd_com_lib_recurse,$1,$(call chop,$2))))
-$(eval $(call xsim_cmd_com,$1,$2))
-endef
-
-define xsim_cmd_com_lib
-$(XSIM_CMD_TOUCH_DIR)/$1:
-	$(BASH) -c "mkdir -p $(XSIM_CMD_TOUCH_DIR)/$1"
-$(eval $(call xsim_cmd_com_lib_recurse,$1,$2))
-endef
-
 $(XSIM_CMD_DIR):
 	$(BASH) -c "mkdir -p $(XSIM_CMD_DIR)"
 
-$(foreach l,$(XSIM_CMD_LIB),$(eval $(call xsim_cmd_com_lib,$l,$(XSIM_CMD_SRC.$l))))
+$(eval $(call sim_com_all,$(XSIM_CMD_TOUCH_DIR),xsim_cmd,XSIM_CMD_SRC,$(XSIM_CMD_LIB)))
 $(foreach r,$(SIM_RUNX),$(eval $(call xsim_cmd_run,$(subst $(COMMA),$(SPACE),$r))))
 
 endif
