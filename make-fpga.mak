@@ -146,6 +146,7 @@ VIVADO_SYNTH_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TO
 VIVADO_XSA_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_DSN_TOP).xsa
 VIVADO_DSN_IP_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).srcs/sources_1/ip
 VIVADO_BD_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).srcs/sources_1/bd
+VIVADO_BD_SCP_MODE?=Hierarchical
 VIVADO_BD_HWDEF_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).gen/sources_1/bd
 VIVADO_SIM_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).sim/sim_1/behav/xsim
 VIVADO_SIM_IP_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).gen/sources_1/ip
@@ -216,7 +217,7 @@ $1: $2 | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
 	@echo Vivado: build block diagrams from TCL
 	@echo -------------------------------------------------------------------------------
-	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bd $1 $2
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bd $1 $2 $(VIVADO_BD_SCP_MODE)
 endef
 $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd,$X)))
 
