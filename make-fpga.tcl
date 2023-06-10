@@ -153,7 +153,6 @@ switch $tool {
 					if {[llength [dict keys $d]]} {
 						error_exit {"create - leftovers: $d"}
 					}
-
 				}
 
 				build {
@@ -175,13 +174,17 @@ switch $tool {
 							}
 						}
 						bd {
-							# build bd bd_file tcl_file
+							# build bd bd_file tcl_file scp_mode
 							set bd_file [lindex $args 1]
 							set tcl_file [lindex $args 2]
 							if {$bd_file in [get_files $bd_file]} {
 								remove_files $bd_file
 							}
 							source $tcl_file
+                            if {[llength $args] > 3} {
+                                set scp_mode [lindex $args 3]
+                                set_property synth_checkpoint_mode $scp_mode [get_files $bd_file]
+                            }
 						}
 						hwdef {
 							# build hwdef filename
