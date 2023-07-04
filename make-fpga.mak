@@ -67,6 +67,7 @@ NULL:=
 COMMA:=,
 SEMICOLON:=;
 SPACE:=$(subst x, ,x)
+CPU_CORES:=$(shell bash -c "grep '^core id' /proc/cpuinfo |sort -u|wc -l")
 
 # includes
 include $(MAKE_FPGA_DIR)/submodules/gmsl/gmsl
@@ -134,7 +135,7 @@ VIVADO_DIR?=.vivado
 VIVADO_EXE:=vivado
 VIVADO_PROJ?=fpga
 VIVADO_PART?=$(FPGA_DEVICE)
-VIVADO_JOBS?=4
+VIVADO_JOBS?=$(shell expr $(CPU_CORES) / 2)
 
 #VIVADO_VER:=$(shell $(VIVADO_EXE) -version | grep -Po '(?<=Vivado\sv)[^\s]+')
 VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs vivado $(VIVADO_PROJ)
@@ -467,7 +468,7 @@ endif
 
 # defaults
 RADIANT_PROJ?=fpga
-RADIANT_CORES?=8
+RADIANT_CORES?=$(shell expr $(CPU_CORES) / 2)
 RADIANT_DEV_ARCH?=$(FPGA_FAMILY)
 RADIANT_DEV?=$(FPGA_DEVICE)
 RADIANT_DEV_BASE?=$(word 1,$(subst -, ,$(RADIANT_DEV)))
