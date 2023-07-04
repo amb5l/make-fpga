@@ -67,6 +67,23 @@ NULL:=
 COMMA:=,
 SEMICOLON:=;
 SPACE:=$(subst x, ,x)
+COL_RST:=\033[0m
+COL_BG_BLK:=\033[0;100m
+COL_BG_RED:=\033[0;101m
+COL_BG_GRN:=\033[0;102m
+COL_BG_YEL:=\033[0;103m
+COL_BG_BLU:=\033[0;104m
+COL_BG_MAG:=\033[0;105m
+COL_BG_CYN:=\033[0;106m
+COL_BG_WHT:=\033[0;107m
+COL_FG_BLK:=\033[1;30m
+COL_FG_RED:=\033[1;31m
+COL_FG_GRN:=\033[1;32m
+COL_FG_YEL:=\033[1;33m
+COL_FG_BLU:=\033[1;34m
+COL_FG_MAG:=\033[1;35m
+COL_FG_CYN:=\033[1;36m
+COL_FG_WHT:=\033[1;37m
 CPU_CORES:=$(shell bash -c "grep '^core id' /proc/cpuinfo |sort -u|wc -l")
 
 # includes
@@ -194,9 +211,9 @@ $(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
 .PHONY: xpr
 xpr: $(VIVADO_PROJ_FILE)
 $(VIVADO_PROJ_FILE): $(VIVADO_PROJ_RECIPE_FILE) | $(VIVADO_PROJ_RECIPE_SOURCES)
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: create project
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: create project                                                        $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) create $(VIVADO_PART) vhdl \
 		dsn_vhdl:       $(VIVADO_DSN_VHDL) \
 		dsn_vhdl_2008:  $(VIVADO_DSN_VHDL_2008) \
@@ -215,9 +232,9 @@ $(VIVADO_PROJ_FILE): $(VIVADO_PROJ_RECIPE_FILE) | $(VIVADO_PROJ_RECIPE_SOURCES)
 define RR_VIVADO_BD
 bd:: $1
 $1: $2 | $(VIVADO_PROJ_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: build block diagrams from TCL
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: build block diagrams from TCL                                         $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bd $1 $2 $(VIVADO_BD_SCP_MODE)
 endef
 $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd,$X)))
@@ -225,47 +242,47 @@ $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD,$(VIVADO_BD_PATH)/$(
 # BD hardware definitions depend on BD files and existence of project
 define RR_VIVADO_BD_HWDEF
 $1: $2 | $(VIVADO_PROJ_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: build block diagram hardware definitions
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: build block diagram hardware definitions                              $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build hwdef $2
 endef
 $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD_HWDEF,$(VIVADO_BD_HWDEF_PATH)/$(basename $(notdir $X))/synth/$(basename $(notdir $X)).hwdef,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd)))
 
 # hardware handoff (XSA) file depends on BD hwdef(s) and existence of project
 $(VIVADO_XSA_FILE): $(VIVADO_DSN_BD_HWDEF) | $(VIVADO_PROJ_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: build hardware handoff (XSA) file
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: build hardware handoff (XSA) file                                     $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build xsa
 
 # IP XCI files and simulation models depend on IP TCL scripts and existence of project
 define RR_VIVADO_IP_XCI
 $1 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X) &: $2 | $(VIVADO_PROJ_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: build IP XCI file and simulation model(s)
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: build IP XCI file and simulation model(s)                             $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build ip $1 $2 $(foreach X,$(VIVADO_SIM_IP_$(basename $(notdir $2))),$(VIVADO_SIM_IP_PATH)/$X)
 endef
 $(foreach X,$(VIVADO_DSN_IP_TCL),$(eval $(call RR_VIVADO_IP_XCI,$(VIVADO_DSN_IP_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).xci,$X)))
 
 # synthesis file depends on design sources, relevant constraints and existence of project
 $(VIVADO_SYNTH_FILE): $(VIVADO_DSN_IP_XCI) $(VIVADO_DSN_BD_HWDEF) $(VIVADO_DSN_VHDL) $(VIVADO_DSN_VHDL_2008) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) | $(VIVADO_PROJ_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: synthesis
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: synthesis                                                             $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build synth $(VIVADO_JOBS)
 
 # implementation file depends on synthesis file, ELF file, relevant constraints and existence of project
 # we also carry out simulation prep here so that project is left ready for interactive simulation
 $(VIVADO_IMPL_FILE): $(VIVADO_SYNTH_FILE) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_XDC) | $(VIVADO_PROJ_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: implementation
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: implementation                                                        $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build impl $(VIVADO_JOBS) $(if $(filter microblaze,$(VITIS_ARCH)),$(VIVADO_DSN_PROC_INST) $(VIVADO_DSN_PROC_REF) $(VIVADO_DSN_ELF))
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: prepare for simulation
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: prepare for simulation                                                $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 ifeq (microblaze,$(VITIS_ARCH))
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) simprep \
 		elf: $(VIVADO_DSN_PROC_INST) $(VIVADO_DSN_PROC_REF) $(VIVADO_SIM_ELF) \
@@ -292,9 +309,9 @@ endif
 .PHONY: bit
 bit: $(VIVADO_BIT_FILE)
 $(VIVADO_BIT_FILE): $(VIVADO_IMPL_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: create bit file
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: create bit file                                                       $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bit $@
 
 # program FPGA
@@ -305,18 +322,18 @@ endif
 endif
 .PHONY: prog
 prog: $(VIVADO_BIT_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: program FPGA
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: program FPGA                                                          $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) prog $< $(hw)
 
 # update BD source TCL scripts from changed BD files
 .PHONY: bd_update
 define RR_VIVADO_UPDATE_BD
 bd_update:: $1 $(VIVADO_PROJ_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vivado: update block diagram TCL
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: update block diagram TCL                                              $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bd_tcl $2 $1
 endef
 $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_UPDATE_BD,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd,$X)))
@@ -325,9 +342,9 @@ ifdef VITIS_APP
 
 # project depends on XSA file (and existence of sources)
 $(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
-	@echo -------------------------------------------------------------------------------
-	@echo Vitis: create project
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: create project                                                         $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	rm -rf $(VITIS_DIR)
 	$(BASH) -c "mkdir -p $(VITIS_DIR)"
 	cd $(VITIS_DIR) && $(VITIS_TCL) create $(VITIS_APP) $(VIVADO_XSA_FILE) $(VITIS_PROC) \
@@ -343,14 +360,14 @@ $(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
 .PHONY: elf
 elf: $(VITIS_ELF_RELEASE) $(VITIS_ELF_DEBUG)
 $(VITIS_ELF_RELEASE) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_RELEASE) $(VITIS_PROJ_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vitis: build release binary
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: build release binary                                                   $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VITIS_DIR) && $(VITIS_TCL) build release
 $(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) $(VITIS_PROJ_FILE)
-	@echo -------------------------------------------------------------------------------
-	@echo Vitis: build debug binary
-	@echo -------------------------------------------------------------------------------
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: build debug binary                                                     $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VITIS_DIR) && $(VITIS_TCL) build debug
 
 endif
@@ -922,7 +939,7 @@ define vsim_com
 $1: $3 $4 | $(dir $1). $(VSIM_DIR)/$2 $(VSIM_DIR)/$(VSIM_INI) $(VSIM_DIR)/$(VSIM_DO)
 	cd $$(VSIM_DIR) && $$(VCOM) -modelsimini $(VSIM_INI) -work $2 $$(VCOM_OPTS) $$<
 	@touch $$@ $$(dir $$@).
-	$$(file >>$(VSIM_DIR)/$(VSIM_DO),vcom -modelsimini $(VSIM_INI) -work $1 $$(VCOM_OPTS) $$<)	
+	$$(file >>$(VSIM_DIR)/$(VSIM_DO),vcom -modelsimini $(VSIM_INI) -work $1 $$(VCOM_OPTS) $$<)
 sim:: $1
 endef
 
