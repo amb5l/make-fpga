@@ -349,6 +349,7 @@ $(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
 	$(BASH) -c "mkdir -p $(VITIS_DIR)"
 	cd $(VITIS_DIR) && $(VITIS_TCL) create $(VITIS_APP) $(VIVADO_XSA_FILE) $(VITIS_PROC) \
 		src:     $(VITIS_SRC) \
+		bsp_lib: $(VITIS_BSP_LIB) \
 		inc:     $(VITIS_INCLUDE) \
 		inc_rls: $(VITIS_INCLUDE_RELEASE) \
 		inc_dbg: $(VITIS_INCLUDE_DEBUG) \

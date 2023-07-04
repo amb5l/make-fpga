@@ -484,6 +484,13 @@ switch $tool {
 						close $f
 						set d [dict remove $d src]
 					}
+                    if {[dict exist $d bsp_lib]} {
+						foreach l [dict get $d bsp_lib] {
+							bsp setlib $l
+						}
+                        bsp write
+						set d [dict remove $d bsp_lib]
+                    }
 					if {[dict exist $d inc]} {
 						foreach path [dict get $d inc] {
 							app config -name $app_name build-config release
