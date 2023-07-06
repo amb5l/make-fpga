@@ -196,6 +196,11 @@ switch $tool {
 							set top [get_property top [get_filesets sources_1]]
 							write_hw_platform -fixed -force -file $top.xsa
 						}
+						xsa_bit {
+							# build xsa, include bit file
+							set top [get_property top [get_filesets sources_1]]
+							write_hw_platform -fixed -force -include_bit -file $top.xsa
+						}
 						synth {
 							# build synth jobs
 							set jobs [lindex $args 1]
@@ -226,15 +231,19 @@ switch $tool {
 							reset_run impl_1
 							launch_runs impl_1 -jobs $jobs
 							wait_on_run impl_1
-							if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
+							if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
 								error_exit {"implementation did not complete"}
 							}
 						}
 						bit {
-							# build bit filename
-							set filename [lindex $args 1]
-							open_run impl_1
-							write_bitstream -force -bin_file "$filename"
+							# build bit jobs
+                            set jobs [lindex $args 1]
+							reset_run impl_1 -from_step write_bitstream
+							launch_runs impl_1 -to_step write_bitstream -jobs $jobs
+                            wait_on_run impl_1
+							if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
+								error_exit {"bitstream generation did not complete"}
+							}
 						}
 						bd_tcl {
 							# update bd_tcl tcl_file bd_file
@@ -484,13 +493,6 @@ switch $tool {
 						close $f
 						set d [dict remove $d src]
 					}
-                    if {[dict exist $d bsp_lib]} {
-						foreach l [dict get $d bsp_lib] {
-							bsp setlib $l
-						}
-                        bsp write
-						set d [dict remove $d bsp_lib]
-                    }
 					if {[dict exist $d inc]} {
 						foreach path [dict get $d inc] {
 							app config -name $app_name build-config release
@@ -537,6 +539,29 @@ switch $tool {
 						}
 						set d [dict remove $d sym_dbg]
 					}
+                    if {[dict exist $d domain]} {
+                        domain active [dict get $d domain]
+                        set d [dict remove $d domain]
+                    }
+                    if {[dict exist $d bsp_lib]} {
+						foreach l [dict get $d bsp_lib] {
+							bsp setlib $l
+						}
+                        bsp write
+						set d [dict remove $d bsp_lib]
+                    }
+                    if {[dict exist $d bsp_cfg]} {
+						foreach param_value [dict get $d bsp_cfg] {
+                            set i [string first ":" $param_value]
+                            set param [string range $param_value 0 $i-1]
+                            set value [string range $param_value $i+1 end]
+                            puts "bsp_cfg: param:$param = value:$value"
+                            bsp config $param $value
+						}
+						set d [dict remove $d bsp_cfg]
+                    }
+                    bsp regenerate
+                    platform generate
 					if {[llength [dict keys $d]]} {
 						error_exit {"create - leftovers: $d"}
 						exit 1

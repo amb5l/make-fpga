@@ -117,7 +117,7 @@ ifneq (,$(filter vivado,$(FPGA_TOOL)))
 VIVADO_TARGETS:=all ts xpr bd bit bit prog elf bd_update
 ifneq (,$(filter $(VIVADO_TARGETS),$(MAKECMDGOALS)))
 
-vivado: bit
+vivado:: bit
 
 $(call check_null_error,XILINX_VIVADO)
 ifeq ($(OS),Windows_NT)
@@ -142,6 +142,9 @@ VITIS_PROC?=$(VIVADO_DSN_PROC_INST)
 endif
 ifeq (arm,$(VITIS_ARCH))
 VITIS_PROC?=ps7_cortexa9_0
+VITIS_OS?=standalone
+VITIS_DOMAIN?=$(VITIS_OS)_domain
+vivado:: elf
 endif
 
 endif
@@ -158,7 +161,7 @@ VIVADO_JOBS?=$(shell expr $(CPU_CORES) / 2)
 VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FPGA_TCL) -tclargs vivado $(VIVADO_PROJ)
 VIVADO_ABS_DIR:=$(MAKE_DIR)/$(VIVADO_DIR)
 VIVADO_PROJ_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).xpr
-VIVADO_BIT_FILE?=$(MAKE_DIR)/$(VIVADO_DSN_TOP).bit
+VIVADO_BIT_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
 VIVADO_IMPL_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
 VIVADO_SYNTH_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_XSA_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_DSN_TOP).xsa
@@ -173,10 +176,12 @@ VIVADO_DSN_BD?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_BD_TCL))),$(VIVADO_B
 VIVADO_DSN_BD_HWDEF?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_BD_TCL))),$(VIVADO_BD_HWDEF_PATH)/$X/synth/$X.hwdef)
 VIVADO_SIM_IP_FILES?=$(foreach X,$(basename $(notdir $(VIVADO_DSN_IP_TCL))),$(addprefix $(VIVADO_SIM_IP_PATH)/,$(VIVADO_SIM_IP_$X)))
 ifdef VITIS_APP
+ifeq (microblaze,$(VITIS_ARCH))
 VIVADO_DSN_ELF_CFG?=Release
 VIVADO_DSN_ELF?=$(VITIS_ABS_DIR)/$(VITIS_APP)/$(VIVADO_DSN_ELF_CFG)/$(VITIS_APP).elf
 VIVADO_SIM_ELF_CFG?=Debug
 VIVADO_SIM_ELF?=$(VITIS_ABS_DIR)/$(VITIS_APP)/$(VIVADO_SIM_ELF_CFG)/$(VITIS_APP).elf
+endif
 endif
 
 VIVADO_PROJ_RECIPE_FILE:=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ)_recipe.txt
@@ -249,12 +254,22 @@ $1: $2 | $(VIVADO_PROJ_FILE)
 endef
 $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD_HWDEF,$(VIVADO_BD_HWDEF_PATH)/$(basename $(notdir $X))/synth/$(basename $(notdir $X)).hwdef,$(VIVADO_BD_PATH)/$(basename $(notdir $X))/$(basename $(notdir $X)).bd)))
 
-# hardware handoff (XSA) file depends on BD hwdef(s) and existence of project
+# hardware handoff (XSA) file
+ifeq (microblaze,$(VITIS_ARCH))
+# microblaze: depends on BD hwdef(s) and existence of project
 $(VIVADO_XSA_FILE): $(VIVADO_DSN_BD_HWDEF) | $(VIVADO_PROJ_FILE)
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: build hardware handoff (XSA) file                                     $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build xsa
+else
+# arm: depends on bit file
+$(VIVADO_XSA_FILE): $(VIVADO_BIT_FILE)
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: build hardware handoff (XSA) file (including bit file)                $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build xsa_bit
+endif
 
 # IP XCI files and simulation models depend on IP TCL scripts and existence of project
 define RR_VIVADO_IP_XCI
@@ -298,9 +313,11 @@ ifneq (,$(VIVADO_XSA_FILE))
 	touch $(VIVADO_XSA_FILE)
 endif
 ifdef VITIS_APP
+ifeq (microblaze,$(VITIS_ARCH))
 	touch $(VITIS_PROJ_FILE)
 	touch $(VITIS_ELF_RELEASE)
 	touch $(VITIS_ELF_DEBUG)
+endif
 endif
 	touch $(VIVADO_SYNTH_FILE)
 	touch $@
@@ -312,7 +329,8 @@ $(VIVADO_BIT_FILE): $(VIVADO_IMPL_FILE)
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: create bit file                                                       $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
-	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bit $@
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bit $(VIVADO_JOBS)
+	cp $@ $(MAKE_DIR)
 
 # program FPGA
 ifndef hw
@@ -349,13 +367,15 @@ $(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
 	$(BASH) -c "mkdir -p $(VITIS_DIR)"
 	cd $(VITIS_DIR) && $(VITIS_TCL) create $(VITIS_APP) $(VIVADO_XSA_FILE) $(VITIS_PROC) \
 		src:     $(VITIS_SRC) \
-		bsp_lib: $(VITIS_BSP_LIB) \
 		inc:     $(VITIS_INCLUDE) \
 		inc_rls: $(VITIS_INCLUDE_RELEASE) \
 		inc_dbg: $(VITIS_INCLUDE_DEBUG) \
 		sym:     $(VITIS_SYMBOL) \
 		sym_rls: $(VITIS_SYMBOL_RELEASE) \
-		sym_dbg: $(VITIS_SYMBOL_DEBUG)
+		sym_dbg: $(VITIS_SYMBOL_DEBUG) \
+		domain:  $(VITIS_DOMAIN) \
+		bsp_lib: $(VITIS_BSP_LIB) \
+		bsp_cfg: $(VITIS_BSP_CFG)
 
 # ELF files depend on XSA file, source and project
 .PHONY: elf
