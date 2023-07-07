@@ -111,10 +111,10 @@ FPGA_DEVICE?=$(word 3,$(FPGA))
 endif
 
 #-------------------------------------------------------------------------------
-# AMD/Xilinx Vivado (plus Vitis for MicroBlaze designs)
+# AMD/Xilinx Vivado (plus Vitis for MicroBlaze/ARM designs)
 
 ifneq (,$(filter vivado,$(FPGA_TOOL)))
-VIVADO_TARGETS:=all ts xpr bd bit bit prog elf bd_update
+VIVADO_TARGETS:=all xpr bd bit prog elf bd_update
 ifneq (,$(filter $(VIVADO_TARGETS),$(MAKECMDGOALS)))
 
 vivado:: bit
@@ -162,7 +162,6 @@ VIVADO_TCL:=$(VIVADO_EXE) -mode tcl -notrace -nolog -nojournal -source $(MAKE_FP
 VIVADO_ABS_DIR:=$(MAKE_DIR)/$(VIVADO_DIR)
 VIVADO_PROJ_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).xpr
 VIVADO_BIT_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
-VIVADO_IMPL_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
 VIVADO_SYNTH_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_XSA_FILE?=$(VIVADO_ABS_DIR)/$(VIVADO_DSN_TOP).xsa
 VIVADO_DSN_IP_PATH?=$(VIVADO_ABS_DIR)/$(VIVADO_PROJ).srcs/sources_1/ip
@@ -288,13 +287,18 @@ $(VIVADO_SYNTH_FILE): $(VIVADO_DSN_IP_XCI) $(VIVADO_DSN_BD_HWDEF) $(VIVADO_DSN_V
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) build synth $(VIVADO_JOBS)
 
-# implementation file depends on synthesis file, ELF file, relevant constraints and existence of project
+# implementation and bit file generation depends on synthesis file, ELF file, relevant constraints and existence of project
 # we also carry out simulation prep here so that project is left ready for interactive simulation
-$(VIVADO_IMPL_FILE): $(VIVADO_SYNTH_FILE) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_XDC) | $(VIVADO_PROJ_FILE)
+# NOTE: implementation changes BD timestamp which upsets dependancies, so we force BD modification time backwards
+.PHONY: bit
+bit: $(VIVADO_BIT_FILE)
+tmp=touch --date=\"$$(date -r $2 -R) - 1 second\" $1 &&
+$(VIVADO_BIT_FILE): $(VIVADO_SYNTH_FILE) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_XDC) | $(VIVADO_PROJ_FILE)
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
-	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: implementation                                                        $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: implementation and bitstream generation                               $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
-	cd $(VIVADO_DIR) && $(VIVADO_TCL) build impl $(VIVADO_JOBS) $(if $(filter microblaze,$(VITIS_ARCH)),$(VIVADO_DSN_PROC_INST) $(VIVADO_DSN_PROC_REF) $(VIVADO_DSN_ELF))
+	cd $(VIVADO_DIR) && $(VIVADO_TCL) build impl_bit $(VIVADO_JOBS) $(if $(filter microblaze,$(VITIS_ARCH)),$(VIVADO_DSN_PROC_INST) $(VIVADO_DSN_PROC_REF) $(VIVADO_DSN_ELF))
+	cp $@ $(MAKE_DIR)
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: prepare for simulation                                                $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
@@ -306,31 +310,7 @@ else
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) simprep \
 		gen: $(VIVADO_SIM_GENERICS)
 endif
-ifneq (,$(VIVADO_DSN_BD_HWDEF))
-	touch $(VIVADO_DSN_BD_HWDEF)
-endif
-ifneq (,$(VIVADO_XSA_FILE))
-	touch $(VIVADO_XSA_FILE)
-endif
-ifdef VITIS_APP
-ifeq (microblaze,$(VITIS_ARCH))
-	touch $(VITIS_PROJ_FILE)
-	touch $(VITIS_ELF_RELEASE)
-	touch $(VITIS_ELF_DEBUG)
-endif
-endif
-	touch $(VIVADO_SYNTH_FILE)
-	touch $@
-
-# bit file depends on implementation file
-.PHONY: bit
-bit: $(VIVADO_BIT_FILE)
-$(VIVADO_BIT_FILE): $(VIVADO_IMPL_FILE)
-	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
-	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vivado: create bit file                                                       $(COL_RST)'"
-	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
-	cd $(VIVADO_DIR) && $(VIVADO_TCL) build bit $(VIVADO_JOBS)
-	cp $@ $(MAKE_DIR)
+	bash -c "$(call pairmap,tmp,$(VIVADO_DSN_BD),$(VIVADO_DSN_BD_HWDEF)) :"
 
 # program FPGA
 ifndef hw

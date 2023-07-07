@@ -211,8 +211,8 @@ switch $tool {
 								error_exit {"synthesis did not complete"}
 							}
 						}
-						impl {
-							# build impl jobs [proc_inst proc_ref proc_elf]
+						impl_bit {
+							# build bit jobs [proc_inst proc_ref proc_elf]
 							set jobs [lindex $args 1]
 							if {[llength $args] >= 3} {
 								set proc_inst [lindex $args 2]
@@ -229,20 +229,10 @@ switch $tool {
 								}
 							}
 							reset_run impl_1
-							launch_runs impl_1 -jobs $jobs
+							launch_runs impl_1 -to_step write_bitstream -jobs $jobs
 							wait_on_run impl_1
 							if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
-								error_exit {"implementation did not complete"}
-							}
-						}
-						bit {
-							# build bit jobs
-                            set jobs [lindex $args 1]
-							reset_run impl_1 -from_step write_bitstream
-							launch_runs impl_1 -to_step write_bitstream -jobs $jobs
-                            wait_on_run impl_1
-							if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
-								error_exit {"bitstream generation did not complete"}
+								error_exit {"implementation and bitstream generation did not complete"}
 							}
 						}
 						bd_tcl {
@@ -260,7 +250,7 @@ switch $tool {
 							write_bd_layout -force -format svg $svg_file
 						}
 						default {
-							error_exit {"build - unknown target ($target)"}
+							error_exit "build - unknown target ($target)"
 						}
 					}
 				}
