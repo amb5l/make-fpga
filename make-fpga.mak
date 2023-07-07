@@ -380,12 +380,12 @@ $(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
 # ELF files depend on XSA file, source and project
 .PHONY: elf
 elf: $(VITIS_ELF_RELEASE) $(VITIS_ELF_DEBUG)
-$(VITIS_ELF_RELEASE) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_RELEASE) $(VITIS_PROJ_FILE)
+$(VITIS_ELF_RELEASE) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_RELEASE) | $(VITIS_PROJ_FILE)
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: build release binary                                                   $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VITIS_DIR) && $(VITIS_TCL) build release
-$(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) $(VITIS_PROJ_FILE)
+$(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) | $(VITIS_PROJ_FILE)
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: build debug binary                                                     $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
