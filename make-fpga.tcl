@@ -565,6 +565,25 @@ switch $tool {
 					app build -name $app_name
 				}
 
+                run {
+                    # run fpga.bit fsbl.elf init.tcl run.elf
+                    set fpga_bit_file [lindex $args 0]
+                    set fsbl_elf_file [lindex $args 1]
+                    set init_tcl_file [lindex $args 2]
+                    set run_elf_file  [lindex $args 3]
+                    connect
+                    target 1
+                    rst
+                    targets -set -nocase -filter {name =~ "xc*"}
+                    fpga $fpga_bit_file
+                    targets -set -nocase -filter {name =~ "arm*#0"}
+                    dow $fsbl_elf_file
+                    con; after 1000; stop
+                    source $init_tcl_file
+                    dow $run_elf_file
+                    con
+                }
+
 				default {
 					error_exit {"unknown cmd ($cmd)"}
 				}

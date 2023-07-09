@@ -114,7 +114,7 @@ endif
 # AMD/Xilinx Vivado (plus Vitis for MicroBlaze/ARM designs)
 
 ifneq (,$(filter vivado,$(FPGA_TOOL)))
-VIVADO_TARGETS:=all xpr bd bit prog elf bd_update
+VIVADO_TARGETS:=all xpr bd bit prog bd_update elf run
 ifneq (,$(filter $(VIVADO_TARGETS),$(MAKECMDGOALS)))
 
 vivado:: bit
@@ -144,6 +144,8 @@ ifeq (arm,$(VITIS_ARCH))
 VITIS_PROC?=ps7_cortexa9_0
 VITIS_OS?=standalone
 VITIS_DOMAIN?=$(VITIS_OS)_domain
+VITIS_ELF_FSBL?=$(VITIS_ABS_DIR)/$(VIVADO_DSN_TOP)/zynq_fsbl/fsbl.elf
+VITIS_HW_INIT_TCL?=$(VITIS_ABS_DIR)/$(VIVADO_DSN_TOP)/hw/ps7_init.tcl
 vivado:: elf
 endif
 
@@ -370,6 +372,14 @@ $(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) | $(VITI
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: build debug binary                                                     $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VITIS_DIR) && $(VITIS_TCL) build debug
+
+# run depends on bit file, fsbl ELF, hw init TCL, release ELF
+.PHONY: run
+run: $(VIVADO_BIT_FILE) $(VITIS_ELF_FSBL) $(VITIS_HW_INIT_TCL) $(VITIS_ELF_RELEASE)
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: program FPGA and run application via JTAG                              $(COL_RST)'"
+	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
+	cd $(VITIS_DIR) && $(VITIS_TCL) run $^
 
 endif
 
