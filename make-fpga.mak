@@ -375,7 +375,7 @@ $(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) | $(VITI
 
 # run depends on bit file, fsbl ELF, hw init TCL, release ELF
 .PHONY: run
-run: $(VIVADO_BIT_FILE) $(VITIS_ELF_FSBL) $(VITIS_HW_INIT_TCL) $(VITIS_ELF_RELEASE)
+run:: $(VIVADO_BIT_FILE) $(VITIS_ELF_FSBL) $(VITIS_HW_INIT_TCL) $(VITIS_ELF_RELEASE)
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: program FPGA and run application via JTAG                              $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
