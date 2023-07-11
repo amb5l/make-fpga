@@ -758,7 +758,7 @@ define ghdl_run
 sim:: force
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
 endif
@@ -773,7 +773,7 @@ endif
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
 endif
@@ -785,7 +785,7 @@ $(GHDL_DIR)/$(word 1,$1).ghw: ghdl
 
 gtkwave:: $(GHDL_DIR)/$(word 1,$1).ghw
 ifeq ($(OS),Windows_NT)
-	bash -c "cmd.exe //C start gtkwave $(GHDL_DIR)/$(word 1,$1).ghw"
+	bash -c "cmd.exe /C start gtkwave $(GHDL_DIR)/$(word 1,$1).ghw"
 else
 	gtkwave $(GHDL_DIR)/$(word 1,$1).ghw
 endif
@@ -847,7 +847,7 @@ sim:: force
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
 endif
@@ -860,7 +860,7 @@ endif
 		$$(if $$(filter gtkwave fst,$$(MAKECMDGOALS)),--format=fst --wave=$$(word 1,$1).fst --gtkw=$$(word 1,$1).gtkw)
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
 endif
@@ -870,7 +870,7 @@ $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw: nvc
 
 gtkwave:: $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw
 ifeq ($(OS),Windows_NT)
-	bash -c "cmd.exe //C start gtkwave $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw"
+	bash -c "cmd.exe /C start gtkwave $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw"
 else
 	gtkwave $(NVC_DIR)/$(word 1,$1).fst $(NVC_DIR)/$(word 1,$1).gtkw &
 endif
@@ -959,7 +959,7 @@ define vsim_run
 sim:: force | $(VSIM_DIR)/$(VSIM_INI)
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  start at: $(date +"%T.%2N")
 endif
@@ -981,7 +981,7 @@ endif
 	)
 	@echo -------------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
-	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 else
 	@echo simulation run: $$(word 1,$1)  finish at: $(date +"%T.%2N")
 endif
@@ -998,7 +998,7 @@ $(VSIM_DIR)/$(word 1,$1).gtkw: $(VSIM_DIR)/$(word 1,$1).vcd
 
 gtkwave:: $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw
 ifeq ($(OS),Windows_NT)
-	start cmd.exe //C \"gtkwave $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw\"
+	start cmd.exe /C \"gtkwave $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw\"
 else
 	gtkwave $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw &
 endif
@@ -1059,7 +1059,7 @@ ifeq ($(OS),Windows_NT)
 # $4 = dependencies (touch files)
 define xsim_cmd_com
 $1: $3 $4 | $(dir $1).
-	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C \"$(XVHDL).bat $$(XVHDL_OPTS) -work $2 $(shell cygpath -w $3)\""
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe /C \"$(XVHDL).bat $$(XVHDL_OPTS) -work $2 $(shell cygpath -w $3)\""
 	@touch $$@ $$(dir $$@).
 sim:: $1
 endef
@@ -1087,13 +1087,13 @@ sim:: $(XSIM_CMD_TOUCH_COM)
 			-tclbatch $$(word 1,$1)_run.tcl \
 			$$(word 2,$1)_$$(word 1,$1) \
 	)
-	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_elab.bat"
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe /C $$(word 1,$1)_elab.bat"
 	@echo -------------------------------------------------------------------------------
-	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 	@echo -------------------------------------------------------------------------------
-	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_sim.bat"
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe /C $$(word 1,$1)_sim.bat"
 	@echo -------------------------------------------------------------------------------
-	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 	@echo -------------------------------------------------------------------------------
 
 sim:: $(XSIM_CMD_TOUCH_RUN)
@@ -1108,7 +1108,7 @@ $(XSIM_CMD_DIR)/$(word 1,$1).gtkw: $(XSIM_CMD_DIR)/$(word 1,$1).vcd
 	$(XSIM_CMD_DIR)/$(word 1,$1).gtkw
 
 gtkwave:: $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw
-	start cmd.exe //C \"gtkwave $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw\"
+	start cmd.exe /C \"gtkwave $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw\"
 
 endef
 
@@ -1221,7 +1221,7 @@ define xsim_ide_run
 
 sim:: | $(VIVADO_PROJ_FILE)
 	@echo -------------------------------------------------------------------------------
-	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
+	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 	@echo -------------------------------------------------------------------------------
 	cd $(XSIM_IDE_DIR) && $(VIVADO_TCL) \
 		"open_project $(VIVADO_PROJ); \
@@ -1232,7 +1232,7 @@ sim:: | $(VIVADO_PROJ_FILE)
 		run all; \
 		exit"
 	@echo -------------------------------------------------------------------------------
-	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
+	@bash -c "cmd.exe /C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 	@echo -------------------------------------------------------------------------------
 
 endef
@@ -1282,7 +1282,7 @@ define RR_VSCODE_SYMLINK
 ifeq ($(OS),Windows_NT)
 $(VSCODE_DIR)/$1/$(notdir $2): $2 | $(VSCODE_DIR)/$1
 	rm -f $$@
-	bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
+	bash -c "cmd.exe /C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 else
 $(VSCODE_DIR)/$1/$(notdir $2): $2 | $(VSCODE_DIR)/$1
 	ln $$< $$@
