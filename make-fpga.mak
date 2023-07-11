@@ -208,10 +208,10 @@ VIVADO_PROJ_RECIPE=\
 $(VIVADO_DIR):
 	bash -c "mkdir -p $@"
 
-# recipe file is created/updated as required
+# recipe file is created/updated as required -> forces project (re)creation
 $(VIVADO_PROJ_RECIPE_FILE): force | $(VIVADO_DIR)
 	@bash -c '[ -f $@ ] && r=$$(< $@) || r=""; if [[ $$r != "$(VIVADO_PROJ_RECIPE)" ]]; then \
-	echo "$(VIVADO_PROJ_RECIPE)" > $@; fi'
+	echo "$(VIVADO_PROJ_RECIPE)" > $@; rm -f $(VIVADO_PROJ_FILE); fi'
 
 # project depends on recipe file and existence of sources
 .PHONY: xpr
