@@ -50,7 +50,7 @@ endef
 ifeq ($(OS),Windows_NT)
 $(call check_null_error,MSYS2)
 MSYS2:=$(shell cygpath -m $(MSYS2))
-export PATH:=$(MSYS2)/usr/bin;$(PATH)
+export PATH:=$(MSYS2)/usr/bin:$(PATH)
 DUMMY:=$(shell cygpath -w ~)
 $(call check_shell_error,Could not run cygpath)
 endif
