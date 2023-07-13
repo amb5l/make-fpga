@@ -312,7 +312,9 @@ else
 	cd $(VIVADO_DIR) && $(VIVADO_TCL) simprep \
 		gen: $(VIVADO_SIM_GENERICS)
 endif
+ifneq (,$(VIVADO_DSN_BD))
 	bash -c "$(call pairmap,tmp,$(VIVADO_DSN_BD),$(VIVADO_DSN_BD_HWDEF)) :"
+endif
 
 # program FPGA
 ifndef hw
