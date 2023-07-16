@@ -114,7 +114,7 @@ endif
 # AMD/Xilinx Vivado (plus Vitis for MicroBlaze/ARM designs)
 
 ifneq (,$(filter vivado,$(FPGA_TOOL)))
-VIVADO_TARGETS:=all xpr bd bit prog bd_update elf run
+VIVADO_TARGETS:=all xpr bd bit prog bd_update prj elf run
 ifneq (,$(filter $(VIVADO_TARGETS),$(MAKECMDGOALS)))
 
 vivado:: bit
@@ -343,7 +343,9 @@ $(foreach X,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_UPDATE_BD,$(VIVADO_BD_P
 ifdef VITIS_APP
 
 # project depends on XSA file (and existence of sources)
-$(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
+.PHONY: prj
+prj: $(VITIS_PROJ_FILE)
+$(VITIS_PROJ_FILE) $(VITIS_ELF_FSBL): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: create project                                                         $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
@@ -364,12 +366,12 @@ $(VITIS_PROJ_FILE): $(VIVADO_XSA_FILE) | $(VITIS_SRC)
 # ELF files depend on XSA file, source and project
 .PHONY: elf
 elf: $(VITIS_ELF_RELEASE) $(VITIS_ELF_DEBUG)
-$(VITIS_ELF_RELEASE) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_RELEASE) | $(VITIS_PROJ_FILE)
+$(VITIS_ELF_RELEASE): $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_RELEASE) | $(VITIS_PROJ_FILE)
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: build release binary                                                   $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	cd $(VITIS_DIR) && $(VITIS_TCL) build Release
-$(VITIS_ELF_DEBUG) : $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) | $(VITIS_PROJ_FILE)
+$(VITIS_ELF_DEBUG): $(VIVADO_XSA_FILE) $(VITIS_SRC) $(VITIS_SRC_DEBUG) | $(VITIS_PROJ_FILE)
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU) Vitis: build debug binary                                                     $(COL_RST)'"
 	@bash -c "echo -e '$(COL_BG_WHT)$(COL_FG_BLU)-------------------------------------------------------------------------------$(COL_RST)'"
