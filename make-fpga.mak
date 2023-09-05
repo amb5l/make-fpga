@@ -1002,7 +1002,7 @@ $(VSIM_DIR)/$(word 1,$1).gtkw: $(VSIM_DIR)/$(word 1,$1).vcd
 
 gtkwave:: $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw
 ifeq ($(OS),Windows_NT)
-	start cmd.exe /C \"gtkwave $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw\"
+	start cmd.exe //C \"gtkwave $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw\"
 else
 	gtkwave $(VSIM_DIR)/$(word 1,$1).vcd $(VSIM_DIR)/$(word 1,$1).gtkw &
 endif
@@ -1063,7 +1063,7 @@ ifeq ($(OS),Windows_NT)
 # $4 = dependencies (touch files)
 define xsim_cmd_com
 $1: $3 $4 | $(dir $1).
-	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe /C \"$(XVHDL).bat $$(XVHDL_OPTS) -work $2 $(shell cygpath -w $3)\""
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C \"$(XVHDL).bat $$(XVHDL_OPTS) -work $2 $(shell cygpath -w $3)\""
 	@touch $$@ $$(dir $$@).
 sim:: $1
 endef
@@ -1091,11 +1091,11 @@ sim:: $(XSIM_CMD_TOUCH_COM)
 			-tclbatch $$(word 1,$1)_run.tcl \
 			$$(word 2,$1)_$$(word 1,$1) \
 	)
-	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe /C $$(word 1,$1)_elab.bat"
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_elab.bat"
 	@echo -------------------------------------------------------------------------------
 	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  start at: %time%\""
 	@echo -------------------------------------------------------------------------------
-	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe /C $$(word 1,$1)_sim.bat"
+	bash -c "cd $$(XSIM_CMD_DIR) && cmd.exe //C $$(word 1,$1)_sim.bat"
 	@echo -------------------------------------------------------------------------------
 	@bash -c "cmd.exe //C \"@echo simulation run: $$(word 1,$1)  finish at: %time%\""
 	@echo -------------------------------------------------------------------------------
@@ -1112,7 +1112,7 @@ $(XSIM_CMD_DIR)/$(word 1,$1).gtkw: $(XSIM_CMD_DIR)/$(word 1,$1).vcd
 	$(XSIM_CMD_DIR)/$(word 1,$1).gtkw
 
 gtkwave:: $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw
-	start cmd.exe /C \"gtkwave $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw\"
+	start cmd.exe //C \"gtkwave $(XSIM_CMD_DIR)/$(word 1,$1).vcd $(XSIM_CMD_DIR)/$(word 1,$1).gtkw\"
 
 endef
 
@@ -1177,6 +1177,7 @@ endif
 $(XSIM_CMD_DIR):
 	bash -c "mkdir -p $(XSIM_CMD_DIR)"
 
+$(foreach l,$(XSIM_CMD_LIB),$(eval $(info XSIM_CMD_SRC.$l=$(XSIM_CMD_SRC.$l))))
 $(eval $(call sim_com_all,$(XSIM_CMD_TOUCH_DIR),xsim_cmd,XSIM_CMD_SRC,$(XSIM_CMD_LIB)))
 $(foreach r,$(SIM_RUNX),$(eval $(call xsim_cmd_run,$(subst $(COMMA),$(SPACE),$r))))
 
