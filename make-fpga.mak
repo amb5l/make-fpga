@@ -1177,7 +1177,6 @@ endif
 $(XSIM_CMD_DIR):
 	bash -c "mkdir -p $(XSIM_CMD_DIR)"
 
-$(foreach l,$(XSIM_CMD_LIB),$(eval $(info XSIM_CMD_SRC.$l=$(XSIM_CMD_SRC.$l))))
 $(eval $(call sim_com_all,$(XSIM_CMD_TOUCH_DIR),xsim_cmd,XSIM_CMD_SRC,$(XSIM_CMD_LIB)))
 $(foreach r,$(SIM_RUNX),$(eval $(call xsim_cmd_run,$(subst $(COMMA),$(SPACE),$r))))
 
