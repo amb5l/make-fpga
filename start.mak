@@ -106,8 +106,9 @@ $1/$(call last,$4)/.:
 $(eval $(call sim_com_lib,$1,$2,$3,$4,$($3.$(call last,$4))))
 endef
 
+hr80:=--------------------------------------------------------------------------------
 define banner
-@bash -c "echo -e '$(COL_BG_$2)$(COL_FG_$1)\n\n $3 \n$(COL_RST)\n'"
+@bash -c 'printf "$(COL_BG_$2)$(COL_FG_$1)$(hr80)$(COL_RST)\n"; printf "$(COL_BG_$2)$(COL_FG_$1) %-79s$(COL_RST)\n" "$3"; printf "$(COL_BG_$2)$(COL_FG_$1)$(hr80)$(COL_RST)\n"'
 endef
 
 ################################################################################
