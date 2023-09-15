@@ -4,7 +4,8 @@
 # See https://github.com/amb5l/make-fpga
 ################################################################################
 # Targets:
-#	vsim
+#   vsim_do              DO file e.g. for use with IDE
+#	vsim                 compile and simulate run(s)
 #
 # Required definitions:
 # either
@@ -22,7 +23,7 @@ endif
 
 .PHONY: vsim
 vsim::
-	$(call banner,BLU,WHT,make-fpga: vsim recipe ($$(date +"%T.%2N")))
+	$(call banner,BLU,WHT,make-fpga: vsim recipe)
 
 VSIM_WORK?=work
 VSIM_DIR?=.vsim
@@ -61,6 +62,8 @@ VCOM_OPTS+=-2008 -explicit -stats=none
 VSIM_TCL+=set NumericStdNoWarnings 1; onfinish exit; run -all; exit
 VSIM_OPTS+=-t ps -c -onfinish stop -do "$(VSIM_TCL)"
 
+vsim_do:: $(VSIM_DIR)/$(VSIM_DO)
+
 define vsim_lib
 $(VSIM_DIR)/$1: | $(VSIM_DIR)/$(VSIM_INI)
 	cd $$(VSIM_DIR) && $(VLIB) $1
@@ -75,33 +78,33 @@ define vsim_com
 $1: $3 $4 | $(dir $1). $(VSIM_DIR)/$2 $(VSIM_DIR)/$(VSIM_INI) $(VSIM_DIR)/$(VSIM_DO)
 	cd $$(VSIM_DIR) && $$(VCOM) -modelsimini $(VSIM_INI) -work $2 $$(VCOM_OPTS) $$<
 	@touch $$@ $$(dir $$@).
-	$$(file >>$(VSIM_DIR)/$(VSIM_DO),vcom -modelsimini $(VSIM_INI) -work $1 $$(VCOM_OPTS) $$<)
 vsim:: $1
+vsim_do:: $3
+	$$(file >>$(VSIM_DIR)/$(VSIM_DO),vcom -modelsimini $(VSIM_INI) -work $2 $$(VCOM_OPTS) $$<)
 endef
 
 define vsim_run
 vsim:: force | $(VSIM_DIR)/$(VSIM_INI)
-	$$(call banner,WHT,BLU,simulation run: $$(word 1,$1)  start at: ($$$$(date +"%T.%2N")))
+	$$(call banner,WHT,BLU,simulation run: $$(word 1,$1)  top: $$(word 2,$1)  start at: ($$$$(date +"%T.%2N")))
 	cd $$(VSIM_DIR) && $$(VSIM) \
 		-modelsimini $(VSIM_INI) \
 		-work $$(VSIM_WORK) \
-		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),-do "vcd file $$(word 1,$1).vcd; vcd add -r *") \
 		$$(VSIM_OPTS) \
 		$$(word 2,$1) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1)))
+	$$(call banner,WHT,BLU,simulation run: $$(word 1,$1)  finish at: ($$$$(date +"%T.%2N")))
+vsim_do:: force | $(VSIM_DIR)/$(VSIM_INI)
 	$$(file >>$(VSIM_DIR)/$(VSIM_DO),vsim \
 		-modelsimini $(VSIM_INI) \
 		-work $$(VSIM_WORK) \
-		$$(if $$(filter vcd gtkwave,$$(MAKECMDGOALS)),-do "vcd file $$(word 1,$1).vcd; vcd add -r *") \
 		$$(VSIM_OPTS) \
 		$$(word 2,$1) \
 		$$(addprefix -g,$$(subst $(SEMICOLON),$(SPACE),$$(word 3,$1))) \
 	)
-	$(call banner,WHT,BLU,simulation run: $$(word 1,$1)  finish at: ($$(date +"%T.%2N")))
 endef
 
 $(VSIM_DIR):
-	bash -c "mkdir -p $(VSIM_DIR)"
+	@bash -c "mkdir -p $(VSIM_DIR)"
 
 $(VSIM_DIR)/$(VSIM_INI): | $(VSIM_DIR)
 	bash -c "cd $(VSIM_DIR) && $(VMAP) -c && [ -f $(VSIM_INI) ] || mv modelsim.ini $(VSIM_INI)"
