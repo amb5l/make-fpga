@@ -1,33 +1,43 @@
 ################################################################################
 # radiant.mak
-# A part of make-fpga: see https://github.com/amb5l/make-fpga
+# Lattice Radiant build support for make-fpga
+# See https://github.com/amb5l/make-fpga
 ################################################################################
-# Lattice Radiant support
+#
+# Targets:
+#	radiant_bin                       Binary programming file
+#	radiant_nvcm                      Non Volatile Config Memory file
+#	radiant_simnet                    Simulation netlist (.vo and .sdf)
+#	radiant                           All the above
 #
 # Required definitions:
+#	RADIANT_FLOW                      cmd OR ide
 #	RADIANT_ARCH                      Architecture/Family e.g. ice40up
 #	RADIANT_DEV                       Device e.g. iCE40UP5K-SG48I
-#	RADIANT_VHDL and/or RADIANT_VLOG  Source
 #	RADIANT_TOP                       Top entity/module name
+# either
+#	RADIANT_SRC                       VHDL and/or Verilog source(s)
+# or
+#	RADIANT_VHDL and/or RADIANT_VLOG  VHDL and/or Verilog source(s)
+#
 # Optional definitions:
 #	RADIANT_PERF                      e.g. High-Performance_1.2V
 #	RADIANT_FREQ                      e.g. 33.3MHz
 #	RADIANT_LDC                       Pre-synthesis constraints
 #	RADIANT_PDC                       Post-synthesis constraints
+#
 # Optional definitions (IDE flow only):
 #	RADIANT_RDF                       Project filename (e.g. fpga.rdf)
 #	RADIANT_IMPL                      Implementation name (e.g. impl_1)
+#
 ################################################################################
 
-.PHONY: radiant
-radiant: bin nvcm tsim
-
-REPO_ROOT?=$(shell git rev-parse --show-toplevel)
-ifeq ($(OS),Windows_NT)
-REPO_ROOT?=$(shell cygpath -m $(REPO_ROOT))
+ifndef _START_MAK_
+$(error start.mak is required before radiant.mak)
 endif
-MAKE_FPGA?=$(REPO_ROOT)/submodules/make-fpga
-include $(MAKE_FPGA)/utils.mak
+
+.PHONY: radiant
+radiant: radiant_bin radiant_nvcm radiant_simnet
 
 $(call check_null_error,LATTICE_RADIANT)
 $(call check_null_error,FOUNDRY)
@@ -39,6 +49,8 @@ endif
 RADIANT_DIR?=.radiant
 RADIANT_PROJ?=fpga
 RADIANT_CORES?=$(shell expr $(CPU_CORES) / 2)
+RADIANT_VHDL?=$(foreach s,$(RADIANT_SRC),$(if $(filter .vhd,$(suffix $s)),$s,))
+RADIANT_VLOG?=$(foreach s,$(RADIANT_SRC),$(if $(filter .vhd,$(suffix $s)),$s,))
 
 ifeq (ICE40UP,$(shell echo $(RADIANT_ARCH)| tr '[:lower:]' '[:upper:]'))
 RADIANT_PERF?=High-Performance_1.2V
@@ -142,10 +154,10 @@ $(RADIANT_DIR)/$(RADIANT_VO) $(RADIANT_DIR)/$(RADIANT_SDF): $(RADIANT_DIR)/$(RAD
 		-d $(RADIANT_SDF) \
 		$(RADIANT_PAR_UDB)
 
-.PHONY: bin nvcm tsim
-bin: $(RADIANT_BIN)
-nvcm: $(RADIANT_NVCM)
-tsim: $(RADIANT_DIR)/$(RADIANT_VO) $(RADIANT_DIR)/$(RADIANT_SDF)
+.PHONY: radiant_bin radiant_nvcm radiant_simnet
+radiant_bin: $(RADIANT_BIN)
+radiant_nvcm: $(RADIANT_NVCM)
+radiant_simnet: $(RADIANT_DIR)/$(RADIANT_VO) $(RADIANT_DIR)/$(RADIANT_SDF)
 
 #...............................................................................
 # IDE flow
