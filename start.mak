@@ -22,7 +22,7 @@ export PATH:=$(MSYS2)/usr/bin:$(PATH)
 
 REPO_ROOT?=$(shell git rev-parse --show-toplevel)
 ifeq ($(OS),Windows_NT)
-REPO_ROOT?=$(shell cygpath -m $(REPO_ROOT))
+REPO_ROOT:=$(shell cygpath -m $(REPO_ROOT))
 endif
 MAKE_FPGA?=$(REPO_ROOT)/submodules/make-fpga
 
