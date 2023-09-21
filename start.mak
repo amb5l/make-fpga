@@ -27,6 +27,7 @@ REPO_ROOT:=$(shell cygpath -m $(REPO_ROOT))
 MAKE_DIR:=$(shell cygpath -m $(MAKE_DIR))
 endif
 MAKE_FPGA?=$(REPO_ROOT)/submodules/make-fpga
+MAKE_FPGA_PY?=$(REPO_ROOT)/submodules/make-fpga/make_fpga.py
 
 NULL:=
 COMMA:=,
@@ -55,6 +56,16 @@ CPU_CORES:=$(shell bash -c "grep '^core id' /proc/cpuinfo |sort -u|wc -l")
 # useful functions
 
 include $(MAKE_FPGA)/submodules/gmsl/gmsl
+
+ifeq ($(OS),Windows_NT)
+define mpath
+$(shell cygpath -m $1)
+endef
+else
+define mpath
+$1
+endef
+endif
 
 define check_null_error
 $(eval $(if $($1),,$(error $1 is empty)))
