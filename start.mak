@@ -57,15 +57,8 @@ CPU_CORES:=$(shell bash -c "grep '^core id' /proc/cpuinfo |sort -u|wc -l")
 
 include $(MAKE_FPGA)/submodules/gmsl/gmsl
 
-ifeq ($(OS),Windows_NT)
-define mpath
-$(shell cygpath -m $1)
-endef
-else
-define mpath
-$1
-endef
-endif
+mapath=$(if $(filter Windows_NT,$(OS)),$(shell cygpath -m $(abspath $1)),$(abspath $1))
+mpath=$(if $(filter Windows_NT,$(OS)),$(shell cygpath -m $1),$1)
 
 define check_null_error
 $(eval $(if $($1),,$(error $1 is empty)))
