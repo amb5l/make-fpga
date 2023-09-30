@@ -27,7 +27,6 @@ REPO_ROOT:=$(shell cygpath -m $(REPO_ROOT))
 MAKE_DIR:=$(shell cygpath -m $(MAKE_DIR))
 endif
 MAKE_FPGA?=$(REPO_ROOT)/submodules/make-fpga
-MAKE_FPGA_PY?=$(REPO_ROOT)/submodules/make-fpga/make_fpga.py
 
 NULL:=
 COMMA:=,
