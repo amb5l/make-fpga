@@ -56,7 +56,7 @@ if not args.quiet:
     print('')
     print('# path(s) to source(s) for each library')
 for l,s in d.items():
-    print('SRC.'+l+':= \\\n\t'+' \\\n\t'.join(s))
+    print('SRC.'+l+':='+var_vals(s))
 if not args.quiet:
     print('')
     print('# top level design unit(s)')
