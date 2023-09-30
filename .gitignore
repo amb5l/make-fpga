@@ -1,0 +1,7 @@
+*
+!.gitignore
+!.gitmodules
+!*.md
+!*.py
+!*.tcl
+!*.mak
