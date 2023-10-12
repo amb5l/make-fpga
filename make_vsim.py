@@ -13,7 +13,8 @@ from make_fpga import *
 parser = argparse.ArgumentParser(
     prog='make_vsim.py',
     description='Create makefiles for simulating FPGA designs with ModelSim/Questa/etc',
-    epilog=help_run
+    epilog=help_run,
+    formatter_class=argparse.RawDescriptionHelpFormatter
    )
 parser.add_argument(
     '--path',
@@ -28,7 +29,7 @@ parser.add_argument(
 parser.add_argument(
     '--vhdl',
     choices=['1987','1993','2002','2008'],
-    help='VHDL LRM version e.g. 2008 (defaults to 2002)',
+    help='VHDL LRM version (defaults to 2008)',
     default='2008'
    )
 parser.add_argument(
@@ -48,6 +49,12 @@ parser.add_argument(
     nargs='+',
     action='append',
     help='simulation run specification(s)'
+   )
+parser.add_argument(
+    '--ui',
+    choices=['cmd','gui'],
+    help='user interface (defaults to cmd)',
+    default='cmd'
    )
 parser.add_argument(
     '-q',
@@ -86,8 +93,12 @@ if not args.quiet:
     print('# compilation and simulation options')
 print('VCOM_OPTS:=-'+args.vhdl+' -explicit -stats=none')
 print('VLOG_OPTS:=-stats=none')
-print('VSIM_TCL:=set NumericStdNoWarnings 1; onfinish exit; run -all; exit')
-print('VSIM_OPTS:=-t ps -c -onfinish stop -do "$(VSIM_TCL)"')
+if args.ui == 'gui':
+    print('VSIM_TCL:=set NumericStdNoWarnings 1; run -all')
+    print('VSIM_OPTS:=-t ps -gui -onfinish stop -do "$(VSIM_TCL)"')
+else:
+    print('VSIM_TCL:=set NumericStdNoWarnings 1; onfinish exit; run -all; exit')
+    print('VSIM_OPTS:=-t ps -c -onfinish stop -do "$(VSIM_TCL)"')
 if not args.quiet:
     print('')
     print('# simulation vendor libraries')
