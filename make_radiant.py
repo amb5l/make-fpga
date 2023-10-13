@@ -147,7 +147,6 @@ print('comma:=,')
 if not args.quiet:
     print('')
     print('# Synthesis (compile structural Verilog netlist from HDL source)')
-print('comma:=,')
 print('$(TOP)_synth.vm: $(foreach p,$(SRC),$(word 1,$(subst =, ,$p))) $(LDC)')
 print('\tsynthesis \\')
 print('\t\t-output_hdl $@ \\')
