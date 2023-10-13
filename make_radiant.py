@@ -40,7 +40,8 @@ parser.add_argument(
    )
 parser.add_argument(
     '--vhdl',
-    choices=['2008'],
+    choices=['1993','2008'],
+    default='2008',
     help='enable VHDL-2008 support'
    )
 parser.add_argument(
