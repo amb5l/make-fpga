@@ -160,12 +160,45 @@ print('define rr_run')
 print('$1: $(word 2,$(subst =, ,$(lastword $(SRC))))/$(notdir $(word 1,$(subst =, ,$(lastword $(SRC))))).com')
 print('\t@bash -c \'echo -e "\\033[0;32mRUN: $1 ($2)  start at $$$$(date +%T.%2N)\\033[0m"\'')
 print('\tvsim -modelsimini modelsim.ini \\')
-print('\t\t$(addprefix -L ,$(VSIM_LIB)) $(VSIM_OPTS) $2 $(addprefix -g ,$3)')
+print('\t\t$(addprefix -L ,$(VSIM_LIB)) $(VSIM_OPTS) $2 \\')
+print('\t\t$(addprefix -g ,$3) \\')
+print('\t\t$(addprefix $(addsuffix $(word 1,$(subst =, ,$4)),-sdf) ,$(addprefix $(word 2,$(subst =, ,$4))=,$(word 3,$(subst =, ,$4))))')
 print('\t@bash -c \'echo -e "\\033[0;31mRUN: $1 ($2)    end at $$$$(date +%T.%2N)\\033[0m"\'')
 print('vsim:: $1')
 print('endef')
 print('$(foreach r,$(RUN),$(eval $(call rr_run, \\')
 print('$(word 1,$(subst :, ,$r)), \\')
-print('$(word 1,$(subst $(comma), ,$(word 2,$(subst :, ,$r)))), \\')
-print('$(call rest,$(subst $(comma), ,$(word 2,$(subst :, ,$r)))) \\')
+print('$(word 1,$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r)))))), \\')
+print('$(call rest,$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r)))))), \\')
+print('$(call rest,$(subst ;, ,$r)) \\')
 print(')))')
+
+# makefile syntax to extract name, top, generics, SDF assignments from run:
+# NAME (all before colon)
+#	$(word 1,$(subst :, ,$r))
+# all after colon includes top,generics,sdf
+# 	$(word 2,$(subst :, ,$r))
+# top and generics - all after colon, before first semicolon, comma separated
+# 	$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r))))
+# top and generics - all after colon, before first semicolon, space separated
+# 	$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r)))))
+# TOP
+#	$(word 1,$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r))))))
+# GENERICS
+#	$(call rest,$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r))))))
+# all after semicolon (space separated sdf assignments)
+#	$(call rest,$(subst ;, ,$r))
+
+# run rule syntax for SDF assignments:
+# list of 3 parameters (delay, path, file)
+#   $(subst =, ,$4)
+# DELAY
+#   $(word 1,$(subst =, ,$4))
+# PATH
+#   $(word 2,$(subst =, ,$4))
+# FILE
+#   $(word 3,$(subst =, ,$4))
+# all together
+#   $(addprefix $(addsuffix DELAY,-sdf) ,$(addprefix PATH=,FILE))
+# resulting in
+#   $(addprefix $(addsuffix $(word 1,$(subst =, ,$4)),-sdf) ,$(addprefix $(word 2,$(subst =, ,$4))=,$(word 3,$(subst =, ,$4))))

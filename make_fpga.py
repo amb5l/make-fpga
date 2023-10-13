@@ -57,8 +57,18 @@ def var_vals(l):
 
 help_run = \
     'Each simulation RUN is specified as follows:\n' \
-    '  [name:]top[,gen]\n' \
+    '  [name:]top[,gen][;sdf]\n' \
     'where\n' \
     '  name = unique run name (defaults to sim)\n' \
     '  top  = top design unit\n' \
-    '  gen  = generic assignments (name1=value1,name2=value2...)\n'
+    '  gen  = generic assignments:\n' \
+    '           name=value[,name=value...]\n' \
+    '  sdf  = SDF assignments:\n' \
+    '           delay=unit=file[;delay=unit=file...]\n' \
+    '           (delay = typ, min or max; unit = path to design unit)\n' \
+    'Examples:\n' \
+    '   run1:my_design1\n' \
+    '   run2:my_design2,gen1=123,gen2="abc"\n' \
+    '   run3:my_design3,gen1=123,gen2="abc";typ=/TOP/UNIT1=unit1.sdf\n' \
+    '   run4:my_design4,gen1=123;typ=/TOP/U1=unit1.sdf;typ=/TOP/U2=unit2.sdf\n'
+    
