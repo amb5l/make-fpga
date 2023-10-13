@@ -39,6 +39,12 @@ parser.add_argument(
     help='FPGA frequency target for synthesis e.g. 25.0MHz'
    )
 parser.add_argument(
+    '--use_io_reg',
+    choices=['0','1','auto'],
+    default='auto',
+    help='control I/O register packing'
+   )
+parser.add_argument(
     '--vhdl',
     choices=['1993','2008'],
     default='2008',
@@ -153,6 +159,7 @@ print('\t\t$(addprefix -frequency ,$(FREQ)) \\')
 print('\t\t$(addprefix -vh,$(VHDL)) \\')
 print('\t\t$(foreach p,$(SRC),\\\n\t\t -lib $(word 2,$(subst =, ,$p)) \\\n\t\t -$(if $(filter .vhd,$(suffix $(word 1,$(subst =, ,$p)))),vhd,ver) \\\n\t\t  $(word 1,$(subst =, ,$p)) \\\n\t\t) \\')
 print('\t\t$(addprefix -sdc ,$(LDC)) \\')
+print('\t\t-use_io_reg %s \\' % args.use_io_reg)
 print('\t\t-top $(TOP) \\')
 print('\t\t$(addprefix -hdl_param ,$(subst =,$(comma),$(GEN))) \\')
 print('\t\t-logfile $(basename $@).log')
