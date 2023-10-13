@@ -153,7 +153,7 @@ print('\t\t$(addprefix -vh,$(VHDL)) \\')
 print('\t\t$(foreach p,$(SRC),\\\n\t\t -lib $(word 2,$(subst =, ,$p)) \\\n\t\t -$(if $(filter .vhd,$(suffix $(word 1,$(subst =, ,$p)))),vhd,ver) \\\n\t\t  $(word 1,$(subst =, ,$p)) \\\n\t\t) \\')
 print('\t\t$(addprefix -sdc ,$(LDC)) \\')
 print('\t\t-top $(TOP) \\')
-print('\t\t$(addprefix -hdl_param ,$(subst =,$(comma),$(GEN)))')
+print('\t\t$(addprefix -hdl_param ,$(subst =,$(comma),$(GEN))) \\')
 print('\t\t-logfile $(basename $@).log')
 if not args.quiet:
     print('')
