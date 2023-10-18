@@ -46,9 +46,16 @@ parser.add_argument(
    )
 parser.add_argument(
     '--run',
+    required=True,
     nargs='+',
     action='append',
     help='simulation run specification(s)'
+   )
+parser.add_argument(
+    '--gen',
+    nargs='+',
+    action='append',
+    help='generics assignment(s) (applied to all runs)'
    )
 parser.add_argument(
     '--ui',
@@ -67,6 +74,7 @@ args=parser.parse_args()
 c,d=process_src(args.src,args.work)
 args.lib=flatten(args.lib)
 args.run=flatten(args.run)
+args.gen=flatten(args.gen)
 
 # output
 
@@ -86,8 +94,12 @@ if not args.quiet:
 print('SRC:='+var_vals([s+'='+l for l,s in c]))
 if not args.quiet:
     print('')
-    print('# simulation runs')
+    print('# simulation runs, including any run specific generics and SDF mappings')
 print('RUN:='+var_vals(args.run))
+if not args.quiet:
+    print('')
+    print('# generic assignments (applied to all simulation runs)')
+print('GEN:='+var_vals(args.gen))
 if not args.quiet:
     print('')
     print('# compilation and simulation options')
@@ -169,7 +181,7 @@ print('endef')
 print('$(foreach r,$(RUN),$(eval $(call rr_run, \\')
 print('$(word 1,$(subst :, ,$r)), \\')
 print('$(word 1,$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r)))))), \\')
-print('$(call rest,$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r)))))), \\')
+print('$(call rest,$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r)))))) $(subst $(comma), ,$(GEN)), \\')
 print('$(call rest,$(subst ;, ,$r)) \\')
 print(')))')
 
@@ -185,7 +197,7 @@ print(')))')
 # TOP
 #	$(word 1,$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r))))))
 # GENERICS
-#	$(call rest,$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r))))))
+#	$(call rest,$(subst $(comma), ,$(word 1,$(subst ;, ,$(word 2,$(subst :, ,$r)))))) $(subst $(comma), ,$(GEN))
 # all after semicolon (space separated sdf assignments)
 #	$(call rest,$(subst ;, ,$r))
 

@@ -61,9 +61,9 @@ help_run = \
     'where\n' \
     '  name = unique run name (defaults to sim)\n' \
     '  top  = top design unit\n' \
-    '  gen  = generic assignments:\n' \
+    '  gen  = run specific generic assignments:\n' \
     '           name=value[,name=value...]\n' \
-    '  sdf  = SDF assignments:\n' \
+    '  sdf  = run specific SDF assignments:\n' \
     '           delay=unit=file[;delay=unit=file...]\n' \
     '           (delay = typ, min or max; unit = path to design unit)\n' \
     'Examples:\n' \
