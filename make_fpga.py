@@ -43,6 +43,67 @@ def process_src(src,work):
         d[work]+=s
     return l,d
 
+# run spec: top[,gen][;sdf] for single run or name:top[,gen][;sdf]
+#   [name:]top[,gen][;sdf]
+def process_run(run):
+    # list of runs, each comprising [name,top,gen,sdf]
+    #  where gen = list of tuples (name,value)
+    #  sdf = list of triplets (delay,path,file)
+    r=[]
+    for s in run:
+        # get name and top (or default to 'sim')
+        l = len(s)
+        if ';' in s:
+            l = s.index(';') # first semicolon demarks SDF or is part of generic
+        if ',' in s[:l]:
+            l = s[:l].index(',') # first comma before first semicolon must demark generics
+        if ':' in s[:l]:
+            name = s[:l].split(':')[0]
+            top  = s[:l].split(':')[1]
+        else:
+            name = 'sim'
+            top = s[:l]
+        r.append([name,top,[],[]])
+        s = s[l:]
+        # generic section: ,name=value[,name=value...]
+        if s:
+            while s[0] == ',':
+                s = s[1:]
+                gen_name,gen_value = s.split('=')
+                sq = False # inside single quotes
+                dq = False # inside double quotes
+                for i in range(len(gen_value)):
+                    if (gen_value[i] == ',' or gen_value[i] == ';') and not sq and not dq:
+                        gen_value = gen_value[:i]
+                        s = gen_value[i:]
+                        break
+                    elif s[i] == "'":
+                        sq = not sq
+                    elif s[i] == '"':
+                        dq = not dq
+                r[-1][2].append((gen_name,gen_value))
+        # SDF section: ;sdfxxx:path=file
+        while s and s[0] == ';':
+            s = s[1:]
+            if ':' not in s:
+                error_exit('bad SDF section in run spec:\n  %s' % s)
+            delay = s.split(':')[0]
+            if delay == 'sdf':
+                delay = 'sdftyp'
+            elif delay != 'sdftyp' and delay != 'sdfmin' and delay != 'sdfmax':
+                error_exit('bad SDF delay spec in run spec: %s' % delay)
+            path,file = s[s.index(':')+1:].split('=')
+            if ';' in file:
+                file = file.split(';')[0]
+                s = file[file.index(';'):]
+            else:
+                s = ''
+            r[-1][3].append((delay,path,file))
+        # finale
+        if s:
+            error_exit('unexpected text in SDF section of run spec:\n  %s' % s)
+    return r
+
 def flatten(ll):
     return None if ll==None else [e for l in ll for e in l]
 
@@ -71,4 +132,3 @@ help_run = \
     '   run2:my_design2,gen1=123,gen2="abc"\n' \
     '   run3:my_design3,gen1=123,gen2="abc";typ=/TOP/UNIT1=unit1.sdf\n' \
     '   run4:my_design4,gen1=123;typ=/TOP/U1=unit1.sdf;typ=/TOP/U2=unit2.sdf\n'
-    
