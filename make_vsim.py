@@ -1,8 +1,7 @@
 ################################################################################
 # make_vsim.py
 # A part of make-fpga - see https://github.com/amb5l/make-fpga
-# This script generates makefiles for use with GNU make to
-# simulate FPGA designs with ModelSim/Questa/etc.
+# This script generates makefiles to simulate FPGA designs with ModelSim etc.
 ################################################################################
 
 import sys,os,argparse
