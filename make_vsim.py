@@ -73,7 +73,7 @@ c,d=process_src(args.src,args.work)
 runs=process_run(flatten(args.run))
 args.lib=flatten(args.lib)
 args.run=flatten(args.run)
-args.gen=flatten(args.gen)
+args.gen=process_gen(flatten(args.gen))
 
 # output
 
@@ -105,7 +105,7 @@ for r in runs:
 if not args.min:
     print('')
     print('# generic assignments (applied to all simulation runs)')
-print('GEN:='+var_vals(args.gen))
+print('GEN:='+var_vals(list(map(lambda e: '-g '+e,args.gen))))
 if not args.min:
     print('')
     print('# compilation and simulation options')
@@ -173,7 +173,7 @@ if not args.min:
 print('define rr_run')
 print('$1: $(word 2,$(subst =, ,$(lastword $(SRC))))/$(notdir $(word 1,$(subst =, ,$(lastword $(SRC))))).com')
 print('\t@bash -c \'echo -e "\\033[0;32mRUN: $1 ($(word 1,$(RUN.$1)))  start at $$$$(date +%T.%2N)\\033[0m"\'')
-print('\tvsim -modelsimini modelsim.ini $(addprefix -L ,$(VSIM_LIB)) $(VSIM_OPTS) $(RUN.$1)')
+print('\tvsim -modelsimini modelsim.ini $(addprefix -L ,$(VSIM_LIB)) $(VSIM_OPTS) $(RUN.$1) $(GEN)')
 print('\t@bash -c \'echo -e "\\033[0;31mRUN: $1 ($(word 1,$2))    end at $$$$(date +%T.%2N)\\033[0m"\'')
 print('vsim:: $1')
 print('endef')

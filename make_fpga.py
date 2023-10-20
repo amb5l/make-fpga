@@ -81,6 +81,9 @@ def process_run(run):
                         sq = not sq
                     elif s[i] == '"':
                         dq = not dq
+                # ensure double quotes around strings
+                if ' ' in gen_value and gen_value[0] != '"':
+                    gen_value = '"'+gen_value+'"'
                 r[-1][2].append((gen_name,gen_value))
         # SDF section: ;sdfxxx:path=file
         while s and s[0] == ';':
@@ -103,6 +106,17 @@ def process_run(run):
         if s:
             error_exit('unexpected text in SDF section of run spec:\n  %s' % s)
     return r
+
+def process_gen(gen):
+    for i in range(len(gen)):
+        g = gen[i]
+        n = g[:g.index('=')]
+        v = g[g.index('=')+1:]
+        if ' ' in v and v[0] != '"':
+            v = '"'+v+'"'
+        gen[i] = n+'='+v
+        print('# debug ',n+'='+v)
+    return gen
 
 def flatten(ll):
     return None if ll==None else [e for l in ll for e in l]
