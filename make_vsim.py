@@ -112,7 +112,7 @@ if not args.min:
 print('VCOM_OPTS:=-'+args.vhdl+' -explicit -stats=none')
 print('VLOG_OPTS:=-stats=none')
 if args.ui == 'gui':
-    print('VSIM_TCL:=set NumericStdNoWarnings 1; run -all')
+    print('VSIM_TCL:=set NumericStdNoWarnings 1; if [file exists wave.do] {do wave.do}')
     print('VSIM_OPTS:=-t ps -gui -onfinish stop -do "$(VSIM_TCL)"')
 else:
     print('VSIM_TCL:=set NumericStdNoWarnings 1; onfinish exit; run -all; exit')
