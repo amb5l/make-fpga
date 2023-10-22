@@ -116,7 +116,6 @@ def process_gen(gen):
         if ' ' in v and v[0] != '"':
             v = '"'+v+'"'
         gen[i] = n+'='+v
-        print('# debug ',n+'='+v)
     return gen
     else:
         return []
