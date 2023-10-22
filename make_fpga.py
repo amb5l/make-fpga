@@ -109,14 +109,14 @@ def process_run(run):
 
 def process_gen(gen):
     if gen:
-    for i in range(len(gen)):
-        g = gen[i]
-        n = g[:g.index('=')]
-        v = g[g.index('=')+1:]
-        if ' ' in v and v[0] != '"':
-            v = '"'+v+'"'
-        gen[i] = n+'='+v
-    return gen
+        for i in range(len(gen)):
+            g = gen[i]
+            n = g[:g.index('=')]
+            v = g[g.index('=')+1:]
+            if ' ' in v and v[0] != '"':
+                v = '"'+v+'"'
+            gen[i] = n+'='+v
+        return gen
     else:
         return []
 
@@ -133,7 +133,21 @@ def var_vals(l):
         return ''
 
 help_run = \
-    'Each simulation RUN is specified as follows:\n' \
+    'A generic assignment is specified as follows:\n' \
+    '  name=value\n' \
+    'Examples:\n' \
+    '  my_int=123\n' \
+    '  my_str="abc"\n' \
+    '  my_slv="101"\n' \
+    '\n' \
+    'An SDF mapping is specified as follows:\n' \
+    '  delay:path=file\n' \
+    'where\n' \
+    '  delay = typ, min or max\n' \
+    '  unit = path to design unit e.g. /top/u1\n' \
+    '  file = path/name of SDF file\n' \
+    '\n' \
+    'A simulation run is specified as follow:\n' \
     '  [name:]top[,gen][;sdf]\n' \
     'where\n' \
     '  name = unique run name (defaults to sim)\n' \
@@ -141,10 +155,9 @@ help_run = \
     '  gen  = run specific generic assignments:\n' \
     '           name=value[,name=value...]\n' \
     '  sdf  = run specific SDF assignments:\n' \
-    '           delay=unit=file[;delay=unit=file...]\n' \
-    '           (delay = typ, min or max; unit = path to design unit)\n' \
+    '           delay:unit=file[;delay=unit=file...]\n' \
     'Examples:\n' \
-    '   run1:my_design1\n' \
-    '   run2:my_design2,gen1=123,gen2="abc"\n' \
-    '   run3:my_design3,gen1=123,gen2="abc";typ=/TOP/UNIT1=unit1.sdf\n' \
-    '   run4:my_design4,gen1=123;typ=/TOP/U1=unit1.sdf;typ=/TOP/U2=unit2.sdf\n'
+    ' run1:my_design1\n' \
+    ' run2:my_design2,gen1=123,gen2="abc"\n' \
+    ' run3:my_design3,gen1=123,gen2="abc";typ:/TOP/UNIT1=unit1.sdf\n' \
+    ' run4:my_design4,gen1=123;typ=/TOP/U1=unit1.sdf;min:/TOP/U2=unit2.sdf\n'
