@@ -23,7 +23,7 @@ parser.add_argument(
     '--lib',
     nargs='+',
     action='append',
-    help='vendor libraries'
+    help='precompiled libraries'
    )
 parser.add_argument(
     '--vhdl',
@@ -48,7 +48,7 @@ parser.add_argument(
     required=True,
     nargs='+',
     action='append',
-    help='simulation run specification(s)'
+    help='simulation run specification(s) (see below)'
    )
 parser.add_argument(
     '--gen',
@@ -119,7 +119,7 @@ else:
     print('VSIM_OPTS:=-t ps -c -onfinish stop -do "$(VSIM_TCL)"')
 if not args.min:
     print('')
-    print('# simulation vendor libraries')
+    print('# precompiled libraries')
 print('VSIM_LIB:='+var_vals(args.lib))
 if not args.min:
     print('')
