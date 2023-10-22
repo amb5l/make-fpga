@@ -57,10 +57,10 @@ parser.add_argument(
     help='generics assignment(s) (applied to all runs)'
    )
 parser.add_argument(
-    '--ui',
-    choices=['cmd','gui'],
-    help='user interface (defaults to cmd)',
-    default='cmd'
+    '--sdf',
+    nargs='+',
+    action='append',
+    help='SDF mapping(s) (applied to all runs)'
    )
 parser.add_argument(
     '--min',
@@ -74,6 +74,7 @@ runs=process_run(flatten(args.run))
 args.lib=flatten(args.lib)
 args.run=flatten(args.run)
 args.gen=process_gen(flatten(args.gen))
+args.sdf=process_gen(flatten(args.sdf))
 
 # output
 
@@ -98,25 +99,25 @@ print('RUNS:='+' '.join([r[0] for r in runs]))
 for r in runs:
     s = 'RUN.'+r[0]+':='+r[1]
     if r[2]:
-        s += ' '+' '.join(['-g '+g+'='+v for g,v in r[2]])
+        s += ' '+' '.join(['-g'+g+'='+v for g,v in r[2]])
     if r[3]:        
-        s += ' '+' '.join(['-'+t+' '+p+'='+f for t,p,f in r[3]])
+        s += ' '+' '.join(['-sdf'+t+' '+p+'='+f for t,p,f in r[3]])
     print(s)
 if not args.min:
     print('')
     print('# generic assignments (applied to all simulation runs)')
-print('GEN:='+var_vals(list(map(lambda e: '-g '+e,args.gen))))
+print('GEN:='+var_vals(list(map(lambda e: '-g'+e,args.gen))))
+if not args.min:
+    print('')
+    print('# SDF mappings (applied to all simulation runs)')
+print('SDF:='+var_vals(list(map(lambda e: '-sdf'+e,args.sdf))))
 if not args.min:
     print('')
     print('# compilation and simulation options')
 print('VCOM_OPTS:=-'+args.vhdl+' -explicit -stats=none')
 print('VLOG_OPTS:=-stats=none')
-if args.ui == 'gui':
-    print('VSIM_TCL:=set NumericStdNoWarnings 1; if [file exists wave.do] {do wave.do}')
-    print('VSIM_OPTS:=-t ps -gui -onfinish stop -do "$(VSIM_TCL)"')
-else:
-    print('VSIM_TCL:=set NumericStdNoWarnings 1; onfinish exit; run -all; exit')
-    print('VSIM_OPTS:=-t ps -c -onfinish stop -do "$(VSIM_TCL)"')
+print('VSIM_TCL:=set NumericStdNoWarnings 1; onfinish exit; run -all; exit')
+print('VSIM_OPTS:=-t ps -c -onfinish stop -do "$(VSIM_TCL)"')
 if not args.min:
     print('')
     print('# precompiled libraries')
@@ -173,7 +174,7 @@ if not args.min:
 print('define rr_run')
 print('$1: $(word 2,$(subst =, ,$(lastword $(SRC))))/$(notdir $(word 1,$(subst =, ,$(lastword $(SRC))))).com')
 print('\t@bash -c \'echo -e "\\033[0;32mRUN: $1 ($(word 1,$(RUN.$1)))  start at $$$$(date +%T.%2N)\\033[0m"\'')
-print('\tvsim -modelsimini modelsim.ini $(addprefix -L ,$(VSIM_LIB)) $(VSIM_OPTS) $(RUN.$1) $(GEN)')
+print('\tvsim -modelsimini modelsim.ini $(addprefix -L ,$(VSIM_LIB)) $(VSIM_OPTS) $(GEN) $(SDF) $(RUN.$1)')
 print('\t@bash -c \'echo -e "\\033[0;31mRUN: $1 ($(word 1,$2))    end at $$$$(date +%T.%2N)\\033[0m"\'')
 print('vsim:: $1')
 print('endef')
