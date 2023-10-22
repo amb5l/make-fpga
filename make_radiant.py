@@ -145,10 +145,6 @@ if not args.quiet:
     print('')
     print('################################################################################')
     print('')
-    print('# useful definitions')
-print('comma:=,')
-if not args.quiet:
-    print('')
     print('# Synthesis (compile structural Verilog netlist from HDL source)')
 print('$(TOP)_synth.vm: $(foreach p,$(SRC),$(word 1,$(subst =, ,$p))) $(LDC)')
 print('\tsynthesis \\')
@@ -163,7 +159,7 @@ print('\t\t$(foreach p,$(SRC),\\\n\t\t -lib $(word 2,$(subst =, ,$p)) \\\n\t\t -
 print('\t\t$(addprefix -sdc ,$(LDC)) \\')
 print('\t\t-use_io_reg %s \\' % args.use_io_reg)
 print('\t\t-top $(TOP) \\')
-print('\t\t$(addprefix -hdl_param ,$(subst =,$(comma),$(GEN))) \\')
+print('\t\t$(subst =, ,$(addprefix -hdl_param ,$(GEN))) \\')
 print('\t\t-logfile $(basename $@).log')
 if not args.quiet:
     print('')
