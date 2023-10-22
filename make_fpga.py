@@ -108,6 +108,7 @@ def process_run(run):
     return r
 
 def process_gen(gen):
+    if gen:
     for i in range(len(gen)):
         g = gen[i]
         n = g[:g.index('=')]
@@ -117,9 +118,11 @@ def process_gen(gen):
         gen[i] = n+'='+v
         print('# debug ',n+'='+v)
     return gen
+    else:
+        return []
 
 def flatten(ll):
-    return None if ll==None else [e for l in ll for e in l]
+    return [] if ll==None else [e for l in ll for e in l]
 
 def var_vals(l):
     if l:
