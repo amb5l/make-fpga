@@ -44,6 +44,12 @@ parser.add_argument(
     help='source(s) in compile order (append =LIB to specify library name)'
    )
 parser.add_argument(
+    '--dep',
+    nargs='+',
+    action='append',
+    help='other dependancies e.g. data files'
+   )
+parser.add_argument(
     '--run',
     required=True,
     nargs='+',
@@ -70,9 +76,9 @@ parser.add_argument(
 
 args=parser.parse_args()
 c,d=process_src(args.src,args.work)
+args.dep=flatten(args.dep)
 runs=process_run(flatten(args.run))
 args.lib=flatten(args.lib)
-args.run=flatten(args.run)
 args.gen=process_gen(flatten(args.gen))
 args.sdf=process_gen(flatten(args.sdf))
 
@@ -92,6 +98,10 @@ if not args.min:
     print('')
     print('# sources in compilation order (source=library)')
 print('SRC:='+var_vals([s+'='+l for l,s in c]))
+if not args.min:
+    print('')
+    print('# other simulation prerequisites (e.g. data files)')
+print('DEP:='+var_vals(args.dep))
 if not args.min:
     print('')
     print('# simulation runs (top plus any run specific generic/SDF assignments)')
@@ -158,7 +168,7 @@ if not args.min:
     print('')
     print('# generate rule(s) and recipe(s) to compile source(s)')
 print('define rr_compile')
-print('$1/$(notdir $2).com: $2 $3 | $1')
+print('$1/$(notdir $2).com: $2 $3 $(DEP) | $1')
 print('\t$(if $(filter .vhd,$(suffix $2)),vcom $(VCOM_OPTS),vlog $(VLOG_OPTS)) \\')
 print('\t\t-modelsimini modelsim.ini -work $1 $$<')
 print('\ttouch $$@')
