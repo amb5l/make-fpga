@@ -16,6 +16,12 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter
    )
 parser.add_argument(
+    '--lib',
+    nargs='+',
+    action='append',
+    help='precompiled libraries'
+   )
+parser.add_argument(
     '--vhdl',
     choices=['1993','2000','2002','2008','2019'],
     help='VHDL LRM version (defaults to 2008)',
@@ -34,10 +40,23 @@ parser.add_argument(
     help='source(s) in compile order (append =LIB to specify library name)'
    )
 parser.add_argument(
-    '--run',
+    '--dep',
     nargs='+',
     action='append',
-    help='simulation run specification(s)'
+    help='other dependancies e.g. data files'
+   )
+parser.add_argument(
+    '--run',
+    required=True,
+    nargs='+',
+    action='append',
+    help='simulation run specification(s) (see below)'
+   )
+parser.add_argument(
+    '--gen',
+    nargs='+',
+    action='append',
+    help='generics assignment(s) (applied to all runs)'
    )
 parser.add_argument(
     '--min',
@@ -47,7 +66,10 @@ parser.add_argument(
 
 args=parser.parse_args()
 c,d=process_src(args.src,args.work)
-args.run=flatten(args.run)
+args.dep=flatten(args.dep)
+runs=process_run(flatten(args.run))
+args.lib=flatten(args.lib)
+args.gen=process_gen(flatten(args.gen))
 
 # output
 
@@ -67,8 +89,23 @@ if not args.min:
 print('SRC:='+var_vals([s+'='+l for l,s in c]))
 if not args.min:
     print('')
-    print('# simulation runs')
-print('RUN:='+var_vals(args.run))
+    print('# other simulation prerequisites (e.g. data files)')
+print('DEP:='+var_vals(args.dep))
+if not args.min:
+    print('')
+    print('# simulation runs (top plus any run specific generic/SDF assignments)')
+print('RUNS:='+' '.join([r[0] for r in runs]))
+for r in runs:
+    s = 'RUN.'+r[0]+':='+r[1]
+    if r[2]:
+        s += ' '+' '.join(['-g'+g+'='+v for g,v in r[2]])
+    if r[3]:        
+        s += ' '+' '.join(['-sdf'+t+' '+p+'='+f for t,p,f in r[3]])
+    print(s)
+if not args.min:
+    print('')
+    print('# generic assignments (applied to all simulation runs)')
+print('GEN:='+var_vals(list(map(lambda e: '-g'+e,args.gen))))
 if not args.min:
     print('')
     print('# global, analysis, elaboration and run options')
@@ -96,22 +133,14 @@ print('src_dep=$1,$2')
 print('pairmap=$(and $(strip $2),$(strip $3),$(call $1,$(firstword $2),$(firstword $3)) $(call pairmap,$1,$(call rest,$2),$(call rest,$3)))')
 if not args.min:
     print('')
-    print('# generate rule(s) and recipe(s) to create library directory(s)')
-print('define rr_libdir')
-print('$1:')
-print('\tnvc --init --work=$$@')
-print('endef')
-print('$(foreach l,$(LIB),$(eval $(call rr_libdir,$l)))')
-if not args.min:
-    print('')
     print('# compilation dependencies enforce compilation order')
 print('dep:=$(firstword $(SRC)), $(if $(word 2,$(SRC)),$(call pairmap,src_dep,$(call rest,$(SRC)),$(call chop,$(SRC))),)')
 if not args.min:
     print('')
     print('# generate rule(s) and recipe(s) to compile source(s)')
 print('define rr_compile')
-print('$1/$(notdir $2).com: $2 $3 | $1')
-print('\tnvc $(NVC_GOPTS) --work=$1 -a $(NVC_AOPTS) $$<')
+print('$1/$(notdir $2).com: $2 $3 $(DEP)')
+print('\tnvc $(NVC_GOPTS) --work=$(strip $1) -a $(NVC_AOPTS) $$<')
 print('\ttouch $$@')
 print('endef')
 print('$(foreach d,$(dep),$(eval $(call rr_compile, \\')
@@ -128,7 +157,7 @@ print('\t@bash -c \'echo -e "\\033[0;32mRUN: $1 ($2)  start at $$$$(date +%T.%2N
 print('\tnvc \\')
 print('\t\t$(addprefix -L ,$(VSIM_LIB)) $(VSIM_OPTS) $2 $(addprefix -g ,$3)')
 print('\t@bash -c \'echo -e "\\033[0;31mRUN: $1 ($2)    end at $$$$(date +%T.%2N)\\033[0m"\'')
-print('vsim:: $1')
+print('nvc:: $1')
 print('endef')
 print('$(foreach r,$(RUN),$(eval $(call rr_run, \\')
 print('$(word 1,$(subst :, ,$r)), \\')
