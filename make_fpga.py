@@ -91,10 +91,8 @@ def process_run(run):
             if ':' not in s:
                 error_exit('bad SDF section in run spec:\n  %s' % s)
             delay = s.split(':')[0]
-            if delay == 'sdf':
-                delay = 'sdftyp'
-            elif delay != 'sdftyp' and delay != 'sdfmin' and delay != 'sdfmax':
-                error_exit('bad SDF delay spec in run spec: %s' % delay)
+            if delay != 'typ' and delay != 'min' and delay != 'max':
+                error_exit('bad SDF delay in run spec: %s' % delay)
             path,file = s[s.index(':')+1:].split('=')
             if ';' in file:
                 file = file.split(';')[0]
@@ -107,16 +105,38 @@ def process_run(run):
             error_exit('unexpected text in SDF section of run spec:\n  %s' % s)
     return r
 
-def process_gen(gen):
-    if gen:
-        for i in range(len(gen)):
-            g = gen[i]
-            n = g[:g.index('=')]
-            v = g[g.index('=')+1:]
-            if ' ' in v and v[0] != '"':
-                v = '"'+v+'"'
-            gen[i] = n+'='+v
-        return gen
+def process_gen(gen): 
+    if gen: 
+        for i in range(len(gen)): 
+            g = gen[i] 
+            if ':' not in g: 
+                error_exit('bad SDF mapping: %s' % g)   
+            delay = g.split(':')[0] 
+            if delay != 'typ' and delay != 'min' and delay != 'max': 
+                error_exit('bad SDF delay: %s' % delay) 
+            path,file = g[g.index(':')+1:].split('=') 
+             
+            n = g[:g.index('=')] 
+            v = g[g.index('=')+1:] 
+            if ' ' in v and v[0] != '"': 
+                v = '"'+v+'"' 
+            gen[i] = (n,v)
+        return gen 
+    else: 
+        return [] 
+        
+def process_sdf(sdf):
+    if sdf:
+        for i in range(len(sdf)):
+            s = sdf[i]
+            if ':' not in s:
+                error_exit('bad SDF mapping: %s' % s)  
+            delay = s.split(':')[0]
+            if delay != 'typ' and delay != 'min' and delay != 'max':
+                error_exit('bad SDF delay: %s' % delay)
+            path,file = s[s.index(':')+1:].split('=')
+            sdf[i] = (delay,path,file)
+        return sdf
     else:
         return []
 
