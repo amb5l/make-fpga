@@ -75,6 +75,12 @@ parser.add_argument(
     help='physical (post-synthesis) design constraints'
    )
 parser.add_argument(
+    '--dep',
+    nargs='+',
+    action='append',
+    help='other dependancies e.g. data files'
+   )
+parser.add_argument(
     '--top',
     required=True,
     help='top level design unit'
@@ -94,8 +100,9 @@ parser.add_argument(
 
 args=parser.parse_args()
 c,_=process_src(args.src,args.work)
-args.pdc=flatten(args.pdc)
 args.ldc=flatten(args.ldc)
+args.pdc=flatten(args.pdc)
+args.dep=flatten(args.dep)
 args.gen=flatten(args.gen)
 
 # output
@@ -135,6 +142,10 @@ if not args.quiet:
 print('PDC:='+var_vals(args.pdc))
 if not args.quiet:
     print('')
+    print('# other synthesis prerequisites (e.g. data files)')
+print('DEP:='+var_vals(args.dep))
+if not args.quiet:
+    print('')
     print('# top level design unit')
 print('TOP:='+args.top)
 if not args.quiet:
@@ -146,7 +157,7 @@ if not args.quiet:
     print('################################################################################')
     print('')
     print('# Synthesis (compile structural Verilog netlist from HDL source)')
-print('$(TOP)_synth.vm: $(foreach p,$(SRC),$(word 1,$(subst =, ,$p))) $(LDC)')
+print('$(TOP)_synth.vm: $(foreach p,$(SRC),$(word 1,$(subst =, ,$p))) $(LDC) $(DEP)')
 print('\tsynthesis \\')
 print('\t\t-output_hdl $@ \\')
 print('\t\t-a $(ARCH) \\')
