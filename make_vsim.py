@@ -80,7 +80,7 @@ args.dep=flatten(args.dep)
 runs=process_run(flatten(args.run))
 args.lib=flatten(args.lib)
 args.gen=process_gen(flatten(args.gen))
-args.sdf=process_gen(flatten(args.sdf))
+args.sdf=process_sdf(flatten(args.sdf))
 
 # output
 
@@ -116,7 +116,7 @@ for r in runs:
 if not args.min:
     print('')
     print('# generic assignments (applied to all simulation runs)')
-print('GEN:='+var_vals(list(map(lambda e: '-g'+e,args.gen))))
+print('GEN:='+var_vals(list(map(lambda e: '-g'+e[0]+'='+e[1],args.gen))))
 if not args.min:
     print('')
     print('# SDF mappings (applied to all simulation runs)')

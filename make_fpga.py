@@ -69,22 +69,22 @@ def process_run(run):
         if s:
             while s[0] == ',':
                 s = s[1:]
-                gen_name,gen_value = s.split('=')
+                n,v = s.split('=')
                 sq = False # inside single quotes
                 dq = False # inside double quotes
-                for i in range(len(gen_value)):
-                    if (gen_value[i] == ',' or gen_value[i] == ';') and not sq and not dq:
-                        gen_value = gen_value[:i]
-                        s = gen_value[i:]
+                for i in range(len(v)):
+                    if (v[i] == ',' or v[i] == ';') and not sq and not dq:
+                        v = v[:i]
+                        s = v[i:]
                         break
                     elif s[i] == "'":
                         sq = not sq
                     elif s[i] == '"':
                         dq = not dq
                 # ensure double quotes around strings
-                if ' ' in gen_value and gen_value[0] != '"':
-                    gen_value = '"'+gen_value+'"'
-                r[-1][2].append((gen_name,gen_value))
+                if ' ' in v and v[0] != '"':
+                    v = '"'+v+'"'
+                r[-1][2].append((n,v))
         # SDF section: ;sdfxxx:path=file
         while s and s[0] == ';':
             s = s[1:]
@@ -105,32 +105,35 @@ def process_run(run):
             error_exit('unexpected text in SDF section of run spec:\n  %s' % s)
     return r
 
-def process_gen(gen): 
-    if gen: 
-        for i in range(len(gen)): 
-            g = gen[i] 
-            if ':' not in g: 
-                error_exit('bad SDF mapping: %s' % g)   
-            delay = g.split(':')[0] 
-            if delay != 'typ' and delay != 'min' and delay != 'max': 
-                error_exit('bad SDF delay: %s' % delay) 
-            path,file = g[g.index(':')+1:].split('=') 
-             
-            n = g[:g.index('=')] 
-            v = g[g.index('=')+1:] 
-            if ' ' in v and v[0] != '"': 
-                v = '"'+v+'"' 
+def process_gen(gen):
+    if gen:
+        for i in range(len(gen)):
+            s = gen[i]
+            n,v = s.split('=')
+            sq = False # inside single quotes
+            dq = False # inside double quotes
+            for j in range(len(v)):
+                if (v[j] == ',' or v[j] == ';') and not sq and not dq:
+                    v = v[:j]
+                    s = v[j:]
+                    break
+                elif s[j] == "'":
+                    sq = not sq
+                elif s[j] == '"':
+                    dq = not dq
+            if ' ' in v and v[0] != '"': # ensure double quotes around strings
+                v = '"'+v+'"'
             gen[i] = (n,v)
-        return gen 
-    else: 
-        return [] 
-        
+        return gen
+    else:
+        return []
+
 def process_sdf(sdf):
     if sdf:
         for i in range(len(sdf)):
             s = sdf[i]
             if ':' not in s:
-                error_exit('bad SDF mapping: %s' % s)  
+                error_exit('bad SDF mapping: %s' % s)
             delay = s.split(':')[0]
             if delay != 'typ' and delay != 'min' and delay != 'max':
                 error_exit('bad SDF delay: %s' % delay)
