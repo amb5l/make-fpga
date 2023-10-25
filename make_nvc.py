@@ -105,7 +105,7 @@ for r in runs:
 if not args.min:
     print('')
     print('# generic assignments (applied to all simulation runs)')
-print('GEN:='+var_vals(list(map(lambda e: '-g'+e,args.gen))))
+print('GEN:='+var_vals(list(map(lambda e: '-g'+e[0]+'='+e[1],args.gen))))
 if not args.min:
     print('')
     print('# global, analysis, elaboration and run options')
