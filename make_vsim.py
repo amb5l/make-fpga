@@ -94,7 +94,7 @@ if not args.min:
     print('# for simulation using ModelSim/Questa/etc')
     print('')
     print('# path to simulator binaries')
-    print('VMAP:=%svlib' % args.path)
+print('VMAP:=%svmap' % args.path)
     print('VLIB:=%svlib' % args.path)
     print('VCOM:=%svcom' % args.path)
     print('VLOG:=%svlog' % args.path)
