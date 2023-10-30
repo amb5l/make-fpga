@@ -11,7 +11,7 @@ from make_fpga import *
 
 parser = argparse.ArgumentParser(
     prog='make_nvc.py',
-    description='Create makefiles for simulating FPGA designs with ModelSim/Questa/etc',
+    description='Create makefiles for simulating FPGA designs with NVC',
     epilog=help_run,
     formatter_class=argparse.RawDescriptionHelpFormatter
    )
