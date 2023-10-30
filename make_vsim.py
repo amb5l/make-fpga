@@ -75,7 +75,10 @@ parser.add_argument(
    )
 
 args=parser.parse_args()
-args.path +='/' if args.path and args.path[-1] != '/' else ''
+if args.path:
+    args.path += '/' if args.path[-1] != '/' else ''
+else:
+    args.path = ''
 c,d=process_src(args.src,args.work)
 args.dep=flatten(args.dep)
 runs=process_run(flatten(args.run))
