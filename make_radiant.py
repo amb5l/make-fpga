@@ -235,7 +235,7 @@ if args.flow == 'ide':
     print('')
     print('# Synthesis (compile structural Verilog netlist from HDL source)')
     print('# and Post Synthesis (combine .vm and IP into Unified Database)')
-    print('$(VM_SYN) $(UDB_SYN): $(DEP) | $(RDF)')
+    print('$(VM_SYN) $(UDB_SYN): $(SRC) $(LDC) $(PDC) $(DEP) | $(RDF)')
     print('\t@bash -c \'echo -e "\\033[0;32mSYNTHESIZE\\033[0m"\'')
     print('\tbash -c "$(TCLRUN) \\')
     print('\t\tprj_open $(RDF) \';\' \\')
