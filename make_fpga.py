@@ -73,7 +73,9 @@ def process_run(run):
                 sq = False # inside single quotes
                 dq = False # inside double quotes
                 for i in range(len(v)):
-                    if (v[i] == ',' or v[i] == ';') and not sq and not dq:
+                    if i == len(v)-1:
+                        s = ""
+                    elif (v[i] == ',' or v[i] == ';') and not sq and not dq:
                         v = v[:i]
                         s = v[i:]
                         break
@@ -85,6 +87,8 @@ def process_run(run):
                 if ' ' in v and v[0] != '"':
                     v = '"'+v+'"'
                 r[-1][2].append((n,v))
+                if not s:
+                    break
         # SDF section: ;sdfxxx:path=file
         while s and s[0] == ';':
             s = s[1:]
@@ -102,7 +106,7 @@ def process_run(run):
             r[-1][3].append((delay,path,file))
         # finale
         if s:
-            error_exit('unexpected text in SDF section of run spec:\n  %s' % s)
+            error_exit('unexpected text in run spec:\n  %s' % s)
     return r
 
 def process_gen(gen):
