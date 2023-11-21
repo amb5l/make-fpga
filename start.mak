@@ -17,15 +17,15 @@ xpath=$(if $(filter Windows_NT,$(OS)),$(shell cygpath -m $1),$1)
 
 DUMMY:=$(shell git -v)
 $(call check_shell_error,Could not run git)
-REPO_ROOT?=$(call mpath,$(shell git rev-parse --show-toplevel))
+REPO_ROOT?=$(call xpath,$(shell git rev-parse --show-toplevel))
 DUMMY:=$(shell pwd --version)
 $(call check_shell_error,Could not run pwd)
-MAKE_DIR:=$(call mpath,$(shell pwd))
+MAKE_DIR:=$(call xpath,$(shell pwd))
 ifeq ($(OS),Windows_NT)
 DUMMY:=$(shell cygpath -V)
 $(call check_shell_error,Could not run cygpath)
 $(call check_null_error,MSYS2)
-MSYS2:=$(call mpath,$(MSYS2))
+MSYS2:=$(call xpath,$(MSYS2))
 export PATH:=$(MSYS2)/usr/bin:$(PATH)
 endif
 MAKE_FPGA?=$(REPO_ROOT)/submodules/make-fpga
