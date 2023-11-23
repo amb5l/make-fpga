@@ -67,21 +67,22 @@ def process_run(run):
         s = s[l:]
         # generic section: ,name=value[,name=value...]
         if s:
-            while s[0] == ',':
+            while s[0] == ',' and s.find('=') != -1:
                 s = s[1:]
-                n,v = s.split('=')
+                n = s[:s.find('=')]
+                v = s[s.find('=')+1:]
                 sq = False # inside single quotes
                 dq = False # inside double quotes
                 for i in range(len(v)):
                     if i == len(v)-1:
                         s = ""
                     elif (v[i] == ',' or v[i] == ';') and not sq and not dq:
-                        v = v[:i]
                         s = v[i:]
+                        v = v[:i]
                         break
-                    elif s[i] == "'":
+                    elif v[i] == "'":
                         sq = not sq
-                    elif s[i] == '"':
+                    elif v[i] == '"':
                         dq = not dq
                 # ensure double quotes around strings
                 if ' ' in v and v[0] != '"':
