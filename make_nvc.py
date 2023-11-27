@@ -139,7 +139,7 @@ print('$1: $(word 2,$(subst =, ,$(lastword $(SRC))))/$(notdir $(word 1,$(subst =
 print('	@bash -c \'echo -e "\033[0;32mRUN: $1 ($(word 1,$(RUN.$1)))  start at $$$$(date +%T.%2N)\033[0m"\'')
 print('	nvc $(NVC_GOPTS) -e $(NVC_EOPTS) $(GEN) $(RUN.$1)')
 print('	nvc $(NVC_GOPTS) -r $(NVC_ROPTS) $(word 1,$(RUN.$1))')
-print('	@bash -c \'echo -e "\033[0;31mRUN: $1 ($(word 1,$2))    end at $$$$(date +%T.%2N)\033[0m"\'')
+print('	@bash -c \'echo -e "\033[0;31mRUN: $1 ($(word 1,$(RUN.$1)))    end at $$$$(date +%T.%2N)\033[0m"\'')
 print('nvc:: $1')
 print('endef')
 print('$(foreach r,$(RUNS),$(eval $(call rr_run,$r)))')
