@@ -153,7 +153,6 @@ switch $tool {
 					if {[llength [dict keys $d]]} {
 						error_exit {"create - leftovers: $d"}
 					}
-
 				}
 
 				build {
@@ -175,13 +174,17 @@ switch $tool {
 							}
 						}
 						bd {
-							# build bd bd_file tcl_file
+							# build bd bd_file tcl_file scp_mode
 							set bd_file [lindex $args 1]
 							set tcl_file [lindex $args 2]
 							if {$bd_file in [get_files $bd_file]} {
 								remove_files $bd_file
 							}
 							source $tcl_file
+                            if {[llength $args] > 3} {
+                                set scp_mode [lindex $args 3]
+                                set_property synth_checkpoint_mode $scp_mode [get_files $bd_file]
+                            }
 						}
 						hwdef {
 							# build hwdef filename
@@ -193,6 +196,11 @@ switch $tool {
 							set top [get_property top [get_filesets sources_1]]
 							write_hw_platform -fixed -force -file $top.xsa
 						}
+						xsa_bit {
+							# build xsa, include bit file
+							set top [get_property top [get_filesets sources_1]]
+							write_hw_platform -fixed -force -include_bit -file $top.xsa
+						}
 						synth {
 							# build synth jobs
 							set jobs [lindex $args 1]
@@ -203,8 +211,8 @@ switch $tool {
 								error_exit {"synthesis did not complete"}
 							}
 						}
-						impl {
-							# build impl jobs [proc_inst proc_ref proc_elf]
+						impl_bit {
+							# build bit jobs [proc_inst proc_ref proc_elf]
 							set jobs [lindex $args 1]
 							if {[llength $args] >= 3} {
 								set proc_inst [lindex $args 2]
@@ -221,17 +229,11 @@ switch $tool {
 								}
 							}
 							reset_run impl_1
-							launch_runs impl_1 -jobs $jobs
+							launch_runs impl_1 -to_step write_bitstream -jobs $jobs
 							wait_on_run impl_1
-							if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
-								error_exit {"implementation did not complete"}
+							if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
+								error_exit {"implementation and bitstream generation did not complete"}
 							}
-						}
-						bit {
-							# build bit filename
-							set filename [lindex $args 1]
-							open_run impl_1
-							write_bitstream -force "$filename"
 						}
 						bd_tcl {
 							# update bd_tcl tcl_file bd_file
@@ -248,7 +250,7 @@ switch $tool {
 							write_bd_layout -force -format svg $svg_file
 						}
 						default {
-							error_exit {"build - unknown target ($target)"}
+							error_exit "build - unknown target ($target)"
 						}
 					}
 				}
@@ -527,6 +529,29 @@ switch $tool {
 						}
 						set d [dict remove $d sym_dbg]
 					}
+                    if {[dict exist $d domain]} {
+                        domain active [dict get $d domain]
+                        set d [dict remove $d domain]
+                    }
+                    if {[dict exist $d bsp_lib]} {
+						foreach l [dict get $d bsp_lib] {
+							bsp setlib $l
+						}
+                        bsp write
+						set d [dict remove $d bsp_lib]
+                    }
+                    if {[dict exist $d bsp_cfg]} {
+						foreach param_value [dict get $d bsp_cfg] {
+                            set i [string first ":" $param_value]
+                            set param [string range $param_value 0 $i-1]
+                            set value [string range $param_value $i+1 end]
+                            puts "bsp_cfg: param:$param = value:$value"
+                            bsp config $param $value
+						}
+						set d [dict remove $d bsp_cfg]
+                    }
+                    bsp regenerate
+                    platform generate
 					if {[llength [dict keys $d]]} {
 						error_exit {"create - leftovers: $d"}
 						exit 1
@@ -539,6 +564,25 @@ switch $tool {
 					app config -name $app_name build-config $cfg
 					app build -name $app_name
 				}
+
+                run {
+                    # run fpga.bit fsbl.elf init.tcl run.elf
+                    set fpga_bit_file [lindex $args 0]
+                    set fsbl_elf_file [lindex $args 1]
+                    set init_tcl_file [lindex $args 2]
+                    set run_elf_file  [lindex $args 3]
+                    connect
+                    target 1
+                    rst
+                    targets -set -nocase -filter {name =~ "xc*"}
+                    fpga $fpga_bit_file
+                    targets -set -nocase -filter {name =~ "arm*#0"}
+                    dow $fsbl_elf_file
+                    con; after 1000; stop
+                    source $init_tcl_file
+                    dow $run_elf_file
+                    con
+                }
 
 				default {
 					error_exit {"unknown cmd ($cmd)"}
