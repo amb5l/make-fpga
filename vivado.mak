@@ -103,7 +103,6 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 					if {\$$type == \"VHDL 2002\"} { \n \
 						set type \"VHDL\" \n \
 					} \n \
-					puts \"file=\$$file type=\$$type\" \n \
 					set_property file_type \"\$$type\" [get_files \"\$$file\"] \n \
 				} \n \
 			} \n \
