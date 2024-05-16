@@ -82,8 +82,8 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 				add_files -norecurse -fileset [get_filesets \$$target_fileset] \$$new_files \n \
 			} \n \
 		} \n \
-		$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(VIVADO_DSN_SRC.$l)} \n) \
-		$(foreach l,$(VIVADO_DSN_LIB),update_files sim_1     {$(VIVADO_SIM_SRC.$l)} \n) \
+		$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(VIVADO_DSN_SRC_FILES.$l)} \n) \
+		$(foreach l,$(VIVADO_DSN_LIB),update_files sim_1     {$(VIVADO_SIM_SRC_FILES.$l)} \n) \
 		foreach f [get_files *.vh*] { \n \
 			set current_type [get_property file_type [get_files \$$f]] \n \
 			if {\"$(VIVADO_VHDL_LRM)\" == \"2002\"} { \n \
