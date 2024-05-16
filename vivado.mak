@@ -29,6 +29,8 @@ VIVADO_RUN=\
 	printf "set code [catch {\n$1\n} result]\nputs \$$result\nexit \$$code\n" > $(VIVADO_RUN_TCL) && \
 	$(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(VIVADO_RUN_TCL)
 VIVADO_XPR?=$(VIVADO_PROJ).xpr
+$(foreach l,$(VIVADO_DSN_LIB),$(eval VIVADO_DSN_SRC_FILES.$l=$(foreach s,$(VIVADO_DSN_SRC.$l),$(word 1,$(subst =, ,$s)))))
+$(foreach l,$(VIVADO_SIM_LIB),$(eval VIVADO_SIM_SRC_FILES.$l=$(foreach s,$(VIVADO_SIM_SRC.$l),$(word 1,$(subst =, ,$s)))))
 VIVADO_XDC_FILES=$(foreach x,$(VIVADO_XDC),$(word 1,$(subst =, ,$x)))
 VIVADO_SYNTH_DCP=$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_IMPL_DCP=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
@@ -93,6 +95,21 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 				set_property file_type \"\$$desired_type\" \$$f \n \
 			} \n \
 		} \n \
+		proc type_sources {s} { \n \
+			foreach file_type \$$s { \n \
+				if {[string first \"=\" \"\$$file_type\"] != -1} { \n \
+					set file [lindex [split \"\$$file_type\" \"=\"] 0] \n \
+					set type [string map {\"-\" \" \"} [lindex [split \"\$$file_type\" \"=\"] 1]] \n \
+					if {\$$type == \"VHDL 2002\"} { \n \
+						set type \"VHDL\" \n \
+					} \n \
+					puts \"file=\$$file type=\$$type\" \n \
+					set_property file_type \"\$$type\" [get_files \"\$$file\"] \n \
+				} \n \
+			} \n \
+		} \n \
+		$(foreach l,$(VIVADO_DSN_LIB),type_sources {$(VIVADO_DSN_SRC.$l)} \n) \
+		$(foreach l,$(VIVADO_SIM_LIB),type_sources {$(VIVADO_SIM_SRC.$l)} \n) \
 		if {[get_property top [get_filesets sources_1]] != \"$(VIVADO_DSN_TOP)\"} { \n \
 			set_property top \"$(VIVADO_DSN_TOP)\" [get_filesets sources_1] \n \
 		} \n \
