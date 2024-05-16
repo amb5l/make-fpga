@@ -16,8 +16,7 @@ VIVADO_DSN_LIB?=work
 
 # checks
 $(call check_defined,VIVADO_PART)
-$(call check_option,VIVADO_LANGUAGE,VHDL Verilog)
-$(call check_option,VIVADO_VHDL_LRM,2002 2008 2019)
+$(call check_option,VIVADO_LANGUAGE,VHDL-2002 VHDL-2008 VHDL-2019 Verilog)
 $(foreach l,$(VIVADO_DSN_LIB),$(call check_defined,VIVADO_DSN_SRC.$l))
 $(foreach l,$(VIVADO_SIM_LIB),$(call check_defined,VIVADO_SIM_SRC.$l))
 $(call check_defined,VIVADO_DSN_TOP)
@@ -55,8 +54,12 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 		if {[get_property part [current_project]] != \"$(VIVADO_PART)\"} { \n \
 			set_property part \"$(VIVADO_PART)\" [current_project] \n \
 		} \n \
+		set target_language \"$(VIVADO_LANGUAGE)\" \n \
+		if {\$$target_language != \"Verilog\"} { \n \
+			set target_language \"VHDL\" \n \
+		} \n \
 		if {[get_property target_language [current_project]] != \"$(VIVADO_LANGUAGE)\"} { \n \
-			set_property target_language \"$(VIVADO_LANGUAGE)\" [current_project] \n \
+			set_property target_language \"\$$target_language\" [current_project] \n \
 		} \n \
 		proc update_files {target_fileset new_files} { \n \
 			proc diff_files {a b} { \n \
@@ -86,10 +89,9 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 		$(foreach l,$(VIVADO_DSN_LIB),update_files sim_1     {$(VIVADO_SIM_SRC_FILES.$l)} \n) \
 		foreach f [get_files *.vh*] { \n \
 			set current_type [get_property file_type [get_files \$$f]] \n \
-			if {\"$(VIVADO_VHDL_LRM)\" == \"2002\"} { \n \
+			set desired_type [string map {\"-\" \" \"} \"$(VIVADO_LANGUAGE)\"] \n \
+			if {\$$desired_type == \"VHDL 2002\"} { \n \
 				set desired_type \"VHDL\" \n \
-			} else { \n \
-				set desired_type [concat \"VHDL \" \"$(VIVADO_VHDL_LRM)\"] \n \
 			} \n \
 			if {\"\$$current_type\" != \"\$$desired_type\"} { \n \
 				set_property file_type \"\$$desired_type\" \$$f \n \
