@@ -86,7 +86,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 			} \n \
 		} \n \
 		$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(VIVADO_DSN_SRC_FILES.$l)} \n) \
-		$(foreach l,$(VIVADO_DSN_LIB),update_files sim_1     {$(VIVADO_SIM_SRC_FILES.$l)} \n) \
+		$(foreach l,$(VIVADO_SIM_LIB),update_files sim_1     {$(VIVADO_SIM_SRC_FILES.$l)} \n) \
 		foreach f [get_files *.vh*] { \n \
 			set current_type [get_property file_type [get_files \$$f]] \n \
 			set desired_type [string map {\"-\" \" \"} \"$(VIVADO_LANGUAGE)\"] \n \
