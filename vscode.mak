@@ -44,7 +44,7 @@ $$(VSCODE_DIR)/$(notdir $1): $1
 	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 endef
 else
-define rr_srclink
+define rr_auxlink
 $$(VSCODE_DIR)/$(notdir $1): $1
 	@ln $$< $$@
 endef
