@@ -30,6 +30,7 @@ col_fg_wht:=\033[1;37m
 
 xpath=$(if $(filter Windows_NT,$(OS)),$(shell cygpath -m $1),$1)
 check_defined=$(if $($1),,$(error $1 is undefined))
+check_defined_alt=$(if $(foreach a,$1,$($a)),,$(error none of $1 are undefined))
 check_option=$(if $(filter $2,$($1)),,$(error $1 should be one of: $2))
 check_shell_error=$(if $(filter 0,$(.SHELLSTATUS)),,$(error $1))
 
