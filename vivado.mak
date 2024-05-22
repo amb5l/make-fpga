@@ -118,7 +118,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 		if {[get_property STEPS.SYNTH_DESIGN.ARGS.ASSERT [get_runs synth_1]]} { \n \
 			set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1] \n \
 		} \n \
-		update_files constrs_1 {$(VIVADO_XDC_FILES)} \n \
+		$(if $(VIVADO_XDC_FILES),update_files constrs_1 {$(VIVADO_XDC_FILES)} \n) \
 		proc scope_constrs {xdc} { \n \
 			foreach x \$$xdc { \n \
 				set file  [lindex [split \"\$$x\" \"=\"] 0] \n \
