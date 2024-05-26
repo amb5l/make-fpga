@@ -14,7 +14,7 @@ VIVADO_PROJ?=fpga
 
 # checks
 $(call check_defined,VIVADO_PART)
-$(call check_option,VIVADO_LANGUAGE,VHDL-2002 VHDL-2008 VHDL-2019 Verilog)
+$(call check_option,VIVADO_LANGUAGE,VHDL-1993 VHDL-2008 VHDL-2019 Verilog)
 $(foreach l,$(VIVADO_DSN_LIB),$(call check_defined,VIVADO_DSN_SRC.$l))
 $(foreach l,$(VIVADO_SIM_LIB),$(call check_defined,VIVADO_SIM_SRC.$l))
 $(call check_defined_alt,VIVADO_DSN_TOP VIVADO_SIM_TOP)
@@ -88,7 +88,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 		foreach f [get_files *.vh*] { \n \
 			set current_type [get_property file_type [get_files \$$f]] \n \
 			set desired_type [string map {\"-\" \" \"} \"$(VIVADO_LANGUAGE)\"] \n \
-			if {\$$desired_type == \"VHDL 2002\"} { \n \
+			if {\$$desired_type == \"VHDL 1993\"} { \n \
 				set desired_type \"VHDL\" \n \
 			} \n \
 			if {\"\$$current_type\" != \"\$$desired_type\"} { \n \
@@ -100,7 +100,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 				if {[string first \"=\" \"\$$file_type\"] != -1} { \n \
 					set file [lindex [split \"\$$file_type\" \"=\"] 0] \n \
 					set type [string map {\"-\" \" \"} [lindex [split \"\$$file_type\" \"=\"] 1]] \n \
-					if {\$$type == \"VHDL 2002\"} { \n \
+					if {\$$type == \"VHDL 1993\"} { \n \
 						set type \"VHDL\" \n \
 					} \n \
 					set_property file_type \"\$$type\" [get_files \"\$$file\"] \n \
