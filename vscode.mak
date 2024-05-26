@@ -5,6 +5,10 @@
 
 # defaults
 VSCODE_DIR?=vscode
+ifndef VSCODE_LIB
+VSCODE_LIB=work
+VSCODE_SRC.work?=$(VSCODE_SRC)
+endif
 
 # checks
 $(call check_defined,VSCODE_TOP)
