@@ -45,6 +45,7 @@ VIVADO_BIT=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
 
 # functions
 VIVADO_SRC_FILE=$(foreach s,$1,$(word 1,$(subst =, ,$s)))
+VIVADO_SIM_LOG=$(foreach r,$1,$(VIVADO_DIR)/$(VIVADO_PROJ).sim/$(word 1,$(subst $(comma),$(space),$r))/behav/xsim/simulate.log)
 
 # simulation
 ifdef VIVADO_SIM_RUN
@@ -251,6 +252,19 @@ $(VIVADO_DIR)/$(VIVADO_BIT): $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 		exit 0 \
 	)
 
+# simulation runs
+define rr_simrun
+$(call VIVADO_SIM_LOG,$1): force | $(VIVADO_DIR)/$(VIVADO_XPR)
+	$$(call banner,Vivado: simulation run = $1)
+	$$(call VIVADO_RUN, \
+		open_project $$(VIVADO_PROJ) \n \
+		current_fileset -simset [get_filesets $1] \n \
+		launch_simulation \n \
+		run all \n \
+	)
+endef
+$(foreach r,$(VIVADO_SIM_RUNS),$(eval $(call rr_simrun,$r)))
+
 ################################################################################
 # goals
 
@@ -264,6 +278,10 @@ impl  : $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 
 bit   : $(VIVADO_DIR)/$(VIVADO_BIT)
 	@mv $(VIVADO_DIR)/$(VIVADO_BIT) .
+
+$(foreach r,$(VIVADO_SIM_RUNS),$(eval \
+$r    : $(call VIVADO_SIM_LOG,$r) \
+))
 
 clean::
 	@rm -rf $(VIVADO_DIR)
