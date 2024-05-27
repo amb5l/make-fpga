@@ -236,7 +236,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 	fi
 
 # synthesis
-$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) | $(VIVADO_DIR)/$(VIVADO_XPR)
+$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) $(VIVADO_DIR)/$(VIVADO_XPR)
 	$(call banner,Vivado: synthesis)
 	$(call VIVADO_RUN, \
 		open_project $(VIVADO_PROJ) \n \
@@ -250,7 +250,7 @@ $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SR
 # implementation (place and route) and preparation for simulation
 # NOTE: implementation changes BD timestamp which upsets dependancies,
 #  so we force BD modification time backwards
-$(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP) $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF)
+$(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
 	$(call banner,Vivado: implementation)
 	$(call VIVADO_RUN, \
 		open_project $(VIVADO_PROJ) \n \
@@ -275,7 +275,7 @@ $(VIVADO_DIR)/$(VIVADO_BIT): $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 
 # simulation runs
 define rr_simrun
-$(call VIVADO_SIM_LOG,$1): force | $(VIVADO_DIR)/$(VIVADO_XPR)
+$(call VIVADO_SIM_LOG,$1): force $(VIVADO_DIR)/$(VIVADO_XPR)
 	$$(call banner,Vivado: simulation run = $1)
 	$$(call VIVADO_RUN, \
 		open_project $$(VIVADO_PROJ) \n \
