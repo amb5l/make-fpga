@@ -71,7 +71,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 			proc diff_files {a b} { \n \
 				set r [list] \n \
 				foreach f \$$a { \n \
-					if {![lsearch -exact \$$b \$$f]} { \n \
+					if {!("\$$f" in "\$$b")} { \n \
 						lappend r \$$f \n \
 					} \n \
 				} \n \
