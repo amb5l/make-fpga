@@ -196,15 +196,13 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 				set_property top \"$(VIVADO_DSN_TOP)\" [get_filesets sources_1] \n \
 			} \n \
 		} \n \
-		$(foreach r,$(VIVADO_SIM_RUN), \
-			set run $(word 1,$(subst :, ,$(word 1,$(subst ;, ,$r)))) \n \
-			set top $(word 2,$(subst :, ,$(word 1,$(subst ;, ,$r)))) \n \
+		foreach r {$(VIVADO_SIM_RUN)} { \n \
+			set run [lindex [split [lindex [split \"\$$r\" \";\"] 0] \":\"] 0] \n \
+			set top [lindex [split [lindex [split [lindex [split \"\$$r\" \";\"] 0] \":\"] 1] \"$(comma)\"] 0] \n \
 			set gen [split [lindex [split \"\$$r\" \";\"] 1] \"$(comma)\"] \n \
-			if {[get_property top [get_filesets \$$run]] != \"\$$top\"} { \n \
 				set_property top \$$top [get_filesets \$$run] \n \
-			} \n \
 			set_property generic \$$gen [get_filesets \$$run] \n \
-		) \
+		} \n \
 		if {[get_property STEPS.SYNTH_DESIGN.ARGS.ASSERT [get_runs synth_1]]} { \n \
 			set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1] \n \
 		} \n \
