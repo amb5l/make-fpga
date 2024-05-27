@@ -2,6 +2,11 @@
 # vivado.mak
 # See https://github.com/amb5l/make-fpga
 ################################################################################
+# TODO:
+#	execute simulation runs
+#	design generics
+#	ELF/CPU support
+#	timing simulation
 
 # XILINX_VIVADO must contain the path to the Vivado installation
 $(call check_defined,XILINX_VIVADO)
