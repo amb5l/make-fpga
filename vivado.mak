@@ -51,7 +51,7 @@ ifdef VIVADO_SIM_RUN
 ifneq (1,$(words,$(strip $(VIVADO_SIM_RUN))))
 $(foreach r,$(VIVADO_SIM_RUN),$(if $(findstring :,$(word 1,$(subst ;, ,$r))),,$(error Multiple simulation runs must be named)))
 else
-$(if $(findstring :,$(word 1,$(subst ;, ,$(VIVADO_SIM_RUN))),,$(eval VIVADO_SIM_RUN=default:$(value VIVADO_SIM_RUN)))
+$(if $(findstring :,$(word 1,$(subst ;, ,$(VIVADO_SIM_RUN))),,$(eval VIVADO_SIM_RUN=sim:$(value VIVADO_SIM_RUN)))
 endif
 endif
 VIVADO_SIM_RUNS=$(foreach r,$(VIVADO_SIM_RUN),$(word 1,$(subst :, ,$(word 1,$(subst ;, ,$r)))))
