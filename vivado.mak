@@ -119,8 +119,10 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 			} \n \
 			current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUNS))] \n \
 		} \n \
+		if {\"sim_1\" in [get_filesets]} { \n \
 		if {!(\"sim_1\" in {$(VIVADO_SIM_RUNS)})} { \n \
 			delete_fileset sim_1 \n \
+			} \n \
 		} \n \
 		if {[get_property part [current_project]] != \"$(VIVADO_PART)\"} { \n \
 			set_property part \"$(VIVADO_PART)\" [current_project] \n \
