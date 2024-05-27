@@ -146,11 +146,11 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 			} \n \
 			set current_files [get_files -quiet -of_objects [get_fileset \$$target_fileset] *.*] \n \
 			if {[llength \$$current_files]} { \n \
-				set missing_files [diff_files {\$$new_files} {\$$current_files}] \n \
+				set missing_files [diff_files \$$new_files \$$current_files] \n \
 				if {[llength \$$missing_files]} { \n \
 					add_files -norecurse -fileset [get_filesets \$$target_fileset] \$$missing_files \n \
 				} \n \
-				set surplus_files [diff_files {\$$current_files} {\$$new_files}] \n \
+				set surplus_files [diff_files \$$current_files \$$new_files] \n \
 				if {[llength \$$surplus_files]} { \n \
 					remove_files -fileset \$$target_fileset \$$surplus_files \n \
 				} \n \
