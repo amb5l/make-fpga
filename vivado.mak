@@ -200,7 +200,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 			set run [lindex [split [lindex [split \"\$$r\" \";\"] 0] \":\"] 0] \n \
 			set top [lindex [split [lindex [split [lindex [split \"\$$r\" \";\"] 0] \":\"] 1] \"$(comma)\"] 0] \n \
 			set gen [split [lindex [split \"\$$r\" \";\"] 1] \"$(comma)\"] \n \
-				set_property top \$$top [get_filesets \$$run] \n \
+			set_property top \$$top [get_filesets \$$run] \n \
 			set_property generic \$$gen [get_filesets \$$run] \n \
 		} \n \
 		if {[get_property STEPS.SYNTH_DESIGN.ARGS.ASSERT [get_runs synth_1]]} { \n \
@@ -222,15 +222,15 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 	@cd $(VIVADO_DIR) && \
 	if [ -f $(VIVADO_PROJ_TEMP).xpr ]; then \
 		if cmp -s $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; then \
-			printf "$(col_fg_cyn)project unchanged$(col_rst)"; \
+			printf "$(col_fg_cyn)project unchanged$(col_rst)\n"; \
 			rm -f $(VIVADO_PROJ).xpr; \
 			mv $(VIVADO_PROJ_TEMP).xpr $(VIVADO_PROJ).xpr; \
 		else \
-			printf "$(col_fg_yel)project updated$(col_rst)"; \
+			printf "$(col_fg_yel)project updated$(col_rst)\n"; \
 			rm -f $(VIVADO_PROJ_TEMP).xpr; \
 		fi; \
 	else \
-		printf "$(col_fg_grn)project created$(col_rst)"; \
+		printf "$(col_fg_grn)project created$(col_rst)\n"; \
 	fi
 
 # synthesis
