@@ -44,12 +44,12 @@ VIVADO_SRC_FILE=$(foreach s,$1,$(word 1,$(subst =, ,$s)))
 # simulation
 ifdef VIVADO_SIM_RUN
 ifneq (1,$(words,$(strip $(VIVADO_SIM_RUN))))
-$(foreach r,$(VIVADO_SIM_RUN),$(if $(findstring =,$r),,$(error Multiple simulation runs must be named)))
+$(foreach r,$(VIVADO_SIM_RUN),$(if $(findstring :,$(word 1,$(subst ;, ,$r))),,$(error Multiple simulation runs must be named)))
 else
-$(if $(findstring =,$(VIVADO_SIM_RUN)),,$(eval VIVADO_SIM_RUN=default:$(value VIVADO_SIM_RUN)))
+$(if $(findstring :,$(word 1,$(subst ;, ,$(VIVADO_SIM_RUN))),,$(eval VIVADO_SIM_RUN=default:$(value VIVADO_SIM_RUN)))
 endif
 endif
-VIVADO_SIM_RUNS=$(foreach r,$(VIVADO_SIM_RUN),$(word 1,$(subst $(comma),$(space),$(strip $r))))
+VIVADO_SIM_RUNS=$(foreach r,$(VIVADO_SIM_RUN),$(word 1,$(subst :, ,$(word 1,$(subst ;, ,$r)))))
 # sources are neither library nor run specific
 ifdef VIVADO_SIM_SRC
 ifdef VIVADO_SIM_LIB
@@ -104,11 +104,13 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 		} else { \n \
 			create_project $(if $(VIVADO_PART),-part \"$(VIVADO_PART)\") -force \"$(VIVADO_PROJ)\" \n \
 		} \n \
-		if {\"$(VIVADO_SIM_RUNS)\" != \"\"} { \n \
-			foreach r {$(VIVADO_SIM_RUNS)} { \n \
-				if {!(\"\$$r\" in \"[get_filesets]\")} { \n \
-					create_fileset -simset \"\$$r\" \n \
+		if {\"$(VIVADO_SIM_RUN)\" != \"\"} { \n \
+			foreach r {$(VIVADO_SIM_RUN)} { \n \
+				set run [lindex [split \"\$$r\" \":\"] 0] \n \
+				if {!(\"\$$run\" in [get_filesets])} { \n \
+					create_fileset -simset \$$run \n \
 				} \n \
+				set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets \$$run] \n \
 			} \n \
 			current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUNS))] \n \
 		} \n \
@@ -181,11 +183,13 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 			} \n \
 		} \n \
 		$(foreach r,$(VIVADO_SIM_RUN), \
-			set run $(word 1,$(subst $(comma),$(space),$r)) \n \
-			set top $(word 2,$(subst $(comma),$(space),$r)) \n \
+			set run $(word 1,$(subst :, ,$(word 1,$(subst ;, ,$r)))) \n \
+			set top $(word 2,$(subst :, ,$(word 1,$(subst ;, ,$r)))) \n \
+			set gen [split [lindex [split \"\$$r\" \";\"] 1] \"$(comma)\"] \n \
 			if {[get_property top [get_filesets \$$run]] != \"\$$top\"} { \n \
 				set_property top \$$top [get_filesets \$$run] \n \
 			} \n \
+			set_property generic \$$gen [get_filesets \$$run] \n \
 		) \
 		if {[get_property STEPS.SYNTH_DESIGN.ARGS.ASSERT [get_runs synth_1]]} { \n \
 			set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1] \n \
