@@ -103,7 +103,7 @@ $(VIVADO_DIR):
 	@bash -c "mkdir -p $@"
 
 # project file
-$(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
+$(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 	$(call banner,Vivado: create/update project)
 	@cd $(VIVADO_DIR) && \
 	rm -f $(VIVADO_PROJ_TEMP).xpr && \
@@ -273,7 +273,7 @@ $(VIVADO_DIR)/$(VIVADO_BIT): $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 
 # simulation runs
 define rr_simrun
-$(call VIVADO_SIM_LOG,$1): force $(VIVADO_DIR)/$(VIVADO_XPR)
+$(call VIVADO_SIM_LOG,$1): vivado_force $(VIVADO_DIR)/$(VIVADO_XPR)
 	$$(call banner,Vivado: simulation run = $1)
 	$$(call VIVADO_RUN, \
 		open_project $$(VIVADO_PROJ) \n \
@@ -287,7 +287,9 @@ $(foreach r,$(VIVADO_SIM_RUNS),$(eval $(call rr_simrun,$r)))
 ################################################################################
 # goals
 
-.PHONY: xpr synth impl bit
+.PHONY: vivado_force xpr synth impl bit $(VIVADO_SIM_RUNS)
+
+vivado_force:
 
 xpr   : $(VIVADO_DIR)/$(VIVADO_XPR)
 

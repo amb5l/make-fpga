@@ -3,8 +3,7 @@
 # See https://github.com/amb5l/make-fpga
 ################################################################################
 
-.PHONY: all clean force
-force:
+.PHONY: all clean
 
 toplevel=$(call xpath,$(shell git rev-parse --show-toplevel))
 
