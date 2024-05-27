@@ -26,7 +26,6 @@ VIVADO_DSN_SRC.work=$(VIVADO_DSN_SRC)
 endif
 
 # checks
-$(call check_defined,VIVADO_PART)
 $(call check_option,VIVADO_LANGUAGE,VHDL-1993 VHDL-2008 VHDL-2019 Verilog)
 $(foreach l,$(VIVADO_DSN_LIB),$(call check_defined,VIVADO_DSN_SRC.$l))
 $(foreach l,$(VIVADO_SIM_LIB),$(call check_defined,VIVADO_SIM_SRC.$l))
@@ -131,8 +130,10 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 			delete_fileset sim_1 \n \
 			} \n \
 		} \n \
-		if {[get_property part [current_project]] != \"$(VIVADO_PART)\"} { \n \
-			set_property part \"$(VIVADO_PART)\" [current_project] \n \
+		if {\"$(VIVADO_PART)\" != \"\"} { \n \
+			if {[get_property part [current_project]] != \"$(VIVADO_PART)\"} { \n \
+				set_property part \"$(VIVADO_PART)\" [current_project] \n \
+			} \n \
 		} \n \
 		set target_language \"$(VIVADO_LANGUAGE)\" \n \
 		if {\$$target_language != \"Verilog\"} { \n \
