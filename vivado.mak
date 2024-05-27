@@ -11,9 +11,12 @@ XILINX_VIVADO:=$(call xpath,$(XILINX_VIVADO))
 VIVADO?=vivado
 VIVADO_DIR?=vivado
 VIVADO_PROJ?=fpga
-ifndef VIVADO_DSN_LIB
+ifdef VIVADO_DSN_SRC
+ifdef VIVADO_DSN_LIB
+$(error Cannot define both VIVADO_DSN_SRC and VIVADO_DSN_LIB)
+endif
 VIVADO_DSN_LIB=work
-VIVADO_DSN_SRC.work?=$(VIVADO_DSN_SRC)
+VIVADO_DSN_SRC.work=$(VIVADO_DSN_SRC)
 endif
 
 # checks
