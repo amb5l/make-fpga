@@ -33,12 +33,13 @@ VIVADO_RUN=\
 	printf "set code [catch {\n$1\n} result]\nputs \$$result\nexit \$$code\n" > $(VIVADO_RUN_TCL) && \
 	$(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(VIVADO_RUN_TCL)
 VIVADO_XPR?=$(VIVADO_PROJ).xpr
-$(foreach l,$(VIVADO_DSN_LIB),$(eval VIVADO_DSN_SRC_FILES.$l=$(foreach s,$(VIVADO_DSN_SRC.$l),$(word 1,$(subst =, ,$s)))))
-$(foreach l,$(VIVADO_SIM_LIB),$(eval VIVADO_SIM_SRC_FILES.$l=$(foreach s,$(VIVADO_SIM_SRC.$l),$(word 1,$(subst =, ,$s)))))
 VIVADO_XDC_FILES=$(foreach x,$(VIVADO_XDC),$(word 1,$(subst =, ,$x)))
 VIVADO_SYNTH_DCP=$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_IMPL_DCP=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
 VIVADO_BIT=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
+
+# functions
+VIVADO_SRC_FILE=$(foreach s,$1,$(word 1,$(subst =, ,$s)))
 
 ################################################################################
 # rules and recipes
