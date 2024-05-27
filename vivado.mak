@@ -220,7 +220,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) | $(VIVADO_DIR)/$(VIVADO_XPR)
 	$(call banner,Vivado: synthesis)
 	$(call VIVADO_RUN, \
-		open_project $(VIVADO_PROJ)
+		open_project $(VIVADO_PROJ) \n \
 		reset_run synth_1 \n \
 		launch_runs synth_1 -jobs $jobs \n \
 		wait_on_run synth_1 \n \
@@ -234,6 +234,7 @@ $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SR
 $(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP) $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF)
 	$(call banner,Vivado: implementation)
 	$(call VIVADO_RUN, \
+		open_project $(VIVADO_PROJ) \n \
 		reset_run impl_1 \n \
 		launch_runs impl_1 -to_step route_design \n \
 		wait_on_run impl_1 \n \
@@ -245,6 +246,7 @@ $(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP) $(VIVADO_DSN
 $(VIVADO_DIR)/$(VIVADO_BIT): $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 	$(call banner,Vivado: write bitstream)
 	$(call VIVADO_RUN, \
+		open_project $(VIVADO_PROJ) \n \
 		reset_run impl_1 \n \
 		launch_runs impl_1 -to_step write_bitstream \n \
 		wait_on_run impl_1 \n \
