@@ -16,6 +16,7 @@ XILINX_VIVADO:=$(call xpath,$(XILINX_VIVADO))
 VIVADO?=vivado
 VIVADO_DIR?=vivado
 VIVADO_PROJ?=fpga
+VIVADO_PROJ_TEMP?=fpga_temp
 ifdef VIVADO_DSN_SRC
 ifdef VIVADO_DSN_LIB
 $(error Cannot define both VIVADO_DSN_SRC and VIVADO_DSN_LIB)
@@ -104,6 +105,11 @@ $(VIVADO_DIR):
 # project file
 $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 	$(call banner,Vivado: create/update project)
+	@cd $(VIVADO_DIR) && \
+	rm -f $(VIVADO_PROJ_TEMP).xpr && \
+	if [ -f $(VIVADO_PROJ).xpr ]; then \
+		cp $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; \
+	fi
 	$(call VIVADO_RUN, \
 		if {[file exists $(VIVADO_XPR)]} { \n \
 			open_project \"$(basename $(VIVADO_XPR))\" \n \
@@ -215,6 +221,19 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 		scope_constrs {$(VIVADO_XDC)} \n \
 		exit 0 \
 	)
+	@cd $(VIVADO_DIR) && \
+	if [ -f $(VIVADO_PROJ_TEMP).xpr ]; then \
+		if cmp -s $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; then \
+			printf "$(col_fg_cyn)project unchanged$(col_rst)"; \
+			rm -f $(VIVADO_PROJ).xpr; \
+			mv $(VIVADO_PROJ_TEMP).xpr $(VIVADO_PROJ).xpr; \
+		else \
+			printf "$(col_fg_yel)project updated$(col_rst)"; \
+			rm -f $(VIVADO_PROJ_TEMP).xpr; \
+		fi; \
+	else \
+		printf "$(col_fg_grn)project created$(col_rst)"; \
+	fi
 
 # synthesis
 $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) | $(VIVADO_DIR)/$(VIVADO_XPR)
