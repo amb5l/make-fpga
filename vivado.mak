@@ -91,8 +91,8 @@ $(VIVADO_DIR)/$(VIVADO_XPR): force | $(VIVADO_DIR)
 				add_files -norecurse -fileset [get_filesets \$$target_fileset] \$$new_files \n \
 			} \n \
 		} \n \
-		$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(VIVADO_DSN_SRC_FILES.$l)} \n) \
-		$(foreach l,$(VIVADO_SIM_LIB),update_files sim_1     {$(VIVADO_SIM_SRC_FILES.$l)} \n) \
+		$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(call VIVADO_SRC_FILE,VIVADO_DSN_SRC.$l)} \n) \
+		$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))} \n)) \
 		foreach f [get_files *.vh*] { \n \
 			set current_type [get_property file_type [get_files \$$f]] \n \
 			set desired_type [string map {\"-\" \" \"} \"$(VIVADO_LANGUAGE)\"] \n \
