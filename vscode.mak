@@ -56,7 +56,7 @@ endif
 $(foreach a,$(VSCODE_AUX),$(eval $(call rr_auxlink,$a)))
 
 # V4P configuration file
-$(VSCODE_DIR)/config.v4p: force $(VSCODE_LIB)
+$(VSCODE_DIR)/config.v4p: vscode_force $(VSCODE_LIB)
 	@echo "[libraries]" > $@
 	@$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),echo "$l/$(notdir $s)=$l" >> $@;))
 	@echo "[settings]" >> $@
@@ -65,7 +65,9 @@ $(VSCODE_DIR)/config.v4p: force $(VSCODE_LIB)
 ################################################################################
 # goals	
 
-.PHONY: edit
+.PHONY: vscode_force edit
+
+vscode_force:
 
 edit: $(VSCODE_DIR)/config.v4p $(addprefix $(VSCODE_DIR)/,$(VSCODE_LIB)) $(foreach x,$(VSCODE_XDC),$(VSCODE_DIR)/$(notdir $(word 1,$(subst =, ,$x)))) $(addprefix $(VSCODE_DIR)/,$(notdir $(VSCODE_AUX)))
 	@code $(VSCODE_DIR)
