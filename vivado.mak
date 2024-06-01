@@ -173,14 +173,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 				foreach f \$$l { \n \
 					if {!([file extension \$$f] in \$$exclude) && !([string first \"$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/\" \$$f] != -1)} { \n \
 						lappend surplus_files \$$f \n \
-						puts \"surplus: \$$f\" \n \
-					} \n \
 				} \n \
-				foreach f \$$l { \n \
-					if {!([file extension \$$f] in \$$exclude)} { \n \
-						lappend surplus_files \$$f \n \
-						puts \"surplus: \$$f\" \n \
-					} \n \
 				} \n \
 				if {[llength \$$surplus_files]} { \n \
 					remove_files -fileset \$$target_fileset \$$surplus_files \n \
