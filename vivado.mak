@@ -128,9 +128,10 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 			} \n \
 			current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUNS))] \n \
 		} \n \
-		if {\"sim_1\" in [get_filesets]} { \n \
-		if {!(\"sim_1\" in {$(VIVADO_SIM_RUNS)})} { \n \
-			delete_fileset sim_1 \n \
+		foreach s [get_filesets] { \n \
+			if {!(\"$s\" in {$(VIVADO_SIM_RUNS)})} { \n \
+				delete_fileset $s \n \
+				} \n \
 			} \n \
 		} \n \
 		puts \"checking/setting part...\" \n \
