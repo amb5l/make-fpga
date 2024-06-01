@@ -199,8 +199,9 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 			} \n \
 		} \n \
 		puts \"checking/setting design source file types...\" \n \
-		$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB),type_sources $r {$(VIVADO_SIM_SRC.$l.$r)} \n)) \
+		$(foreach l,$(VIVADO_DSN_LIB),type_sources sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))} \n) \
 		puts \"checking/setting simulation source file types...\" \n \
+		$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB),type_sources $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))} \n)) \
 		puts \"checking/setting top design unit...\" \n \
 		if {\"$(VIVADO_DSN_TOP)\" != \"\"} { \n \
 			if {[get_property top [get_filesets sources_1]] != \"$(VIVADO_DSN_TOP)\"} { \n \
