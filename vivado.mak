@@ -107,7 +107,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 	@cd $(VIVADO_DIR) && \
 	rm -f $(VIVADO_PROJ_TEMP).xpr && \
 	if [ -f $(VIVADO_PROJ).xpr ]; then \
-		cp $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; \
+		cp -p $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; \
 	fi
 	$(call VIVADO_RUN, \
 		if {[file exists $(VIVADO_XPR)]} { \n \
@@ -225,7 +225,8 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 		if cmp -s $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; then \
 			printf "$(col_fg_cyn)project unchanged$(col_rst)\n"; \
 			rm -f $(VIVADO_PROJ).xpr; \
-			mv $(VIVADO_PROJ_TEMP).xpr $(VIVADO_PROJ).xpr; \
+			cp -p $(VIVADO_PROJ_TEMP).xpr $(VIVADO_PROJ).xpr; \
+			rm -f $(VIVADO_PROJ_TEMP).xpr; \
 		else \
 			printf "$(col_fg_yel)project updated$(col_rst)\n"; \
 			rm -f $(VIVADO_PROJ_TEMP).xpr; \
