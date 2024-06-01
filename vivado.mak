@@ -38,7 +38,10 @@ VIVADO_RUN=\
 	printf "set code [catch {\n$1\n} result]\nputs \$$result\nexit \$$code\n" > $(VIVADO_RUN_TCL) && \
 	$(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(VIVADO_RUN_TCL)
 VIVADO_XPR?=$(VIVADO_PROJ).xpr
-VIVADO_XDC_FILES=$(foreach x,$(VIVADO_XDC),$(word 1,$(subst =, ,$x)))
+VIVADO_DSN_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
+VIVADO_DSN_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
+VIVADO_DSN_BD=$(foreach x,$(VIVADO_DSN_BD_TCL),$(VIVADO_DIR)/$(VIVADO_DSN_BD_SRC_DIR)/$(basename $(notdir $x))/$(basename $(notdir $x)).bd)
+VIVADO_DSN_BD_HWDEF=$(foreach x,$(VIVADO_DSN_BD),$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $x))/synth/$(basename $(notdir $x)).hwdef)
 VIVADO_SYNTH_DCP=$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_IMPL_DCP=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
 VIVADO_BIT=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
@@ -164,7 +167,21 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 				if {[llength \$$missing_files]} { \n \
 					add_files -norecurse -fileset [get_filesets \$$target_fileset] \$$missing_files \n \
 				} \n \
-				set surplus_files [diff_files \$$current_files \$$new_files] \n \
+				set l [diff_files \$$current_files \$$new_files] \n \
+				set surplus_files [list] \n \
+				set exclude {.bd .xci} \n \
+				foreach f \$$l { \n \
+					if {!([file extension \$$f] in \$$exclude) && !([string first \"$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/\" \$$f] != -1)} { \n \
+						lappend surplus_files \$$f \n \
+						puts \"surplus: \$$f\" \n \
+					} \n \
+				} \n \
+				foreach f \$$l { \n \
+					if {!([file extension \$$f] in \$$exclude)} { \n \
+						lappend surplus_files \$$f \n \
+						puts \"surplus: \$$f\" \n \
+					} \n \
+				} \n \
 				if {[llength \$$surplus_files]} { \n \
 					remove_files -fileset \$$target_fileset \$$surplus_files \n \
 				} \n \
@@ -177,13 +194,15 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 		puts \"adding/updating simulation sources...\" \n \
 		$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))} \n)) \
 		foreach f [get_files *.vh*] { \n \
-			set current_type [get_property file_type [get_files \$$f]] \n \
-			set desired_type [string map {\"-\" \" \"} \"$(VIVADO_LANGUAGE)\"] \n \
-			if {\$$desired_type == \"VHDL 1993\"} { \n \
-				set desired_type \"VHDL\" \n \
-			} \n \
-			if {\"\$$current_type\" != \"\$$desired_type\"} { \n \
-				set_property file_type \"\$$desired_type\" \$$f \n \
+			if {[string first \"$(VIVADO_DIR)/$(VIVADO_PROJ).gen/sources_1/bd/\" \$$f] == -1} { \n \
+				set current_type [get_property file_type [get_files \$$f]] \n \
+				set desired_type [string map {\"-\" \" \"} \"$(VIVADO_LANGUAGE)\"] \n \
+				if {\$$desired_type == \"VHDL 1993\"} { \n \
+					set desired_type \"VHDL\" \n \
+				} \n \
+				if {\"\$$current_type\" != \"\$$desired_type\"} { \n \
+					set_property file_type \"\$$desired_type\" \$$f \n \
+				} \n \
 			} \n \
 		} \n \
 		proc type_sources {s l} { \n \
@@ -219,7 +238,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 			set_property generic \$$gen [get_filesets \$$run] \n \
 		} \n \
 		puts \"checking/enabling synthesis assertions...\" \n \
-			set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1] \n \
+		set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1] \n \
 		if {\"$(VIVADO_XDC)\" != \"\"} { \n \
 			puts \"adding/updating constraints...\" \n \
 		} \n \
@@ -254,8 +273,36 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 		printf "$(col_fg_grn)project created$(col_rst)\n"; \
 	fi
 
+# block diagrams
+define RR_VIVADO_BD
+$(VIVADO_DIR)/$(VIVADO_DSN_BD_SRC_DIR)/$(basename $(notdir $1))/$(basename $(notdir $1)).bd: $1 $(VIVADO_DIR)/$(VIVADO_XPR)
+	$(call banner,Vivado: create block diagrams)
+	$$(call VIVADO_RUN, \
+		open_project $$(VIVADO_PROJ) \n \
+		if {[get_files -quiet -of_objects [get_filesets sources_1] $(basename $(notdir $1)).bd] != \"\"} { \n \
+			export_ip_user_files -of_objects [get_files -of_objects [get_filesets sources_1] $(basename $(notdir $1)).bd] -no_script -reset -force -quiet \n \
+			remove_files [get_files -of_objects [get_filesets sources_1] $(basename $(notdir $1)).bd] \n \
+			file delete -force $(VIVADO_DSN_BD_SRC_DIR)/$(basename $(notdir $1)) \n \
+			file delete -force $(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $1)) \n \
+		} \n \
+		source $1 \n \
+	)
+endef
+$(foreach x,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD,$x)))
+
+# block diagram hardware definitions
+define RR_VIVADO_BD_GEN
+$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename $(notdir $1)).hwdef: $1
+	$(call banner,Vivado: generate block diagram hardware definitions)
+	$$(call VIVADO_RUN, \
+		open_project $$(VIVADO_PROJ) \n \
+		generate_target all [get_files -of_objects [get_filesets sources_1] $$(notdir $$<)] \n \
+	)
+endef
+$(foreach x,$(VIVADO_DSN_BD),$(eval $(call RR_VIVADO_BD_GEN,$x)))
+
 # synthesis
-$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) $(VIVADO_DIR)/$(VIVADO_XPR)
+$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) $(VIVADO_DSN_BD_HWDEF) $(VIVADO_DIR)/$(VIVADO_XPR)
 	$(call banner,Vivado: synthesis)
 	$(call VIVADO_RUN, \
 		open_project $(VIVADO_PROJ) \n \
@@ -305,11 +352,15 @@ $(foreach r,$(VIVADO_SIM_RUNS),$(eval $(call rr_simrun,$r)))
 ################################################################################
 # goals
 
-.PHONY: vivado_force xpr synth impl bit $(VIVADO_SIM_RUNS)
+.PHONY: vivado_force xpr bd bd_hwdef synth impl bit $(VIVADO_SIM_RUNS)
 
 vivado_force:
 
 xpr   : $(VIVADO_DIR)/$(VIVADO_XPR)
+
+bd    : $(VIVADO_DSN_BD)
+
+hwdef : $(VIVADO_DSN_BD_HWDEF)
 
 synth : $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
 
