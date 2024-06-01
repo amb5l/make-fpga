@@ -263,7 +263,6 @@ $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SR
 		launch_runs synth_1 -jobs $jobs \n \
 		wait_on_run synth_1 \n \
 		if {[get_property PROGRESS [get_runs synth_1]] != \"100%\"} {exit 1} \n \
-		exit 0 \
 	)
 
 # implementation (place and route) and preparation for simulation
@@ -277,7 +276,6 @@ $(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_ELF) $(VIV
 		launch_runs impl_1 -to_step route_design \n \
 		wait_on_run impl_1 \n \
 		if {[get_property PROGRESS [get_runs impl_1]] != \"100%\"} {exit 1} \n \
-		exit 0 \
 	)
 
 # write bitstream
@@ -289,7 +287,6 @@ $(VIVADO_DIR)/$(VIVADO_BIT): $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 		launch_runs impl_1 -to_step write_bitstream \n \
 		wait_on_run impl_1 \n \
 		if {[get_property PROGRESS [get_runs impl_1]] != \"100%\"} {exit 1} \n \
-		exit 0 \
 	)
 
 # simulation runs
