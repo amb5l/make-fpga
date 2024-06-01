@@ -40,15 +40,15 @@ VIVADO_RUN=\
 VIVADO_XPR?=$(VIVADO_PROJ).xpr
 VIVADO_DSN_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
 VIVADO_DSN_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
-VIVADO_DSN_BD=$(foreach x,$(VIVADO_DSN_BD_TCL),$(VIVADO_DIR)/$(VIVADO_DSN_BD_SRC_DIR)/$(basename $(notdir $x))/$(basename $(notdir $x)).bd)
-VIVADO_DSN_BD_HWDEF=$(foreach x,$(VIVADO_DSN_BD),$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $x))/synth/$(basename $(notdir $x)).hwdef)
+VIVADO_DSN_BD=$(foreach x,$(VIVADO_DSN_BD_TCL),$(VIVADO_DSN_BD_SRC_DIR)/$(basename $(notdir $x))/$(basename $(notdir $x)).bd)
+VIVADO_DSN_BD_HWDEF=$(foreach x,$(VIVADO_DSN_BD),$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $x))/synth/$(basename $(notdir $x)).hwdef)
 VIVADO_SYNTH_DCP=$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_IMPL_DCP=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
 VIVADO_BIT=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
 
 # functions
 VIVADO_SRC_FILE=$(foreach s,$1,$(word 1,$(subst =, ,$s)))
-VIVADO_SIM_LOG=$(foreach r,$1,$(VIVADO_DIR)/$(VIVADO_PROJ).sim/$(word 1,$(subst $(comma),$(space),$r))/behav/xsim/simulate.log)
+VIVADO_SIM_LOG=$(foreach r,$1,$(VIVADO_PROJ).sim/$(word 1,$(subst $(comma),$(space),$r))/behav/xsim/simulate.log)
 
 # simulation
 ifdef VIVADO_SIM_RUN
@@ -292,7 +292,7 @@ $(foreach x,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD,$x)))
 
 # block diagram hardware definitions
 define RR_VIVADO_BD_GEN
-$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename $(notdir $1)).hwdef: $1
+$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename $(notdir $1)).hwdef: $(VIVADO_DIR)/$1
 	$(call banner,Vivado: generate block diagram hardware definitions)
 	$$(call VIVADO_RUN, \
 		open_project $$(VIVADO_PROJ) \n \
@@ -358,9 +358,9 @@ vivado_force:
 
 xpr   : $(VIVADO_DIR)/$(VIVADO_XPR)
 
-bd    : $(VIVADO_DSN_BD)
+bd    : $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
 
-hwdef : $(VIVADO_DSN_BD_HWDEF)
+hwdef : $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
 
 synth : $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
 
@@ -370,7 +370,7 @@ bit   : $(VIVADO_DIR)/$(VIVADO_BIT)
 	@mv $(VIVADO_DIR)/$(VIVADO_BIT) .
 
 $(foreach r,$(VIVADO_SIM_RUNS),$(eval \
-$r    : $(call VIVADO_SIM_LOG,$r) \
+$r    : $(addprefix $(VIVADO_DIR)/,$(call VIVADO_SIM_LOG,$r)) \
 ))
 
 clean::
