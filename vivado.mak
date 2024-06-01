@@ -221,7 +221,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 		if {\"$(VIVADO_XDC)\" != \"\"} { \n \
 			puts \"adding/updating constraints...\" \n \
 		} \n \
-		$(if $(VIVADO_XDC_FILES),update_files constrs_1 {$(VIVADO_XDC_FILES)} \n) \
+		$(if $(VIVADO_XDC),update_files constrs_1 {$(call VIVADO_SRC_FILE,$(VIVADO_XDC))} \n) \
 		proc scope_constrs {xdc} { \n \
 			foreach x \$$xdc { \n \
 				set file  [lindex [split \"\$$x\" \"=\"] 0] \n \
