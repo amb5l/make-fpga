@@ -42,6 +42,7 @@ VIVADO_DSN_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
 VIVADO_DSN_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
 VIVADO_DSN_BD=$(foreach x,$(VIVADO_DSN_BD_TCL),$(VIVADO_DSN_BD_SRC_DIR)/$(basename $(notdir $x))/$(basename $(notdir $x)).bd)
 VIVADO_DSN_BD_HWDEF=$(foreach x,$(VIVADO_DSN_BD),$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $x))/synth/$(basename $(notdir $x)).hwdef)
+VIVADO_XSA=$(VIVADO_DSN_TOP).xsa
 VIVADO_SYNTH_DCP=$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_IMPL_DCP=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
 VIVADO_BIT=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
@@ -173,7 +174,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 				foreach f \$$l { \n \
 					if {!([file extension \$$f] in \$$exclude) && !([string first \"$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/\" \$$f] != -1)} { \n \
 						lappend surplus_files \$$f \n \
-				} \n \
+					} \n \
 				} \n \
 				if {[llength \$$surplus_files]} { \n \
 					remove_files -fileset \$$target_fileset \$$surplus_files \n \
@@ -294,6 +295,14 @@ $(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename
 endef
 $(foreach x,$(VIVADO_DSN_BD),$(eval $(call RR_VIVADO_BD_GEN,$x)))
 
+# hardware handoff (XSA) file
+$(VIVADO_DIR)/$(VIVADO_XSA): $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+	$(call banner,Vivado: create hardware handoff (XSA) file)
+	$(call VIVADO_RUN, \
+		open_project $(VIVADO_PROJ) \n \
+		write_hw_platform -fixed -force -file $(VIVADO_DSN_TOP).xsa \n \
+	)
+
 # synthesis
 $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) $(VIVADO_DSN_BD_HWDEF) $(VIVADO_DIR)/$(VIVADO_XPR)
 	$(call banner,Vivado: synthesis)
@@ -345,7 +354,7 @@ $(foreach r,$(VIVADO_SIM_RUNS),$(eval $(call rr_simrun,$r)))
 ################################################################################
 # goals
 
-.PHONY: vivado_force xpr bd bd_hwdef synth impl bit $(VIVADO_SIM_RUNS)
+.PHONY: vivado_force xpr bd hwdef xsa synth impl bit $(VIVADO_SIM_RUNS)
 
 vivado_force:
 
@@ -354,6 +363,8 @@ xpr   : $(VIVADO_DIR)/$(VIVADO_XPR)
 bd    : $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
 
 hwdef : $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+
+xsa   : $(VIVADO_DIR)/$(VIVADO_XSA)
 
 synth : $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
 
