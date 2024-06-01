@@ -173,6 +173,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 			} \n \
 		} \n \
 		puts \"adding/updating design sources...\" \n \
+		$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))} \n) \
 		puts \"adding/updating simulation sources...\" \n \
 		$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))} \n)) \
 		foreach f [get_files *.vh*] { \n \
