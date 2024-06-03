@@ -28,7 +28,6 @@ endif
 # checks
 $(call check_option,VIVADO_LANGUAGE,VHDL-1993 VHDL-2008 VHDL-2019 Verilog)
 $(foreach l,$(VIVADO_DSN_LIB),$(call check_defined,VIVADO_DSN_SRC.$l))
-$(foreach l,$(VIVADO_SIM_LIB),$(call check_defined,VIVADO_SIM_SRC.$l))
 $(call check_defined_alt,VIVADO_DSN_TOP VIVADO_SIM_TOP)
 
 # local definitions
