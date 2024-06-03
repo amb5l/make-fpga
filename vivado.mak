@@ -248,7 +248,6 @@ endef
 define vivado_tcl_bd
 
 	set f [lindex $$argv 0]
-	puts "processing $$f..."
 	open_project $(VIVADO_PROJ)
 	if {[get_files -quiet -of_objects [get_filesets sources_1] "[file rootname $$f].bd"] != ""} {
 		export_ip_user_files -of_objects [get_files -of_objects [get_filesets sources_1] "[file rootname $$f].bd" -no_script -reset -force -quiet
