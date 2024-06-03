@@ -32,10 +32,10 @@ $(call check_defined_alt,VIVADO_DSN_TOP VIVADO_SIM_TOP)
 
 # local definitions
 VIVADO_RUN_TCL=run.tcl
-VIVADO_RUN=\
-	@cd $(VIVADO_DIR) && \
-	printf "set code [catch {\n$1\n} result]\nputs \$$result\nexit \$$code\n" > $(VIVADO_RUN_TCL) && \
-	$(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(VIVADO_RUN_TCL)
+define VIVADO_RUN
+	$(file >$(VIVADO_DIR)/$(VIVADO_RUN_TCL),set code [catch { $($1) } result]; puts $$result; exit $$code)
+	@cd $(VIVADO_DIR) && $(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(VIVADO_RUN_TCL) $(addprefix -tclargs ,$2)
+endef
 VIVADO_XPR?=$(VIVADO_PROJ).xpr
 VIVADO_DSN_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
 VIVADO_DSN_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
@@ -98,6 +98,236 @@ $(foreach r,$(VIVADO_SIM_RUNS),$(if $(VIVADO_SIM_LIB.$r),,$(error VIVADO_SIM_LIB
 $(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),$(if $(VIVADO_SIM_SRC.$l.$r),,$(error VIVADO_SIM_SRC.$l.$r is empty))))
 
 ################################################################################
+# TCL sequences
+
+define vivado_tcl_xpr
+
+	if {[file exists $(VIVADO_XPR)]} {
+		puts "opening project..."
+		open_project "$(basename $(VIVADO_XPR))"
+	} else {
+		puts "creating new project..."
+		create_project $(if $(VIVADO_PART),-part "$(VIVADO_PART)") -force "$(VIVADO_PROJ)"
+	}
+	if {"$(VIVADO_SIM_RUN)" != ""} {
+		puts "adding/updating simulation filesets..."
+		foreach r {$(VIVADO_SIM_RUN)} {
+			set run [lindex [split "$$r" ":"] 0]
+			if {!("$$run" in [get_filesets])} {
+				create_fileset -simset $$run
+			}
+			set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets $$run]
+		}
+		current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUNS))]
+	}
+	foreach s [get_filesets] {
+		if {!("$s" in {$(VIVADO_SIM_RUNS)})} {
+			delete_fileset $s
+			}
+		}
+	}
+	puts "checking/setting part..."
+	if {"$(VIVADO_PART)" != ""} {
+		if {[get_property part [current_project]] != "$(VIVADO_PART)"} {
+			set_property part "$(VIVADO_PART)" [current_project]
+		}
+	}
+	puts "checking/setting target language..."
+	set target_language "$(VIVADO_LANGUAGE)"
+	if {"$$target_language" != "Verilog"} {
+		set target_language "VHDL"
+	}
+	puts "target_language=$$target_language"
+	if {[get_property target_language [current_project]] != "$(VIVADO_LANGUAGE)"} {
+		set_property target_language "$$target_language" [current_project]
+	}
+	proc update_files {target_fileset new_files} {
+		proc diff_files {a b} {
+			set r [list]
+			foreach f $$a {
+				if {!("$$f" in "$$b")} {
+					lappend r $$f
+				}
+			}
+			return $$r
+		}
+		set current_files [get_files -quiet -of_objects [get_fileset $$target_fileset] *.*]
+		if {[llength $$current_files]} {
+			set missing_files [diff_files $$new_files $$current_files]
+			if {[llength $$missing_files]} {
+				add_files -norecurse -fileset [get_filesets $$target_fileset] $$missing_files
+			}
+			set l [diff_files $$current_files $$new_files]
+			set surplus_files [list]
+			set exclude {.bd .xci}
+			foreach f $$l {
+				if {!([file extension $$f] in $$exclude) && !([string first "$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/" $$f] != -1)} {
+					lappend surplus_files $$f
+				}
+			}
+			if {[llength $$surplus_files]} {
+				remove_files -fileset $$target_fileset $$surplus_files
+			}
+		} else {
+			add_files -norecurse -fileset [get_filesets $$target_fileset] $$new_files
+		}
+	}
+	puts "adding/updating design sources..."
+	$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
+	puts "adding/updating simulation sources..."
+	$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
+	foreach f [get_files *.vh*] {
+		if {[string first "$(VIVADO_DIR)/$(VIVADO_PROJ).gen/sources_1/bd/" $$f] == -1} {
+			set current_type [get_property file_type [get_files $$f]]
+			set desired_type [string map {"-" " "} "$(VIVADO_LANGUAGE)"]
+			if {$$desired_type == "VHDL 1993"} {
+				set desired_type "VHDL"
+			}
+			if {"$$current_type" != "$$desired_type"} {
+				set_property file_type "$$desired_type" $$f
+			}
+		}
+	}
+	proc type_sources {s l} {
+		foreach file_type $$l {
+			if {[string first "=" "$$file_type"] != -1} {
+				set file [lindex [split "$$file_type" "="] 0]
+				set type [string map {"-" " "} [lindex [split "$$file_type" "="] 1]]
+				if {$$type == "VHDL 1993"} {
+					set type "VHDL"
+				}
+				set_property file_type "$$type" [get_files -of_objects [get_filesets $$s] "$$file"]
+			}
+		}
+	}
+	puts "checking/setting design source file types..."
+	$(foreach l,$(VIVADO_DSN_LIB),type_sources sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
+	puts "checking/setting simulation source file types..."
+	$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB),type_sources $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
+	puts "checking/setting top design unit..."
+	if {"$(VIVADO_DSN_TOP)" != ""} {
+		if {[get_property top [get_filesets sources_1]] != "$(VIVADO_DSN_TOP)"} {
+			set_property top "$(VIVADO_DSN_TOP)" [get_filesets sources_1]
+		}
+	}
+	if {"$(VIVADO_SIM_RUN)" != ""} {
+		puts "checking/setting top unit and generics for simulation filesets..."
+	}
+	foreach r {$(VIVADO_SIM_RUN)} {
+		set run [lindex [split [lindex [split "$$r" ";"] 0] ":"] 0]
+		set top [lindex [split [lindex [split [lindex [split "$$r" ";"] 0] ":"] 1] "$(comma)"] 0]
+		set gen [split [lindex [split "$$r" ";"] 1] "$(comma)"]
+		set_property top $$top [get_filesets $$run]
+		set_property generic $$gen [get_filesets $$run]
+	}
+	puts "checking/enabling synthesis assertions..."
+	set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1]
+	if {"$(VIVADO_XDC)" != ""} {
+		puts "adding/updating constraints..."
+	}
+	$(if $(VIVADO_XDC),update_files constrs_1 {$(call VIVADO_SRC_FILE,$(VIVADO_XDC))})
+	proc scope_constrs {xdc} {
+		foreach x $$xdc {
+			set file  [lindex [split "$$x" "="] 0]
+			set scope [lindex [split "$$x" "="] 1]
+			set_property used_in_synthesis      [expr [string first "SYNTH" "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+			set_property used_in_implementation [expr [string first "IMPL"  "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+			set_property used_in_simulation     [expr [string first "SIM"   "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+		}
+	}
+	if {"$(VIVADO_XDC)" != ""} {
+		puts "checking/scoping constraints..."
+	}
+	scope_constrs {$(VIVADO_XDC)}
+	exit 0
+
+endef
+
+#-------------------------------------------------------------------------------
+
+define vivado_tcl_bd
+
+	set f [lindex $$argv 0]
+	puts "processing $$f..."
+	open_project $(VIVADO_PROJ)
+	if {[get_files -quiet -of_objects [get_filesets sources_1] "[file rootname $$f].bd"] != ""} {
+		export_ip_user_files -of_objects [get_files -of_objects [get_filesets sources_1] "[file rootname $$f].bd" -no_script -reset -force -quiet
+		remove_files [get_files -of_objects [get_filesets sources_1] "[file rootname $$f].bd"]
+		file delete -force $(VIVADO_DSN_BD_SRC_DIR)/[file rootname $$f]
+		file delete -force $(VIVADO_DSN_BD_GEN_DIR)/[file rootname $$f]
+	}
+	source $$f
+
+endef
+
+#-------------------------------------------------------------------------------
+
+define vivado_tcl_bd_gen
+
+	set f [lindex $$argv 0]
+	open_project $(VIVADO_PROJ)
+	generate_target all [get_files -of_objects [get_filesets sources_1] [file tail $$f]]
+
+endef
+
+#-------------------------------------------------------------------------------
+
+define vivado_tcl_xsa
+
+	open_project $(VIVADO_PROJ)
+	write_hw_platform -fixed -force -file $(VIVADO_DSN_TOP).xsa
+
+endef
+
+#-------------------------------------------------------------------------------
+
+
+define vivado_tcl_synth
+
+	open_project $(VIVADO_PROJ)
+	reset_run synth_1
+	launch_runs synth_1 -jobs $jobs
+	wait_on_run synth_1
+	if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {exit 1}
+
+endef
+
+#-------------------------------------------------------------------------------
+
+define vivado_tcl_impl
+
+	open_project $(VIVADO_PROJ)
+	reset_run impl_1
+	launch_runs impl_1 -to_step route_design
+	wait_on_run impl_1
+	if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {exit 1}
+
+endef
+
+#-------------------------------------------------------------------------------
+
+define vivado_tcl_bit
+
+	open_project $(VIVADO_PROJ)
+	reset_run impl_1
+	launch_runs impl_1 -to_step write_bitstream
+	wait_on_run impl_1
+	if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {exit 1}
+
+endef
+
+#-------------------------------------------------------------------------------
+
+define vivado_tcl_sim_run
+
+	open_project $$(VIVADO_PROJ)
+	current_fileset -simset [get_filesets $1]
+	launch_simulation
+	run all
+
+endef
+
+################################################################################
 # rules and recipes
 
 # project directory
@@ -112,146 +342,8 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 	if [ -f $(VIVADO_PROJ).xpr ]; then \
 		cp -p $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; \
 	fi"
-	$(call VIVADO_RUN, \
+	$(call VIVADO_RUN,vivado_tcl_xpr)
 	@bash -c 'cd $(VIVADO_DIR) && \
-			puts \"opening project...\" \n \
-			open_project \"$(basename $(VIVADO_XPR))\" \n \
-		} else { \n \
-			puts \"creating new project...\" \n \
-			create_project $(if $(VIVADO_PART),-part \"$(VIVADO_PART)\") -force \"$(VIVADO_PROJ)\" \n \
-		} \n \
-		if {\"$(VIVADO_SIM_RUN)\" != \"\"} { \n \
-			puts \"adding/updating simulation filesets...\" \n \
-			foreach r {$(VIVADO_SIM_RUN)} { \n \
-				set run [lindex [split \"\$$r\" \":\"] 0] \n \
-				if {!(\"\$$run\" in [get_filesets])} { \n \
-					create_fileset -simset \$$run \n \
-				} \n \
-				set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets \$$run] \n \
-			} \n \
-			current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUNS))] \n \
-		} \n \
-		foreach s [get_filesets] { \n \
-			if {!(\"$s\" in {$(VIVADO_SIM_RUNS)})} { \n \
-				delete_fileset $s \n \
-				} \n \
-			} \n \
-		} \n \
-		puts \"checking/setting part...\" \n \
-		if {\"$(VIVADO_PART)\" != \"\"} { \n \
-			if {[get_property part [current_project]] != \"$(VIVADO_PART)\"} { \n \
-				set_property part \"$(VIVADO_PART)\" [current_project] \n \
-			} \n \
-		} \n \
-		puts \"checking/setting target language...\" \n \
-		set target_language \"$(VIVADO_LANGUAGE)\" \n \
-		if {\$$target_language != \"Verilog\"} { \n \
-			set target_language \"VHDL\" \n \
-		} \n \
-		if {[get_property target_language [current_project]] != \"$(VIVADO_LANGUAGE)\"} { \n \
-			set_property target_language \"\$$target_language\" [current_project] \n \
-		} \n \
-		proc update_files {target_fileset new_files} { \n \
-			proc diff_files {a b} { \n \
-				set r [list] \n \
-				foreach f \$$a { \n \
-					if {!("\$$f" in "\$$b")} { \n \
-						lappend r \$$f \n \
-					} \n \
-				} \n \
-				return \$$r \n \
-			} \n \
-			set current_files [get_files -quiet -of_objects [get_fileset \$$target_fileset] *.*] \n \
-			if {[llength \$$current_files]} { \n \
-				set missing_files [diff_files \$$new_files \$$current_files] \n \
-				if {[llength \$$missing_files]} { \n \
-					add_files -norecurse -fileset [get_filesets \$$target_fileset] \$$missing_files \n \
-				} \n \
-				set l [diff_files \$$current_files \$$new_files] \n \
-				set surplus_files [list] \n \
-				set exclude {.bd .xci} \n \
-				foreach f \$$l { \n \
-					if {!([file extension \$$f] in \$$exclude) && !([string first \"$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/\" \$$f] != -1)} { \n \
-						lappend surplus_files \$$f \n \
-					} \n \
-				} \n \
-				if {[llength \$$surplus_files]} { \n \
-					remove_files -fileset \$$target_fileset \$$surplus_files \n \
-				} \n \
-			} else { \n \
-				add_files -norecurse -fileset [get_filesets \$$target_fileset] \$$new_files \n \
-			} \n \
-		} \n \
-		puts \"adding/updating design sources...\" \n \
-		$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))} \n) \
-		puts \"adding/updating simulation sources...\" \n \
-		$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))} \n)) \
-		foreach f [get_files *.vh*] { \n \
-			if {[string first \"$(VIVADO_DIR)/$(VIVADO_PROJ).gen/sources_1/bd/\" \$$f] == -1} { \n \
-				set current_type [get_property file_type [get_files \$$f]] \n \
-				set desired_type [string map {\"-\" \" \"} \"$(VIVADO_LANGUAGE)\"] \n \
-				if {\$$desired_type == \"VHDL 1993\"} { \n \
-					set desired_type \"VHDL\" \n \
-				} \n \
-				if {\"\$$current_type\" != \"\$$desired_type\"} { \n \
-					set_property file_type \"\$$desired_type\" \$$f \n \
-				} \n \
-			} \n \
-		} \n \
-		proc type_sources {s l} { \n \
-			foreach file_type \$$l { \n \
-				if {[string first \"=\" \"\$$file_type\"] != -1} { \n \
-					set file [lindex [split \"\$$file_type\" \"=\"] 0] \n \
-					set type [string map {\"-\" \" \"} [lindex [split \"\$$file_type\" \"=\"] 1]] \n \
-					if {\$$type == \"VHDL 1993\"} { \n \
-						set type \"VHDL\" \n \
-					} \n \
-					set_property file_type \"\$$type\" [get_files -of_objects [get_filesets \$$s] \"\$$file\"] \n \
-				} \n \
-			} \n \
-		} \n \
-		puts \"checking/setting design source file types...\" \n \
-		$(foreach l,$(VIVADO_DSN_LIB),type_sources sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))} \n) \
-		puts \"checking/setting simulation source file types...\" \n \
-		$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB),type_sources $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))} \n)) \
-		puts \"checking/setting top design unit...\" \n \
-		if {\"$(VIVADO_DSN_TOP)\" != \"\"} { \n \
-			if {[get_property top [get_filesets sources_1]] != \"$(VIVADO_DSN_TOP)\"} { \n \
-				set_property top \"$(VIVADO_DSN_TOP)\" [get_filesets sources_1] \n \
-			} \n \
-		} \n \
-		if {\"$(VIVADO_SIM_RUN)\" != \"\"} { \n \
-			puts \"checking/setting top unit and generics for simulation filesets...\" \n \
-		} \n \
-		foreach r {$(VIVADO_SIM_RUN)} { \n \
-			set run [lindex [split [lindex [split \"\$$r\" \";\"] 0] \":\"] 0] \n \
-			set top [lindex [split [lindex [split [lindex [split \"\$$r\" \";\"] 0] \":\"] 1] \"$(comma)\"] 0] \n \
-			set gen [split [lindex [split \"\$$r\" \";\"] 1] \"$(comma)\"] \n \
-			set_property top \$$top [get_filesets \$$run] \n \
-			set_property generic \$$gen [get_filesets \$$run] \n \
-		} \n \
-		puts \"checking/enabling synthesis assertions...\" \n \
-		set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1] \n \
-		if {\"$(VIVADO_XDC)\" != \"\"} { \n \
-			puts \"adding/updating constraints...\" \n \
-		} \n \
-		$(if $(VIVADO_XDC),update_files constrs_1 {$(call VIVADO_SRC_FILE,$(VIVADO_XDC))} \n) \
-		proc scope_constrs {xdc} { \n \
-			foreach x \$$xdc { \n \
-				set file  [lindex [split \"\$$x\" \"=\"] 0] \n \
-				set scope [lindex [split \"\$$x\" \"=\"] 1] \n \
-				set_property used_in_synthesis      [expr [string first \"SYNTH\" \"\$$scope\"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] \$$file] \n \
-				set_property used_in_implementation [expr [string first \"IMPL\"  \"\$$scope\"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] \$$file] \n \
-				set_property used_in_simulation     [expr [string first \"SIM\"   \"\$$scope\"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] \$$file] \n \
-			} \n \
-		} \n \
-		if {\"$(VIVADO_XDC)\" != \"\"} { \n \
-			puts \"checking/scoping constraints...\" \n \
-		} \n \
-		scope_constrs {$(VIVADO_XDC)} \n \
-		exit 0 \
-	)
-	@cd $(VIVADO_DIR) && \
 	if [ -f $(VIVADO_PROJ_TEMP).xpr ]; then \
 		if cmp -s $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; then \
 			printf "$(col_fg_cyn)project unchanged$(col_rst)\n"; \
@@ -269,84 +361,45 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 # block diagrams
 define RR_VIVADO_BD
 $(VIVADO_DIR)/$(VIVADO_DSN_BD_SRC_DIR)/$(basename $(notdir $1))/$(basename $(notdir $1)).bd: $1 $(VIVADO_DIR)/$(VIVADO_XPR)
-	$(call banner,Vivado: create block diagrams)
-	$$(call VIVADO_RUN, \
-		open_project $$(VIVADO_PROJ) \n \
-		if {[get_files -quiet -of_objects [get_filesets sources_1] $(basename $(notdir $1)).bd] != \"\"} { \n \
-			export_ip_user_files -of_objects [get_files -of_objects [get_filesets sources_1] $(basename $(notdir $1)).bd] -no_script -reset -force -quiet \n \
-			remove_files [get_files -of_objects [get_filesets sources_1] $(basename $(notdir $1)).bd] \n \
-			file delete -force $(VIVADO_DSN_BD_SRC_DIR)/$(basename $(notdir $1)) \n \
-			file delete -force $(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $1)) \n \
-		} \n \
-		source $1 \n \
-	)
+	$$(call banner,Vivado: create block diagrams)
+	$$(call VIVADO_RUN,vivado_tcl_bd,$$<)
 endef
 $(foreach x,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD,$x)))
 
 # block diagram hardware definitions
 define RR_VIVADO_BD_GEN
 $(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename $(notdir $1)).hwdef: $(VIVADO_DIR)/$1
-	$(call banner,Vivado: generate block diagram hardware definitions)
-	$$(call VIVADO_RUN, \
-		open_project $$(VIVADO_PROJ) \n \
-		generate_target all [get_files -of_objects [get_filesets sources_1] $$(notdir $$<)] \n \
-	)
+	$$(call banner,Vivado: generate block diagram hardware definitions)
+	$$(call VIVADO_RUN,vivado_tcl_bd_gen,$$<)
 endef
 $(foreach x,$(VIVADO_DSN_BD),$(eval $(call RR_VIVADO_BD_GEN,$x)))
 
 # hardware handoff (XSA) file
 $(VIVADO_DIR)/$(VIVADO_XSA): $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
 	$(call banner,Vivado: create hardware handoff (XSA) file)
-	$(call VIVADO_RUN, \
-		open_project $(VIVADO_PROJ) \n \
-		write_hw_platform -fixed -force -file $(VIVADO_DSN_TOP).xsa \n \
-	)
+	$(call VIVADO_RUN,vivado_tcl_xsa)
 
 # synthesis
-$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) $(VIVADO_DSN_BD_HWDEF) $(VIVADO_DIR)/$(VIVADO_XPR)
+$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF)) $(VIVADO_DIR)/$(VIVADO_XPR)
 	$(call banner,Vivado: synthesis)
-	$(call VIVADO_RUN, \
-		open_project $(VIVADO_PROJ) \n \
-		reset_run synth_1 \n \
-		launch_runs synth_1 -jobs $jobs \n \
-		wait_on_run synth_1 \n \
-		if {[get_property PROGRESS [get_runs synth_1]] != \"100%\"} {exit 1} \n \
-	)
+	$(call VIVADO_RUN,vivado_tcl_synth)
 
 # implementation (place and route) and preparation for simulation
-# NOTE: implementation changes BD timestamp which upsets dependancies,
-#  so we force BD modification time backwards
+# TODO: implementation changes BD timestamp which upsets dependancies, so force BD modification time backwards
 $(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
 	$(call banner,Vivado: implementation)
-	$(call VIVADO_RUN, \
-		open_project $(VIVADO_PROJ) \n \
-		reset_run impl_1 \n \
-		launch_runs impl_1 -to_step route_design \n \
-		wait_on_run impl_1 \n \
-		if {[get_property PROGRESS [get_runs impl_1]] != \"100%\"} {exit 1} \n \
-	)
+	$(call VIVADO_RUN,vivado_tcl_impl)
 
 # write bitstream
 $(VIVADO_DIR)/$(VIVADO_BIT): $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 	$(call banner,Vivado: write bitstream)
-	$(call VIVADO_RUN, \
-		open_project $(VIVADO_PROJ) \n \
-		reset_run impl_1 \n \
-		launch_runs impl_1 -to_step write_bitstream \n \
-		wait_on_run impl_1 \n \
-		if {[get_property PROGRESS [get_runs impl_1]] != \"100%\"} {exit 1} \n \
-	)
+	$(call VIVADO_RUN,vivado_tcl_bit)
 
 # simulation runs
 define rr_simrun
 $(call VIVADO_SIM_LOG,$1): vivado_force $(VIVADO_DIR)/$(VIVADO_XPR)
 	$$(call banner,Vivado: simulation run = $1)
-	$$(call VIVADO_RUN, \
-		open_project $$(VIVADO_PROJ) \n \
-		current_fileset -simset [get_filesets $1] \n \
-		launch_simulation \n \
-		run all \n \
-	)
+	$$(call VIVADO_RUN,vivado_tcl_sim_run)
 endef
 $(foreach r,$(VIVADO_SIM_RUNS),$(eval $(call rr_simrun,$r)))
 
