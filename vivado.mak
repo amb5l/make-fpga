@@ -16,7 +16,6 @@ XILINX_VIVADO:=$(call xpath,$(XILINX_VIVADO))
 VIVADO?=vivado
 VIVADO_DIR?=vivado
 VIVADO_PROJ?=fpga
-VIVADO_PROJ_TEMP?=fpga_temp
 ifdef VIVADO_DSN_SRC
 ifdef VIVADO_DSN_LIB
 $(error Cannot define both VIVADO_DSN_SRC and VIVADO_DSN_LIB)
@@ -102,13 +101,7 @@ $(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),$(if $(VIVADO_SI
 
 define vivado_tcl_xpr
 
-	if {[file exists $(VIVADO_XPR)]} {
-		puts "opening project..."
-		open_project "$(basename $(VIVADO_XPR))"
-	} else {
-		puts "creating new project..."
-		create_project $(if $(VIVADO_PART),-part "$(VIVADO_PART)") -force "$(VIVADO_PROJ)"
-	}
+	create_project $(if $(VIVADO_PART),-part "$(VIVADO_PART)") -force "$(VIVADO_PROJ)"
 	if {"$(VIVADO_SIM_RUN)" != ""} {
 		puts "adding/updating simulation filesets..."
 		foreach r {$(VIVADO_SIM_RUN)} {
@@ -334,28 +327,10 @@ $(VIVADO_DIR):
 	@bash -c "mkdir -p $@"
 
 # project file
-$(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
-	$(call banner,Vivado: create/update project)
-	@bash -c "cd $(VIVADO_DIR) && \
-	rm -f $(VIVADO_PROJ_TEMP).xpr && \
-	if [ -f $(VIVADO_PROJ).xpr ]; then \
-		cp -p $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; \
-	fi"
+$(VIVADO_DIR)/$(VIVADO_XPR): $(MAKEFILE_LIST) | $(VIVADO_DIR)
+	$(call banner,Vivado: (re)create project)
+	@bash -c "rm -f $@"
 	$(call VIVADO_RUN,vivado_tcl_xpr)
-	@bash -c 'cd $(VIVADO_DIR) && \
-	if [ -f $(VIVADO_PROJ_TEMP).xpr ]; then \
-		if cmp -s $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; then \
-			printf "$(col_fg_cyn)project unchanged$(col_rst)\n"; \
-			rm -f $(VIVADO_PROJ).xpr; \
-			cp -p $(VIVADO_PROJ_TEMP).xpr $(VIVADO_PROJ).xpr; \
-			rm -f $(VIVADO_PROJ_TEMP).xpr; \
-		else \
-			printf "$(col_fg_yel)project updated$(col_rst)\n"; \
-			rm -f $(VIVADO_PROJ_TEMP).xpr; \
-		fi; \
-	else \
-		printf "$(col_fg_grn)project created$(col_rst)\n"; \
-	fi'
 
 # block diagrams
 define RR_VIVADO_BD
