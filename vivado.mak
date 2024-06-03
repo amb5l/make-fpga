@@ -23,6 +23,7 @@ endif
 VIVADO_DSN_LIB=work
 VIVADO_DSN_SRC.work=$(VIVADO_DSN_SRC)
 endif
+nomakefiledeps?=false
 
 # checks
 $(call check_option,VIVADO_LANGUAGE,VHDL-1993 VHDL-2008 VHDL-2019 Verilog)
@@ -44,6 +45,7 @@ VIVADO_XSA=$(VIVADO_DSN_TOP).xsa
 VIVADO_SYNTH_DCP=$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_IMPL_DCP=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
 VIVADO_BIT=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
+makefiledeps=$(if,$(filter true,$(nomakefiledeps),,$(MAKEFILE_LIST))
 
 # functions
 VIVADO_SRC_FILE=$(foreach s,$1,$(word 1,$(subst =, ,$s)))
@@ -334,7 +336,7 @@ $(VIVADO_DIR):
 	@bash -c "mkdir -p $@"
 
 # project file
-$(VIVADO_DIR)/$(VIVADO_XPR): $(MAKEFILE_LIST) | $(VIVADO_DIR)
+$(VIVADO_DIR)/$(VIVADO_XPR): $(makefiledeps) | $(VIVADO_DIR)
 	$(call banner,Vivado: (re)create project)
 	@bash -c "rm -f $@"
 	$(call VIVADO_RUN,vivado_tcl_xpr)
