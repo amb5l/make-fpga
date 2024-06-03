@@ -354,6 +354,8 @@ define RR_VIVADO_BD_GEN
 $(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename $(notdir $1)).hwdef: $(VIVADO_DIR)/$1
 	$$(call banner,Vivado: generate block diagram hardware definitions)
 	$$(call VIVADO_RUN,vivado_tcl_bd_gen,$$<)
+	@touch $$<
+	@touch $$@
 endef
 $(foreach x,$(VIVADO_DSN_BD),$(eval $(call RR_VIVADO_BD_GEN,$x)))
 
@@ -361,22 +363,46 @@ $(foreach x,$(VIVADO_DSN_BD),$(eval $(call RR_VIVADO_BD_GEN,$x)))
 $(VIVADO_DIR)/$(VIVADO_XSA): $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
 	$(call banner,Vivado: create hardware handoff (XSA) file)
 	$(call VIVADO_RUN,vivado_tcl_xsa)
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+	@touch $@
 
 # synthesis
 $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF) $(VIVADO_XPR))
 	$(call banner,Vivado: synthesis)
 	$(call VIVADO_RUN,vivado_tcl_synth)
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+	@touch $(VIVADO_DIR)/$(VIVADO_XSA)
+	@touch $@
 
 # implementation (place and route) and preparation for simulation
 # TODO: implementation changes BD timestamp which upsets dependancies, so force BD modification time backwards
 $(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP) $(VIVADO_XDC_IMPL) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF)
 	$(call banner,Vivado: implementation)
 	$(call VIVADO_RUN,vivado_tcl_impl)
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+	@touch $(VIVADO_DIR)/$(VIVADO_XSA)
+	$(addprefix @touch -c ,$(VITIS_DIR)/$(VITIS_PRJ))
+	$(addprefix @touch -c ,$(VIVADO_DSN_ELF))
+	$(addprefix @touch -c ,$(VIVADO_SIM_ELF))
+	@touch $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
+	@touch $@
 
 # write bitstream
 $(VIVADO_DIR)/$(VIVADO_BIT): $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 	$(call banner,Vivado: write bitstream)
 	$(call VIVADO_RUN,vivado_tcl_bit)
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+	@touch $(VIVADO_DIR)/$(VIVADO_XSA)
+	$(addprefix @touch -c ,$(VITIS_DIR)/$(VITIS_PRJ))
+	$(addprefix @touch -c ,$(VIVADO_DSN_ELF))
+	$(addprefix @touch -c ,$(VIVADO_SIM_ELF))
+	@touch $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
+	@touch $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
+	@touch $@
 
 # simulation runs
 define rr_simrun
