@@ -337,7 +337,7 @@ $(VIVADO_DIR):
 
 # project file
 $(VIVADO_DIR)/$(VIVADO_XPR): $(makefiledeps) | $(VIVADO_DIR)
-	$(call banner,Vivado: (re)create project)
+	$(call banner,Vivado: create project)
 	@bash -c "rm -f $@"
 	$(call VIVADO_RUN,vivado_tcl_xpr)
 
