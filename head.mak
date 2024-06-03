@@ -5,7 +5,7 @@
 
 .PHONY: all clean
 
-toplevel=$(call xpath,$(shell git rev-parse --show-toplevel))
+toplevel?=$(call xpath,$(shell git rev-parse --show-toplevel))
 
 space:=$(subst x, ,x)
 comma:=,
@@ -32,5 +32,7 @@ check_defined=$(if $($1),,$(error $1 is undefined))
 check_defined_alt=$(if $(foreach a,$1,$($a)),,$(error none of $1 are undefined))
 check_option=$(if $(filter $2,$($1)),,$(error $1 should be one of: $2))
 check_shell_error=$(if $(filter 0,$(.SHELLSTATUS)),,$(error $1))
+
+make_fpga?=$(call xpath,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
 banner=@bash -c 'printf "$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n$(col_bg_wht)$(col_fg_blu) %-78s$(col_rst)\n$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n" "$1"'
