@@ -45,7 +45,7 @@ VIVADO_XSA=$(VIVADO_DSN_TOP).xsa
 VIVADO_SYNTH_DCP=$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_IMPL_DCP=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
 VIVADO_BIT=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
-makefiledeps=$(if,$(filter true,$(nomakefiledeps),,$(MAKEFILE_LIST))
+makefiledeps=$(if $(filter true,$(nomakefiledeps)),,$(MAKEFILE_LIST))
 
 # functions
 VIVADO_SRC_FILE=$(foreach s,$1,$(word 1,$(subst =, ,$s)))
