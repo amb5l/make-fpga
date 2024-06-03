@@ -247,12 +247,13 @@ endef
 define vivado_tcl_bd
 
 	set f [lindex $$argv 0]
+	set design [file rootname [file tail $$f]]
 	open_project $(VIVADO_PROJ)
-	if {[get_files -quiet -of_objects [get_filesets sources_1] "[file rootname $$f].bd"] != ""} {
-		export_ip_user_files -of_objects [get_files -of_objects [get_filesets sources_1] "[file rootname $$f].bd" -no_script -reset -force -quiet
-		remove_files [get_files -of_objects [get_filesets sources_1] "[file rootname $$f].bd"]
-		file delete -force $(VIVADO_DSN_BD_SRC_DIR)/[file rootname $$f]
-		file delete -force $(VIVADO_DSN_BD_GEN_DIR)/[file rootname $$f]
+	if {[get_files -quiet -of_objects [get_filesets sources_1] "$$design.bd"] != ""} {
+		export_ip_user_files -of_objects [get_files -of_objects [get_filesets sources_1] "$$design.bd"] -no_script -reset -force -quiet
+		remove_files [get_files -of_objects [get_filesets sources_1] "$$design.bd"]
+		file delete -force $(VIVADO_DSN_BD_SRC_DIR)/$$design
+		file delete -force $(VIVADO_DSN_BD_GEN_DIR)/$$design
 	}
 	source $$f
 
