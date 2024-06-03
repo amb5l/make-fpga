@@ -107,13 +107,13 @@ $(VIVADO_DIR):
 # project file
 $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 	$(call banner,Vivado: create/update project)
-	@cd $(VIVADO_DIR) && \
+	@bash -c "cd $(VIVADO_DIR) && \
 	rm -f $(VIVADO_PROJ_TEMP).xpr && \
 	if [ -f $(VIVADO_PROJ).xpr ]; then \
 		cp -p $(VIVADO_PROJ).xpr $(VIVADO_PROJ_TEMP).xpr; \
-	fi
+	fi"
 	$(call VIVADO_RUN, \
-		if {[file exists $(VIVADO_XPR)]} { \n \
+	@bash -c 'cd $(VIVADO_DIR) && \
 			puts \"opening project...\" \n \
 			open_project \"$(basename $(VIVADO_XPR))\" \n \
 		} else { \n \
@@ -264,7 +264,7 @@ $(VIVADO_DIR)/$(VIVADO_XPR): vivado_force | $(VIVADO_DIR)
 		fi; \
 	else \
 		printf "$(col_fg_grn)project created$(col_rst)\n"; \
-	fi
+	fi'
 
 # block diagrams
 define RR_VIVADO_BD
