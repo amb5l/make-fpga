@@ -96,6 +96,12 @@ endif
 $(foreach r,$(VIVADO_SIM_RUNS),$(if $(VIVADO_SIM_LIB.$r),,$(error VIVADO_SIM_LIB.$r is empty)))
 $(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),$(if $(VIVADO_SIM_SRC.$l.$r),,$(error VIVADO_SIM_SRC.$l.$r is empty))))
 
+# constraints
+$(foreach x,$(VIVADO_XDC),$(if $(findstring =,$x),,$(error All constraints must be scoped)))
+VIVADO_XDC_SYNTH=$(foreach x,$(VIVADO_XDC),$(if,$(filter SYNTH,$(subst $(comma), ,$(word 2,$(subst =, ,$x)))),$(word 1,$(subst =, ,$x))))
+VIVADO_XDC_IMPL=$(foreach x,$(VIVADO_XDC),$(if,$(filter IMPL,$(subst $(comma), ,$(word 2,$(subst =, ,$x)))),$(word 1,$(subst =, ,$x))))
+VIVADO_XDC_SIM=$(foreach x,$(VIVADO_XDC),$(if,$(filter SIM,$(subst $(comma), ,$(word 2,$(subst =, ,$x)))),$(word 1,$(subst =, ,$x))))
+
 ################################################################################
 # TCL sequences
 
@@ -354,13 +360,13 @@ $(VIVADO_DIR)/$(VIVADO_XSA): $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
 	$(call VIVADO_RUN,vivado_tcl_xsa)
 
 # synthesis
-$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_DSN_XDC_SYNTH) $(VIVADO_DSN_XDC) $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF)) $(VIVADO_DIR)/$(VIVADO_XPR)
+$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF) $(VIVADO_XPR))
 	$(call banner,Vivado: synthesis)
 	$(call VIVADO_RUN,vivado_tcl_synth)
 
 # implementation (place and route) and preparation for simulation
 # TODO: implementation changes BD timestamp which upsets dependancies, so force BD modification time backwards
-$(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DSN_XDC_IMPL) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF) $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
+$(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP) $(VIVADO_XDC_IMPL) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF)
 	$(call banner,Vivado: implementation)
 	$(call VIVADO_RUN,vivado_tcl_impl)
 
