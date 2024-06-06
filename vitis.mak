@@ -133,7 +133,7 @@ $(VITIS_DIR)/$(VITIS_ELF_DBG): $(VITIS_SRC) | $(VITIS_DIR)/$(VITIS_PRJ)
 ################################################################################
 # goals
 
-.PHONY: vitis_force prj release debug elf
+.PHONY: vitis_force prj rls dbg elf
 
 vitis_force:
 
