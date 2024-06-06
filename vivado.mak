@@ -59,7 +59,7 @@ else
 $(if $(findstring :,$(word 1,$(subst ;, ,$(VIVADO_SIM_RUN)))),,$(eval VIVADO_SIM_RUN=sim:$(value VIVADO_SIM_RUN)))
 endif
 endif
-VIVADO_SIM_RUN_NAME=$(foreach r,$(VIVADO_SIM_RUN),$(word 1,$(subst :, ,$(word 1,$(subst ;, ,$r)))))
+VIVADO_SIM_RUN_NAME=$(foreach r,$(VIVADO_SIM_RUN),$(word 1,$(subst :, ,$r)))
 # sources are neither library nor run specific
 ifdef VIVADO_SIM_SRC
 ifdef VIVADO_SIM_LIB
