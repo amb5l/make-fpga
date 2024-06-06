@@ -37,10 +37,10 @@ define VIVADO_RUN
 	@cd $(VIVADO_DIR) && $(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(VIVADO_RUN_TCL) $(addprefix -tclargs ,$2)
 endef
 VIVADO_XPR?=$(VIVADO_PROJ).xpr
-VIVADO_DSN_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
-VIVADO_DSN_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
-VIVADO_DSN_BD=$(foreach x,$(VIVADO_DSN_BD_TCL),$(VIVADO_DSN_BD_SRC_DIR)/$(basename $(notdir $x))/$(basename $(notdir $x)).bd)
-VIVADO_DSN_BD_HWDEF=$(foreach x,$(VIVADO_DSN_BD),$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $x))/synth/$(basename $(notdir $x)).hwdef)
+VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
+VIVADO_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
+VIVADO_BD=$(foreach x,$(VIVADO_BD_TCL),$(VIVADO_BD_SRC_DIR)/$(basename $(notdir $x))/$(basename $(notdir $x)).bd)
+VIVADO_BD_HWDEF=$(foreach x,$(VIVADO_BD),$(VIVADO_BD_GEN_DIR)/$(basename $(notdir $x))/synth/$(basename $(notdir $x)).hwdef)
 VIVADO_XSA=$(VIVADO_DSN_TOP).xsa
 VIVADO_SYNTH_DCP=$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_IMPL_DCP=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
@@ -162,7 +162,7 @@ define vivado_tcl_xpr
 			set surplus_files [list]
 			set exclude {.bd .xci}
 			foreach f $$l {
-				if {!([file extension $$f] in $$exclude) && !([string first "$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/" $$f] != -1)} {
+				if {!([file extension $$f] in $$exclude) && !([string first "$(VIVADO_DIR)/$(VIVADO_BD_GEN_DIR)/" $$f] != -1)} {
 					lappend surplus_files $$f
 				}
 			}
@@ -254,8 +254,8 @@ define vivado_tcl_bd
 	if {[get_files -quiet -of_objects [get_filesets sources_1] "$$design.bd"] != ""} {
 		export_ip_user_files -of_objects [get_files -of_objects [get_filesets sources_1] "$$design.bd"] -no_script -reset -force -quiet
 		remove_files [get_files -of_objects [get_filesets sources_1] "$$design.bd"]
-		file delete -force $(VIVADO_DSN_BD_SRC_DIR)/$$design
-		file delete -force $(VIVADO_DSN_BD_GEN_DIR)/$$design
+		file delete -force $(VIVADO_BD_SRC_DIR)/$$design
+		file delete -force $(VIVADO_BD_GEN_DIR)/$$design
 	}
 	source $$f
 
@@ -343,36 +343,36 @@ $(VIVADO_DIR)/$(VIVADO_XPR): $(makefiledeps) | $(VIVADO_DIR)
 
 # block diagrams
 define RR_VIVADO_BD
-$(VIVADO_DIR)/$(VIVADO_DSN_BD_SRC_DIR)/$(basename $(notdir $1))/$(basename $(notdir $1)).bd: $1 $(VIVADO_DIR)/$(VIVADO_XPR)
+$(VIVADO_DIR)/$(VIVADO_BD_SRC_DIR)/$(basename $(notdir $1))/$(basename $(notdir $1)).bd: $1 $(VIVADO_DIR)/$(VIVADO_XPR)
 	$$(call banner,Vivado: create block diagrams)
 	$$(call VIVADO_RUN,vivado_tcl_bd,$$<)
 endef
-$(foreach x,$(VIVADO_DSN_BD_TCL),$(eval $(call RR_VIVADO_BD,$x)))
+$(foreach x,$(VIVADO_BD_TCL),$(eval $(call RR_VIVADO_BD,$x)))
 
 # block diagram hardware definitions
 define RR_VIVADO_BD_GEN
-$(VIVADO_DIR)/$(VIVADO_DSN_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename $(notdir $1)).hwdef: $(VIVADO_DIR)/$1
+$(VIVADO_DIR)/$(VIVADO_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename $(notdir $1)).hwdef: $(VIVADO_DIR)/$1
 	$$(call banner,Vivado: generate block diagram hardware definitions)
 	$$(call VIVADO_RUN,vivado_tcl_bd_gen,$$<)
 	@touch $$<
 	@touch $$@
 endef
-$(foreach x,$(VIVADO_DSN_BD),$(eval $(call RR_VIVADO_BD_GEN,$x)))
+$(foreach x,$(VIVADO_BD),$(eval $(call RR_VIVADO_BD_GEN,$x)))
 
 # hardware handoff (XSA) file
-$(VIVADO_DIR)/$(VIVADO_XSA): $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+$(VIVADO_DIR)/$(VIVADO_XSA): $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
 	$(call banner,Vivado: create hardware handoff (XSA) file)
 	$(call VIVADO_RUN,vivado_tcl_xsa)
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
 	@touch $@
 
 # synthesis
-$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF) $(VIVADO_XPR))
+$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF) $(VIVADO_XPR))
 	$(call banner,Vivado: synthesis)
 	$(call VIVADO_RUN,vivado_tcl_synth)
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
 	@touch $(VIVADO_DIR)/$(VIVADO_XSA)
 	@touch $@
 
@@ -381,8 +381,8 @@ $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SR
 $(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP) $(VIVADO_XDC_IMPL) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF)
 	$(call banner,Vivado: implementation)
 	$(call VIVADO_RUN,vivado_tcl_impl)
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
 	@touch $(VIVADO_DIR)/$(VIVADO_XSA)
 	$(addprefix @touch -c ,$(VITIS_DIR)/$(VITIS_PRJ))
 	$(addprefix @touch -c ,$(VIVADO_DSN_ELF))
@@ -394,8 +394,8 @@ $(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP) $(VIVADO_XDC
 $(VIVADO_DIR)/$(VIVADO_BIT): $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 	$(call banner,Vivado: write bitstream)
 	$(call VIVADO_RUN,vivado_tcl_bit)
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
+	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
 	@touch $(VIVADO_DIR)/$(VIVADO_XSA)
 	$(addprefix @touch -c ,$(VITIS_DIR)/$(VITIS_PRJ))
 	$(addprefix @touch -c ,$(VIVADO_DSN_ELF))
@@ -421,9 +421,9 @@ vivado_force:
 
 xpr   : $(VIVADO_DIR)/$(VIVADO_XPR)
 
-bd    : $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD))
+bd    : $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
 
-hwdef : $(addprefix $(VIVADO_DIR)/,$(VIVADO_DSN_BD_HWDEF))
+hwdef : $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
 
 xsa   : $(VIVADO_DIR)/$(VIVADO_XSA)
 
