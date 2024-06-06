@@ -371,6 +371,64 @@ endef
 
 #-------------------------------------------------------------------------------
 
+define vivado_tcl_prog
+
+	set file    [lindex $$argv 0]
+	set hw_spec [lindex $$argv 1]
+	if {$$hw_spec != ""} {
+		if {[string first . $$hw_spec] != -1} {
+			set hw_spec_list [split $$hw_spec .]
+			set hw_target [lindex $$hw_spec_list 0]
+			set hw_device [lindex $$hw_spec_list 1]
+		}
+	}
+	open_hw_manager
+	connect_hw_server
+	set hw_target_list [get_hw_targets]
+	puts "-------------------------------------------------------------------------------"
+	puts "interfaces:"
+	for {set x 0} {$$x < [llength $$hw_target_list]} {incr x} {
+		puts "  $$x: [lindex $$hw_target_list $$x]"
+	}
+	if {[llength $$hw_target_list] > 1} {
+		if {![info exists hw_target]} {
+			if {![info exists hw_spec]} {
+				error_exit {"prog - hardware interface not specified (e.g. make prog HW=0.1)"}
+			} else {
+				set hw_target $$hw_spec
+			}
+		}
+	} else {
+		set hw_target 0
+	}
+	puts "opening target $$hw_target: [lindex $$hw_target_list $$hw_target]"
+	open_hw_target -quiet [lindex $$hw_target_list $$hw_target]
+	set hw_device_list [get_hw_devices]
+	puts "devices:"
+	for {set x 0} {$$x < [llength $$hw_device_list]} {incr x} {
+		puts "  $$x: [lindex $$hw_device_list $$x]"
+	}
+	if {[llength $$hw_device_list] > 1} {
+		if {![info exists hw_device]} {
+			if {![info exists hw_spec]} {
+				error_exit {"prog - hardware device not specified (e.g. make prog HW=0.1)"}
+			} else {
+				set hw_device $$hw_spec
+			}
+		}
+	} else {
+		set hw_device 0
+	}
+	puts "programming device $$hw_device: [lindex $$hw_device_list $$hw_device]"
+	puts "-------------------------------------------------------------------------------"
+	current_hw_device [lindex $$hw_device_list $$hw_device]
+	set_property PROGRAM.FILE $$file [current_hw_device]
+	program_hw_devices [current_hw_device]
+
+endef
+
+#-------------------------------------------------------------------------------
+
 define vivado_tcl_sim_run
 
 	open_project $$(VIVADO_PROJ)
@@ -465,6 +523,11 @@ $(vivado_touch_dir)/$(VIVADO_PROJ).bit: $(vivado_touch_dir)/$(VIVADO_PROJ).impl
 	$(call VIVADO_RUN,vivado_tcl_bit,$(abspath $(VIVADO_BIT)))
 	@touch $@
 bit: $(vivado_touch_dir)/$(VIVADO_PROJ).bit
+
+# program
+prog: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).bit
+	$(call banner,Vivado: program)
+	$(call VIVADO_RUN,vivado_tcl_prog,$(abspath $(VIVADO_BIT)))
 
 # simulation runs
 define rr_simrun
