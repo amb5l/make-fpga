@@ -37,15 +37,9 @@ define VIVADO_RUN
 	$(file >$(VIVADO_DIR)/$(VIVADO_RUN_TCL),set code [catch { $($1) } result]; puts $$result; exit $$code)
 	@cd $(VIVADO_DIR) && $(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(VIVADO_RUN_TCL) $(addprefix -tclargs ,$2)
 endef
-VIVADO_XPR?=$(VIVADO_PROJ).xpr
 VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
 VIVADO_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
-VIVADO_BD=$(foreach x,$(VIVADO_BD_TCL),$(VIVADO_BD_SRC_DIR)/$(basename $(notdir $x))/$(basename $(notdir $x)).bd)
-VIVADO_BD_HWDEF=$(foreach x,$(VIVADO_BD),$(VIVADO_BD_GEN_DIR)/$(basename $(notdir $x))/synth/$(basename $(notdir $x)).hwdef)
 VIVADO_XSA=$(VIVADO_DSN_TOP).xsa
-VIVADO_SYNTH_DCP=$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
-VIVADO_IMPL_DCP=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
-VIVADO_BIT=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
 makefiledeps=$(if $(filter true,$(nomakefiledeps)),,$(MAKEFILE_LIST))
 vivado_touch_dir=$(VIVADO_DIR)/touch
 
@@ -393,7 +387,7 @@ $(vivado_touch_dir)/$(basename $(notdir $1)).gen: $(vivado_touch_dir)/$(basename
 	$$(call VIVADO_RUN,vivado_tcl_bd_gen,$$<)
 	@touch $$@
 endef
-$(foreach x,$(VIVADO_BD),$(eval $(call RR_VIVADO_BD_GEN,$x)))
+$(foreach x,$(VIVADO_BD_TCL),$(eval $(call RR_VIVADO_BD_GEN,$x)))
 
 # generate hardware handoff (XSA) file
 $(vivado_touch_dir)/$(VIVADO_PROJ).xsa: $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $x)).gen))
