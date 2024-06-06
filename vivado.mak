@@ -336,13 +336,13 @@ endef
 $(VIVADO_DIR):
 	@bash -c "mkdir -p $@"
 
-# project file
+# create project file
 $(VIVADO_DIR)/$(VIVADO_XPR): $(makefiledeps) | $(VIVADO_DIR)
 	$(call banner,Vivado: create project)
 	@bash -c "rm -f $@"
 	$(call VIVADO_RUN,vivado_tcl_xpr)
 
-# block diagrams
+# create block diagrams
 define RR_VIVADO_BD
 $(VIVADO_DIR)/$(VIVADO_BD_SRC_DIR)/$(basename $(notdir $1))/$(basename $(notdir $1)).bd: $1 $(VIVADO_DIR)/$(VIVADO_XPR)
 	$$(call banner,Vivado: create block diagrams)
@@ -350,7 +350,7 @@ $(VIVADO_DIR)/$(VIVADO_BD_SRC_DIR)/$(basename $(notdir $1))/$(basename $(notdir 
 endef
 $(foreach x,$(VIVADO_BD_TCL),$(eval $(call RR_VIVADO_BD,$x)))
 
-# block diagram hardware definitions
+# generate block diagram products
 define RR_VIVADO_BD_GEN
 $(VIVADO_DIR)/$(VIVADO_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename $(notdir $1)).hwdef: $(VIVADO_DIR)/$1
 	$$(call banner,Vivado: generate block diagram hardware definitions)
@@ -360,7 +360,7 @@ $(VIVADO_DIR)/$(VIVADO_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename $(n
 endef
 $(foreach x,$(VIVADO_BD),$(eval $(call RR_VIVADO_BD_GEN,$x)))
 
-# hardware handoff (XSA) file
+# generate hardware handoff (XSA) file
 $(VIVADO_DIR)/$(VIVADO_XSA): $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
 	$(call banner,Vivado: create hardware handoff (XSA) file)
 	$(call VIVADO_RUN,vivado_tcl_xsa)
