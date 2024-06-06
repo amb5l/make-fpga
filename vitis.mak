@@ -105,6 +105,10 @@ define xsct_tcl_prj
 	foreach s {$(VITIS_SYM_DBG)} {
 		app config -name $(VITIS_APP) define-compiler-symbols $$s
 	}
+	puts "regenerating BSP..."
+	bsp regenerate
+	puts "generating platform..."
+	platform generate
 
 endef
 
