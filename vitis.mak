@@ -144,12 +144,22 @@ $(VITIS_DIR)/$(VITIS_PRJ): $$(vivado_touch_dir)/$$(VIVADO_PROJ).xsa $(makefilede
 # release ELF
 $(VITIS_DIR)/$(VITIS_ELF_RLS): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
 	$(call banner,Vitis Classic: build release ELF)
+	@rm -f $@
 	$(call XSCT_RUN,xsct_tcl_elf,Release)
+	@bash -c "if [ -f $@ ]; \
+	then echo \"Success\"; \
+	else echo \"Failed to build ELF\"; exit 1; \
+	fi"
 
 # debug ELF
 $(VITIS_DIR)/$(VITIS_ELF_DBG): $(VITIS_SRC) | $(VITIS_DIR)/$(VITIS_PRJ)
 	$(call banner,Vitis Classic: build debug ELF)
+	@rm -f $@
 	$(call XSCT_RUN,xsct_tcl_elf,Debug)
+	@bash -c "if [ -f $@ ]; \
+	then echo \"Success\"; \
+	else echo \"Failed to build ELF\"; exit 1; \
+	fi"
 
 ################################################################################
 # goals
