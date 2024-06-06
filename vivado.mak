@@ -59,7 +59,7 @@ else
 $(if $(findstring :,$(word 1,$(subst ;, ,$(VIVADO_SIM_RUN)))),,$(eval VIVADO_SIM_RUN=sim:$(value VIVADO_SIM_RUN)))
 endif
 endif
-VIVADO_SIM_RUNS=$(foreach r,$(VIVADO_SIM_RUN),$(word 1,$(subst :, ,$(word 1,$(subst ;, ,$r)))))
+VIVADO_SIM_RUN_NAME=$(foreach r,$(VIVADO_SIM_RUN),$(word 1,$(subst :, ,$(word 1,$(subst ;, ,$r)))))
 # sources are neither library nor run specific
 ifdef VIVADO_SIM_SRC
 ifdef VIVADO_SIM_LIB
@@ -69,34 +69,34 @@ VIVADO_SIM_LIB=work
 VIVADO_SIM_SRC.work=$(VIVADO_SIM_SRC)
 endif
 # sources are run specific
-ifneq (,$(strip $(foreach r,$(VIVADO_SIM_RUNS),$(VIVADO_SIM_SRC.$r))))
+ifneq (,$(strip $(foreach r,$(VIVADO_SIM_RUN_NAME),$(VIVADO_SIM_SRC.$r))))
 ifdef VIVADO_SIM_SRC
 $(error Cannot define both VIVADO_SIM_SRC and VIVADO_SIM_SRC.<run>)
 endif
 ifdef VIVADO_SIM_LIB
 $(error Cannot define both VIVADO_SIM_SRC.<run> and VIVADO_SIM_LIB)
 endif
-ifneq (,$(strip $(foreach r,$(VIVADO_SIM_RUNS),$(VIVADO_SIM_LIB.$r))))
+ifneq (,$(strip $(foreach r,$(VIVADO_SIM_RUN_NAME),$(VIVADO_SIM_LIB.$r))))
 $(error Cannot define both VIVADO_SIM_SRC.<run> and VIVADO_SIM_LIB.<run>)
 endif
-ifneq (,$(strip $(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),$(VIVADO_SIM_SRC.$l.$r)))))
+ifneq (,$(strip $(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),$(VIVADO_SIM_SRC.$l.$r)))))
 $(error Cannot define both VIVADO_SIM_SRC.<run> and VIVADO_SIM_SRC.<lib>.<run>)
 endif
-$(foreach r,$(VIVADO_SIM_RUNS),$(eval VIVADO_SIM_LIB.$r=work))
-$(foreach r,$(VIVADO_SIM_RUNS),$(eval VIVADO_SIM_SRC.work.$r=$(VIVADO_SIM_SRC.$r)))
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval VIVADO_SIM_LIB.$r=work))
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval VIVADO_SIM_SRC.work.$r=$(VIVADO_SIM_SRC.$r)))
 endif
 # sources are library specific
 ifdef VIVADO_SIM_LIB
-ifneq (,$(strip $(foreach r,$(VIVADO_SIM_RUNS),$(VIVADO_SIM_LIB.$r))))
+ifneq (,$(strip $(foreach r,$(VIVADO_SIM_RUN_NAME),$(VIVADO_SIM_LIB.$r))))
 $(error Cannot define both VIVADO_SIM_LIB and VIVADO_SIM_LIB.<run>)
 endif
 $(foreach l,$(VIVADO_SIM_LIB),$(if $(VIVADO_SIM_SRC.$l),,$(error VIVADO_SIM_SRC.$l is empty)))
-$(foreach r,$(VIVADO_SIM_RUNS),$(eval VIVADO_SIM_LIB.$r=$(VIVADO_SIM_LIB)))
-$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),$(eval VIVADO_SIM_SRC.$l.$r=$(VIVADO_SIM_SRC.$l))))
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval VIVADO_SIM_LIB.$r=$(VIVADO_SIM_LIB)))
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),$(eval VIVADO_SIM_SRC.$l.$r=$(VIVADO_SIM_SRC.$l))))
 endif
 # libraries are run specific, sources are library and run specific
-$(foreach r,$(VIVADO_SIM_RUNS),$(if $(VIVADO_SIM_LIB.$r),,$(error VIVADO_SIM_LIB.$r is empty)))
-$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),$(if $(VIVADO_SIM_SRC.$l.$r),,$(error VIVADO_SIM_SRC.$l.$r is empty))))
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(if $(VIVADO_SIM_LIB.$r),,$(error VIVADO_SIM_LIB.$r is empty)))
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),$(if $(VIVADO_SIM_SRC.$l.$r),,$(error VIVADO_SIM_SRC.$l.$r is empty))))
 
 # constraints
 $(foreach x,$(VIVADO_XDC),$(if $(findstring =,$x),,$(error All constraints must be scoped)))
@@ -119,10 +119,10 @@ define vivado_tcl_xpr
 			}
 			set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets $$run]
 		}
-		current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUNS))]
+		current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUN_NAME))]
 	}
 	foreach s [get_filesets] {
-		if {!("$s" in {$(VIVADO_SIM_RUNS)})} {
+		if {!("$s" in {$(VIVADO_SIM_RUN_NAME)})} {
 			delete_fileset $s
 			}
 		}
@@ -176,7 +176,7 @@ define vivado_tcl_xpr
 	puts "adding/updating design sources..."
 	$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
 	puts "adding/updating simulation sources..."
-	$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
+	$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
 	foreach f [get_files *.vh*] {
 		if {[string first "$(VIVADO_DIR)/$(VIVADO_PROJ).gen/sources_1/bd/" $$f] == -1} {
 			set current_type [get_property file_type [get_files $$f]]
@@ -204,7 +204,7 @@ define vivado_tcl_xpr
 	puts "checking/setting design source file types..."
 	$(foreach l,$(VIVADO_DSN_LIB),type_sources sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
 	puts "checking/setting simulation source file types..."
-	$(foreach r,$(VIVADO_SIM_RUNS),$(foreach l,$(VIVADO_SIM_LIB),type_sources $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
+	$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB),type_sources $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
 	puts "checking/setting top design unit..."
 	if {"$(VIVADO_DSN_TOP)" != ""} {
 		if {[get_property top [get_filesets sources_1]] != "$(VIVADO_DSN_TOP)"} {
@@ -410,12 +410,12 @@ $(call VIVADO_SIM_LOG,$1): vivado_force $(VIVADO_DIR)/$(VIVADO_XPR)
 	$$(call banner,Vivado: simulation run = $1)
 	$$(call VIVADO_RUN,vivado_tcl_sim_run)
 endef
-$(foreach r,$(VIVADO_SIM_RUNS),$(eval $(call rr_simrun,$r)))
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simrun,$r)))
 
 ################################################################################
 # goals
 
-.PHONY: vivado_force xpr bd hwdef xsa synth impl bit $(VIVADO_SIM_RUNS)
+.PHONY: vivado_force xpr bd hwdef xsa synth impl bit $(VIVADO_SIM_RUN_NAME)
 
 vivado_force:
 
@@ -434,7 +434,7 @@ impl  : $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 bit   : $(VIVADO_DIR)/$(VIVADO_BIT)
 	@mv $(VIVADO_DIR)/$(VIVADO_BIT) .
 
-$(foreach r,$(VIVADO_SIM_RUNS),$(eval \
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval \
 $r    : $(addprefix $(VIVADO_DIR)/,$(call VIVADO_SIM_LOG,$r)) \
 ))
 
