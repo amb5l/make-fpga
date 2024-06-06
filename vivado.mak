@@ -111,7 +111,7 @@ define vivado_tcl_xpr
 
 	create_project $(if $(VIVADO_PART),-part "$(VIVADO_PART)") -force "$(VIVADO_PROJ)"
 	if {"$(VIVADO_SIM_RUN)" != ""} {
-		puts "adding/updating simulation filesets..."
+		puts "adding simulation filesets..."
 		foreach r {$(VIVADO_SIM_RUN)} {
 			set run [lindex [split "$$r" ":"] 0]
 			if {!("$$run" in [get_filesets])} {
@@ -127,18 +127,17 @@ define vivado_tcl_xpr
 			}
 		}
 	}
-	puts "checking/setting part..."
+	puts "setting part..."
 	if {"$(VIVADO_PART)" != ""} {
 		if {[get_property part [current_project]] != "$(VIVADO_PART)"} {
 			set_property part "$(VIVADO_PART)" [current_project]
 		}
 	}
-	puts "checking/setting target language..."
+	puts "setting target language..."
 	set target_language "$(VIVADO_LANGUAGE)"
 	if {"$$target_language" != "Verilog"} {
 		set target_language "VHDL"
 	}
-	puts "target_language=$$target_language"
 	if {[get_property target_language [current_project]] != "$(VIVADO_LANGUAGE)"} {
 		set_property target_language "$$target_language" [current_project]
 	}
@@ -173,9 +172,9 @@ define vivado_tcl_xpr
 			add_files -norecurse -fileset [get_filesets $$target_fileset] $$new_files
 		}
 	}
-	puts "adding/updating design sources..."
+	puts "adding design sources..."
 	$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
-	puts "adding/updating simulation sources..."
+	puts "adding simulation sources..."
 	$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
 	foreach f [get_files *.vh*] {
 		if {[string first "$(VIVADO_DIR)/$(VIVADO_PROJ).gen/sources_1/bd/" $$f] == -1} {
@@ -201,18 +200,18 @@ define vivado_tcl_xpr
 			}
 		}
 	}
-	puts "checking/setting design source file types..."
+	puts "setting design source file types..."
 	$(foreach l,$(VIVADO_DSN_LIB),type_sources sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
-	puts "checking/setting simulation source file types..."
+	puts "setting simulation source file types..."
 	$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB),type_sources $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
-	puts "checking/setting top design unit..."
+	puts "setting top design unit..."
 	if {"$(VIVADO_DSN_TOP)" != ""} {
 		if {[get_property top [get_filesets sources_1]] != "$(VIVADO_DSN_TOP)"} {
 			set_property top "$(VIVADO_DSN_TOP)" [get_filesets sources_1]
 		}
 	}
 	if {"$(VIVADO_SIM_RUN)" != ""} {
-		puts "checking/setting top unit and generics for simulation filesets..."
+		puts "setting top unit and generics for simulation filesets..."
 	}
 	foreach r {$(VIVADO_SIM_RUN)} {
 		set run [lindex [split [lindex [split "$$r" ";"] 0] ":"] 0]
@@ -221,10 +220,10 @@ define vivado_tcl_xpr
 		set_property top $$top [get_filesets $$run]
 		set_property generic $$gen [get_filesets $$run]
 	}
-	puts "checking/enabling synthesis assertions..."
+	puts "enabling synthesis assertions..."
 	set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1]
 	if {"$(VIVADO_XDC)" != ""} {
-		puts "adding/updating constraints..."
+		puts "adding constraints..."
 	}
 	$(if $(VIVADO_XDC),update_files constrs_1 {$(call VIVADO_SRC_FILE,$(VIVADO_XDC))})
 	proc scope_constrs {xdc} {
