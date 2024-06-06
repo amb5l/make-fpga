@@ -218,7 +218,9 @@ define vivado_tcl_xpr
 		set top [lindex [split [lindex [split [lindex [split "$$r" ";"] 0] ":"] 1] "$(comma)"] 0]
 		set gen [split [lindex [split "$$r" ";"] 1] "$(comma)"]
 		set_property top $$top [get_filesets $$run]
-		set_property generic $$gen [get_filesets $$run]
+		if {[llength $$gen] > 0} {
+			set_property generic $$gen [get_filesets $$run]
+		}
 	}
 	puts "enabling synthesis assertions..."
 	set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1]
