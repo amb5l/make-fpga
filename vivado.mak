@@ -363,10 +363,8 @@ endef
 define vivado_tcl_bit
 
 	open_project $(VIVADO_PROJ)
-	reset_run impl_1
-	launch_runs impl_1 -to_step write_bitstream
-	wait_on_run impl_1
-	if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {exit 1}
+	open_run impl_1
+	write_bitstream -force $(VIVADO_DSN_TOP).bit
 
 endef
 
