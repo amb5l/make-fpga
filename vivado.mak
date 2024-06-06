@@ -7,6 +7,34 @@
 #	design generics
 #	ELF/CPU support
 #	timing simulation
+#	programming
+################################################################################
+# User makefile variables:
+# name
+# VIVADO_PART         FPGA part number
+# VIVADO_LANGUAGE     VHDL-1993, VHDL-2008 or Verilog
+# VIVADO_DSN_TOP      name of top design unit (entity or configuration)
+# VIVADO_DSN_LIB      list of design libraries (defaults to 'work')
+# VIVADO_DSN_SRC      list of design source files, with optional =language suffix
+# VIVADO_DSN_SRC.l    as above, specific to library l
+# VIVADO_SIM_LIB      list of simulation libraries (defaults to 'work')
+# VIVADO_SIM_SRC      additional sources for simulation e.g. testbench
+# VIVADO_SIM_SRC.l    as above, specific to library l
+# VIVADO_SIM_SRC.l.r  as above, specific to run r
+# VIVADO_BD_TCL       list of block diagram creating TCL files
+# VIVADO_PROC_REF     reference (name) of block diagram containing CPU
+# VIVADO_PROC_CELL    path from BD instance down to CPU for ELF association
+# VIVADO_DSN_ELF      ELF to associate with CPU for builds
+# VIVADO_SIM_ELF      default ELF to associate with CPU for simulations
+# VIVADO_SIM_RUN      list of simulation runs, each as follows:
+#                      <name:>top<;generic=value<,generic=value...>>
+#                      For a single run, name may be omitted and defaults to 'sim'
+# VIVADO_XDC          list of constraint files, with =scope suffixes
+#
+# Notes
+# 1. If VIVADO_DSN_LIB is defined, sources must be defined by VIVADO_DSN_SRC.l
+# 2. Similarly for VIVADO_SIM_LIB, except run specific defs are allowed.
+################################################################################
 
 # XILINX_VIVADO must contain the path to the Vivado installation
 $(call check_defined,XILINX_VIVADO)
