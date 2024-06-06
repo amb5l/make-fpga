@@ -88,17 +88,20 @@ define xsct_tcl_prj
 	set f [open "$(VITIS_PRJ)" "w"]
 	puts $$f [join $$lines "\n"]
 	close $$f
+	puts "defining preprocessor symbols..."
 	foreach s {$(VITIS_SYM)} {
-		app config -name $app_name build-config release
+		app config -name $(VITIS_APP) build-config release
 		app config -name $(VITIS_APP) define-compiler-symbols $$s
-		app config -name $app_name build-config debug
+		app config -name $(VITIS_APP) build-config debug
 		app config -name $(VITIS_APP) define-compiler-symbols $$s
 	}
-	app config -name $app_name build-config release
+	puts "defining preprocessor symbols (release specific)..."
+	app config -name $(VITIS_APP) build-config release
 	foreach s {$(VITIS_SYM_RLS)} {
 		app config -name $(VITIS_APP) define-compiler-symbols $$s
 	}
-	app config -name $app_name build-config debug
+	puts "defining preprocessor symbols (debug specific)..."
+	app config -name $(VITIS_APP) build-config debug
 	foreach s {$(VITIS_SYM_DBG)} {
 		app config -name $(VITIS_APP) define-compiler-symbols $$s
 	}
