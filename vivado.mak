@@ -49,7 +49,7 @@ makefiledeps=$(if $(filter true,$(nomakefiledeps)),,$(MAKEFILE_LIST))
 
 # functions
 VIVADO_SRC_FILE=$(foreach s,$1,$(word 1,$(subst =, ,$s)))
-VIVADO_SIM_LOG=$(foreach r,$1,$(VIVADO_PROJ).sim/$(word 1,$(subst $(comma),$(space),$r))/behav/xsim/simulate.log)
+VIVADO_SIM_LOG=$(foreach r,$1,$(VIVADO_PROJ).sim/$r/behav/xsim/simulate.log)
 
 # simulation
 ifdef VIVADO_SIM_RUN
