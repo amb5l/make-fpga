@@ -151,6 +151,8 @@ elf: rls dbg
 
 else
 
+$(error Unsupported flow: $(VITIS_FLOW))
+
 ################################################################################
 
 endif
