@@ -57,10 +57,10 @@ $(foreach a,$(VSCODE_AUX),$(eval $(call rr_auxlink,$a)))
 
 # V4P configuration file
 $(VSCODE_DIR)/config.v4p: vscode_force $(VSCODE_LIB)
-	@echo "[libraries]" > $@
-	@$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),echo "$l/$(notdir $s)=$l" >> $@;))
-	@echo "[settings]" >> $@
-	@echo "V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(VSCODE_TOP))" >> $@
+	@bash -c "echo \"[libraries]\" > $@"
+	@bash -c "$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),echo \"$l/$(notdir $s)=$l\" >> $@;))"
+	@bash -c "echo \"[settings]\" >> $@"
+	@bash -c "echo \"V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(VSCODE_TOP))\" >> $@"
 
 ################################################################################
 # goals	
