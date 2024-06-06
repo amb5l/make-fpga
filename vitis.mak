@@ -31,8 +31,8 @@ ifeq (classic,$(VITIS_FLOW))
 
 # defaults
 XSCT?=xsct
-VITIS_ELF_RELEASE?=$(VITIS_APP)/Release/$(VITIS_APP).elf
-VITIS_ELF_DEBUG?=$(VITIS_APP)/Debug/$(VITIS_APP).elf
+VITIS_ELF_RLS?=$(VITIS_APP)/Release/$(VITIS_APP).elf
+VITIS_ELF_DBG?=$(VITIS_APP)/Debug/$(VITIS_APP).elf
 
 # local definitions
 XSCT_RUN_TCL=run.tcl
@@ -116,12 +116,12 @@ $(VITIS_DIR)/$(VITIS_PRJ): $$(VIVADO_DIR)/$$(VIVADO_XSA) $(makefiledeps) | $(VIT
 	$(call XSCT_RUN,xsct_tcl_prj)
 
 # release ELF
-$(VITIS_DIR)/$(VITIS_ELF_RELEASE): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
+$(VITIS_DIR)/$(VITIS_ELF_RLS): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
 	$(call banner,Vitis Classic: build release ELF)
 	$(call XSCT_RUN,xsct_tcl_elf,Release)
 
 # debug ELF
-$(VITIS_DIR)/$(VITIS_ELF_DEBUG): $(VITIS_SRC) | $(VITIS_DIR)/$(VITIS_PRJ)
+$(VITIS_DIR)/$(VITIS_ELF_DBG): $(VITIS_SRC) | $(VITIS_DIR)/$(VITIS_PRJ)
 	$(call banner,Vitis Classic: build debug ELF)
 	$(call XSCT_RUN,xsct_tcl_elf,Debug)
 
@@ -134,9 +134,9 @@ vitis_force:
 
 prj:     $(VITIS_DIR)/$(VITIS_PRJ)
 
-release: $(VITIS_DIR)/$(VITIS_ELF_RELEASE)
+release: $(VITIS_DIR)/$(VITIS_ELF_RLS)
 
-debug:   $(VITIS_DIR)/$(VITIS_ELF_DEBUG)
+debug:   $(VITIS_DIR)/$(VITIS_ELF_DBG)
 
 elf:     release debug
 
