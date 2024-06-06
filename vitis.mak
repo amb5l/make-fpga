@@ -15,6 +15,11 @@ $(call check_defined,XILINX_VITIS)
 XILINX_VITIS:=$(call xpath,$(XILINX_VITIS))
 $(call check_defined,VITIS_FLOW)
 
+# checks
+ifndef VITIS_FLOW
+$(error VITIS_FLOW must be defined)
+endif
+
 # defaults
 VITIS_DIR?=vitis
 VITIS_APP?=app
