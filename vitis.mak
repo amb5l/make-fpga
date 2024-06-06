@@ -111,7 +111,7 @@ $(VITIS_DIR):
 
 # project
 .SECONDEXPANSION:
-$(VITIS_DIR)/$(VITIS_PRJ): $$(VIVADO_DIR)/$$(VIVADO_XSA) $(makefiledeps) | $(VITIS_DIR)
+$(VITIS_DIR)/$(VITIS_PRJ): $$(vivado_touch_dir)/$$(VIVADO_PROJ).xsa $(makefiledeps) | $(VITIS_DIR)
 	$(call banner,Vitis Classic: create project)
 	@bash -c "\
 		cd $(VITIS_DIR) && \
