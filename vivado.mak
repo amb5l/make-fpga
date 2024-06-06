@@ -177,7 +177,7 @@ define vivado_tcl_xpr
 	puts "adding simulation sources..."
 	$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
 	foreach f [get_files *.vh*] {
-		if {[string first "$(VIVADO_DIR)/$(VIVADO_PROJ).gen/sources_1/bd/" $$f] == -1} {
+		if {[string first "$(VIVADO_DIR)/$(VIVADO_BD_GEN_DIR)/" $$f] == -1} {
 			set current_type [get_property file_type [get_files $$f]]
 			set desired_type [string map {"-" " "} "$(VIVADO_LANGUAGE)"]
 			if {$$desired_type == "VHDL 1993"} {
