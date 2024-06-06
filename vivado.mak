@@ -46,6 +46,7 @@ VIVADO_SYNTH_DCP=$(VIVADO_PROJ).runs/synth_1/$(VIVADO_DSN_TOP).dcp
 VIVADO_IMPL_DCP=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP)_routed.dcp
 VIVADO_BIT=$(VIVADO_PROJ).runs/impl_1/$(VIVADO_DSN_TOP).bit
 makefiledeps=$(if $(filter true,$(nomakefiledeps)),,$(MAKEFILE_LIST))
+vivado_touch_dir=$(VIVADO_DIR)/touch
 
 # functions
 VIVADO_SRC_FILE=$(foreach s,$1,$(word 1,$(subst =, ,$s)))
@@ -336,40 +337,43 @@ endef
 $(VIVADO_DIR):
 	@bash -c "mkdir -p $@"
 
+# touch directory
+$(vivado_touch_dir):
+	@bash -c "mkdir -p $@"
+
 # create project file
-$(VIVADO_DIR)/$(VIVADO_XPR): $(makefiledeps) | $(VIVADO_DIR)
+$(vivado_touch_dir)/$(VIVADO_PROJ).xpr: $(makefiledeps) | $(VIVADO_DIR) $(vivado_touch_dir)
 	$(call banner,Vivado: create project)
-	@bash -c "rm -f $@"
+	@bash -c "rm -f $(VIVADO_DIR)/$(VIVADO_PROJ).xpr"
 	$(call VIVADO_RUN,vivado_tcl_xpr)
+	@touch $@
 
 # create block diagrams
 define RR_VIVADO_BD
-$(VIVADO_DIR)/$(VIVADO_BD_SRC_DIR)/$(basename $(notdir $1))/$(basename $(notdir $1)).bd: $1 $(VIVADO_DIR)/$(VIVADO_XPR)
+$(vivado_touch_dir)/$(basename $(notdir $1)).bd: $1 $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 	$$(call banner,Vivado: create block diagrams)
 	$$(call VIVADO_RUN,vivado_tcl_bd,$$<)
+	touch $$@
 endef
 $(foreach x,$(VIVADO_BD_TCL),$(eval $(call RR_VIVADO_BD,$x)))
 
 # generate block diagram products
 define RR_VIVADO_BD_GEN
-$(VIVADO_DIR)/$(VIVADO_BD_GEN_DIR)/$(basename $(notdir $1))/synth/$(basename $(notdir $1)).hwdef: $(VIVADO_DIR)/$1
+$(vivado_touch_dir)/$(basename $(notdir $1)).gen: $(vivado_touch_dir)/$(basename $(notdir $1)).bd
 	$$(call banner,Vivado: generate block diagram hardware definitions)
 	$$(call VIVADO_RUN,vivado_tcl_bd_gen,$$<)
-	@touch $$<
 	@touch $$@
 endef
 $(foreach x,$(VIVADO_BD),$(eval $(call RR_VIVADO_BD_GEN,$x)))
 
 # generate hardware handoff (XSA) file
-$(VIVADO_DIR)/$(VIVADO_XSA): $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
+$(vivado_touch_dir)/$(VIVADO_PROJ).xsa: $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $x)).gen))
 	$(call banner,Vivado: create hardware handoff (XSA) file)
 	$(call VIVADO_RUN,vivado_tcl_xsa)
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
 	@touch $@
 
 # synthesis
-$(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF) $(VIVADO_XPR))
+$(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $x)).gen)) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 	$(call banner,Vivado: synthesis)
 	$(call VIVADO_RUN,vivado_tcl_synth)
 	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
@@ -378,8 +382,7 @@ $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP): $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SR
 	@touch $@
 
 # implementation (place and route) and preparation for simulation
-# TODO: implementation changes BD timestamp which upsets dependancies, so force BD modification time backwards
-$(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP) $(VIVADO_XDC_IMPL) $(VIVADO_DSN_ELF) $(VIVADO_SIM_ELF)
+$(vivado_touch_dir)/$(VIVADO_PROJ).impl: $(vivado_touch_dir)/$(VIVADO_PROJ).synth $(VIVADO_XDC_IMPL) $(if $(VITIS_APP),$(vivado_touch_dir)/dsn.elf)
 	$(call banner,Vivado: implementation)
 	$(call VIVADO_RUN,vivado_tcl_impl)
 	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
@@ -392,7 +395,7 @@ $(VIVADO_DIR)/$(VIVADO_IMPL_DCP): $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP) $(VIVADO_XDC
 	@touch $@
 
 # write bitstream
-$(VIVADO_DIR)/$(VIVADO_BIT): $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
+$(vivado_touch_dir)/$(VIVADO_PROJ).bit: $(vivado_touch_dir)/$(VIVADO_PROJ).impl
 	$(call banner,Vivado: write bitstream)
 	$(call VIVADO_RUN,vivado_tcl_bit)
 	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
@@ -407,7 +410,7 @@ $(VIVADO_DIR)/$(VIVADO_BIT): $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 
 # simulation runs
 define rr_simrun
-$(call VIVADO_SIM_LOG,$1): vivado_force $(VIVADO_DIR)/$(VIVADO_XPR)
+$1: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(vivado_touch_dir)/sim_$1.elf)
 	$$(call banner,Vivado: simulation run = $1)
 	$$(call VIVADO_RUN,vivado_tcl_sim_run)
 endef
@@ -420,19 +423,19 @@ $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simrun,$r)))
 
 vivado_force:
 
-xpr   : $(VIVADO_DIR)/$(VIVADO_XPR)
+xpr   : $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 
-bd    : $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
+bd    : $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $x)).bd))
 
-hwdef : $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
+gen   : $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $x)).gen))
 
-xsa   : $(VIVADO_DIR)/$(VIVADO_XSA)
+xsa   : $(vivado_touch_dir)/$(VIVADO_PROJ).xsa
 
-synth : $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
+synth : $(vivado_touch_dir)/$(VIVADO_PROJ).synth
 
-impl  : $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
+impl  : $(vivado_touch_dir)/$(VIVADO_PROJ).impl
 
-bit   : $(VIVADO_DIR)/$(VIVADO_BIT)
+bit   : $(vivado_touch_dir)/$(VIVADO_PROJ).bit
 	@mv $(VIVADO_DIR)/$(VIVADO_BIT) .
 
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval \
