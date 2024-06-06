@@ -456,7 +456,6 @@ synth : $(vivado_touch_dir)/$(VIVADO_PROJ).synth
 impl  : $(vivado_touch_dir)/$(VIVADO_PROJ).impl
 
 bit   : $(vivado_touch_dir)/$(VIVADO_PROJ).bit
-	@mv $(VIVADO_DIR)/$(VIVADO_BIT) .
 
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval \
 $r    : $(addprefix $(VIVADO_DIR)/,$(call VIVADO_SIM_LOG,$r)) \
