@@ -137,13 +137,13 @@ $(VITIS_DIR)/$(VITIS_ELF_DBG): $(VITIS_SRC) | $(VITIS_DIR)/$(VITIS_PRJ)
 
 vitis_force:
 
-prj:     $(VITIS_DIR)/$(VITIS_PRJ)
+prj: $(VITIS_DIR)/$(VITIS_PRJ)
 
-release: $(VITIS_DIR)/$(VITIS_ELF_RLS)
+rls: $(VITIS_DIR)/$(VITIS_ELF_RLS)
 
-debug:   $(VITIS_DIR)/$(VITIS_ELF_DBG)
+dbg: $(VITIS_DIR)/$(VITIS_ELF_DBG)
 
-elf:     release debug
+elf: rls dbg
 
 ################################################################################
 # Unified Flow
