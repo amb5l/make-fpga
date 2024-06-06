@@ -68,6 +68,7 @@ endef
 VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
 VIVADO_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
 VIVADO_XSA=$(VIVADO_DSN_TOP).xsa
+VIVADO_BIT=$(VIVADO_DSN_TOP).bit
 makefiledeps=$(if $(filter true,$(nomakefiledeps)),,$(MAKEFILE_LIST))
 vivado_touch_dir=$(VIVADO_DIR)/touch
 
@@ -364,7 +365,7 @@ define vivado_tcl_bit
 
 	open_project $(VIVADO_PROJ)
 	open_run impl_1
-	write_bitstream -force $(VIVADO_DSN_TOP).bit
+	write_bitstream -force [lindex $$argv 0]
 
 endef
 
@@ -451,7 +452,7 @@ $(vivado_touch_dir)/$(VIVADO_PROJ).impl: $(vivado_touch_dir)/$(VIVADO_PROJ).synt
 # write bitstream
 $(vivado_touch_dir)/$(VIVADO_PROJ).bit: $(vivado_touch_dir)/$(VIVADO_PROJ).impl
 	$(call banner,Vivado: write bitstream)
-	$(call VIVADO_RUN,vivado_tcl_bit)
+	$(call VIVADO_RUN,vivado_tcl_bit,$(abspath $(VIVADO_BIT)))
 	@touch $@
 
 # simulation runs
