@@ -420,36 +420,18 @@ $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simelf,$r)))
 $(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $x)).gen)) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 	$(call banner,Vivado: synthesis)
 	$(call VIVADO_RUN,vivado_tcl_synth)
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
-	@touch $(VIVADO_DIR)/$(VIVADO_XSA)
 	@touch $@
 
 # implementation (place and route) and preparation for simulation
 $(vivado_touch_dir)/$(VIVADO_PROJ).impl: $(vivado_touch_dir)/$(VIVADO_PROJ).synth $(VIVADO_XDC_IMPL) $(if $(VITIS_APP),$(vivado_touch_dir)/dsn.elf)
 	$(call banner,Vivado: implementation)
 	$(call VIVADO_RUN,vivado_tcl_impl)
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
-	@touch $(VIVADO_DIR)/$(VIVADO_XSA)
-	$(addprefix @touch -c ,$(VITIS_DIR)/$(VITIS_PRJ))
-	$(addprefix @touch -c ,$(VIVADO_DSN_ELF))
-	$(addprefix @touch -c ,$(VIVADO_SIM_ELF))
-	@touch $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
 	@touch $@
 
 # write bitstream
 $(vivado_touch_dir)/$(VIVADO_PROJ).bit: $(vivado_touch_dir)/$(VIVADO_PROJ).impl
 	$(call banner,Vivado: write bitstream)
 	$(call VIVADO_RUN,vivado_tcl_bit)
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD))
-	@touch $(addprefix $(VIVADO_DIR)/,$(VIVADO_BD_HWDEF))
-	@touch $(VIVADO_DIR)/$(VIVADO_XSA)
-	$(addprefix @touch -c ,$(VITIS_DIR)/$(VITIS_PRJ))
-	$(addprefix @touch -c ,$(VIVADO_DSN_ELF))
-	$(addprefix @touch -c ,$(VIVADO_SIM_ELF))
-	@touch $(VIVADO_DIR)/$(VIVADO_SYNTH_DCP)
-	@touch $(VIVADO_DIR)/$(VIVADO_IMPL_DCP)
 	@touch $@
 
 # simulation runs
