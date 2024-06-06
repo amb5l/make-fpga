@@ -429,7 +429,7 @@ endef
 
 #-------------------------------------------------------------------------------
 
-define vivado_tcl_sim_run
+define vivado_tcl_sim
 
 	open_project $$(VIVADO_PROJ)
 	current_fileset -simset [get_filesets $1]
@@ -533,7 +533,7 @@ prog: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).bit
 define rr_simrun
 $1: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(vivado_touch_dir)/sim_$1.elf)
 	$$(call banner,Vivado: simulation run = $1)
-	$$(call VIVADO_RUN,vivado_tcl_sim_run)
+	$$(call VIVADO_RUN,vivado_tcl_sim)
 endef
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simrun,$r)))
 
