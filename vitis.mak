@@ -52,10 +52,11 @@ VITIS_PRJ=$(VITIS_APP)/.project
 
 define xsct_tcl_prj
 
+	set xsa [lindex $$argv 0]
 	setws .
-	set proc [getprocessors ../$(VIVADO_DIR)/$(VIVADO_XSA)]
+	set proc [getprocessors $$xsa]
 	puts "creating Vitis Classic project..."
-	app create -name $(VITIS_APP) -hw ../$(VIVADO_DIR)/$(VIVADO_XSA) -os standalone -proc $$proc -template {Empty Application(C)}
+	app create -name $(VITIS_APP) -hw $$xsa -os standalone -proc $$proc -template {Empty Application(C)}
 	set x [list "	<linkedResources>"]
 	puts "adding sources..."
 	foreach filename {$(VITIS_SRC)} {
@@ -139,7 +140,7 @@ $(VITIS_DIR)/$(VITIS_PRJ): $$(vivado_touch_dir)/$$(VIVADO_PROJ).xsa $(makefilede
 		find . -type f -not \( -name '$(XSCT_RUN_TCL)' \) -delete && \
 		find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} + \
 	"
-	$(call XSCT_RUN,xsct_tcl_prj)
+	$(call XSCT_RUN,xsct_tcl_prj,$(abspath $(VIVADO_DIR)/$(VIVADO_XSA)))
 
 # release ELF
 $(VITIS_DIR)/$(VITIS_ELF_RLS): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
