@@ -77,12 +77,11 @@ VIVADO_SRC_FILE=$(foreach s,$1,$(word 1,$(subst =, ,$s)))
 VIVADO_SIM_LOG=$(foreach r,$1,$(VIVADO_PROJ).sim/$r/behav/xsim/simulate.log)
 
 # simulation
-ifdef VIVADO_SIM_RUN
+ifneq (,$(VIVADO_SIM_RUN))
 ifneq (1,$(words $(VIVADO_SIM_RUN)))
 $(foreach r,$(VIVADO_SIM_RUN),$(if $(findstring :,$(word 1,$(subst ;, ,$r))),,$(error Multiple simulation runs must be named)))
 else
 $(if $(findstring :,$(word 1,$(subst ;, ,$(VIVADO_SIM_RUN)))),,$(eval VIVADO_SIM_RUN=sim:$(value VIVADO_SIM_RUN)))
-endif
 endif
 VIVADO_SIM_RUN_NAME=$(foreach r,$(VIVADO_SIM_RUN),$(word 1,$(subst :, ,$r)))
 # sources are neither library nor run specific
@@ -122,6 +121,7 @@ endif
 # libraries are run specific, sources are library and run specific
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(if $(VIVADO_SIM_LIB.$r),,$(error VIVADO_SIM_LIB.$r is empty)))
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),$(if $(VIVADO_SIM_SRC.$l.$r),,$(error VIVADO_SIM_SRC.$l.$r is empty))))
+endif
 
 # constraints
 $(foreach x,$(VIVADO_XDC),$(if $(findstring =,$x),,$(error All constraints must be scoped)))
