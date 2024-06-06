@@ -23,6 +23,7 @@ endif
 VIVADO_DSN_LIB=work
 VIVADO_DSN_SRC.work=$(VIVADO_DSN_SRC)
 endif
+VIVADO_SIM_ELF?=$(VIVADO_DSN_ELF)
 nomakefiledeps?=false
 
 # checks
@@ -284,6 +285,34 @@ endef
 
 #-------------------------------------------------------------------------------
 
+define vivado_tcl_dsn_elf
+
+	set f [lindex $$argv 0]
+	if {$$f != ""} {
+		add_files -norecurse -fileset [get_filesets sources_1] $$f
+		set_property used_in_implementation 1 [get_files -of_objects [get_filesets sources_1] $$f]
+		set_property used_in_simulation 0 [get_files -of_objects [get_filesets sources_1] $$f]
+		set_property SCOPED_TO_REF {$(VIVADO_PROC_REF)} [get_files -of_objects [get_fileset sources_1] $$f]
+		set_property SCOPED_TO_CELLS {$(VIVADO_PROC_CELL)} [get_files -of_objects [get_fileset sources_1] $$f]
+	}
+
+endef
+
+#-------------------------------------------------------------------------------
+
+define vivado_tcl_sim_elf
+
+	set run [lindex $$argv 0]
+	set f   [lindex $$argv 1]
+	add_files -norecurse -fileset [get_filesets $$run] $$f
+	set_property used_in_simulation 1 [get_files -of_objects [get_filesets $$run] $$f]
+	set_property SCOPED_TO_REF {$(VIVADO_PROC_REF)} [get_files -of_objects [get_fileset $$run] $$f]
+	set_property SCOPED_TO_CELLS {$(VIVADO_PROC_CELL)} [get_files -of_objects [get_fileset $$run] $$f]
+
+endef
+
+
+#-------------------------------------------------------------------------------
 
 define vivado_tcl_synth
 
@@ -371,6 +400,21 @@ $(vivado_touch_dir)/$(VIVADO_PROJ).xsa: $(foreach x,$(VIVADO_BD_TCL),$(addprefix
 	$(call banner,Vivado: create hardware handoff (XSA) file)
 	$(call VIVADO_RUN,vivado_tcl_xsa)
 	@touch $@
+
+# associate design ELF file
+$(vivado_touch_dir)/dsn.elf: | $(VIVADO_DSN_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+	$(call banner,Vivado: associate design ELF file)
+	$(call VIVADO_RUN,vivado_tcl_dsn_elf,$(abspath $<))
+	@touch $@
+
+# associate simulation ELF files
+define rr_simelf
+$(vivado_touch_dir)/sim_$1.elf: | $(VIVADO_SIM_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+	$$(call banner,Vivado: associate simulation ELF file (run: $1))
+	$$(call VIVADO_RUN,vivado_tcl_sim_elf,$1,$(abspath $<))
+	@touch $$@
+endef
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simelf,$r)))
 
 # synthesis
 $(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $x)).gen)) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
