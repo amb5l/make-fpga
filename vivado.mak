@@ -259,7 +259,9 @@ define vivado_tcl_xpr
 			set scope [lindex [split "$$x" "="] 1]
 			set_property used_in_synthesis      [expr [string first "SYNTH" "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
 			set_property used_in_implementation [expr [string first "IMPL"  "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+			if {[file extension $$file] == ".tcl"} {
 			set_property used_in_simulation     [expr [string first "SIM"   "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+			}
 		}
 	}
 	if {"$(VIVADO_XDC)" != ""} {
