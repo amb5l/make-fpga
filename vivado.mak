@@ -152,8 +152,9 @@ define vivado_tcl_xpr
 		current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUN_NAME))]
 	}
 	foreach s [get_filesets] {
-		if {!("$s" in {$(VIVADO_SIM_RUN_NAME)})} {
-			delete_fileset $s
+		if {$$s != "sources_1" && $$s != "constrs_1" && $$s != "utils_1"} {
+			if {!("$$s" in {$(VIVADO_SIM_RUN_NAME)})} {
+				delete_fileset $$s
 			}
 		}
 	}
