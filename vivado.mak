@@ -203,10 +203,14 @@ define vivado_tcl_xpr
 			add_files -norecurse -fileset [get_filesets $$target_fileset] $$new_files
 		}
 	}
-	puts "adding design sources..."
-	$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
-	puts "adding simulation sources..."
-	$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
+	if {"$(VIVADO_DSN_LIB)" != ""} {
+		puts "adding design sources..."
+		$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
+	}
+	if {"$(VIVADO_SIM_RUN_NAME)" != ""} {
+		puts "adding simulation sources..."
+		$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
+	}
 	foreach f [get_files *.vh*] {
 		if {[string first "$(VIVADO_DIR)/$(VIVADO_BD_GEN_DIR)/" $$f] == -1} {
 			set current_type [get_property file_type [get_files $$f]]
@@ -235,8 +239,8 @@ define vivado_tcl_xpr
 	$(foreach l,$(VIVADO_DSN_LIB),type_sources sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
 	puts "setting simulation source file types..."
 	$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB),type_sources $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
-	puts "setting top design unit..."
 	if {"$(VIVADO_DSN_TOP)" != ""} {
+		puts "setting top design unit..."
 		if {[get_property top [get_filesets sources_1]] != "$(VIVADO_DSN_TOP)"} {
 			set_property top "$(VIVADO_DSN_TOP)" [get_filesets sources_1]
 		}
@@ -270,12 +274,12 @@ define vivado_tcl_xpr
 			set_property used_in_synthesis      [expr [string first "SYNTH" "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
 			set_property used_in_implementation [expr [string first "IMPL"  "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
 			if {[file extension $$file] == ".tcl"} {
-			set_property used_in_simulation     [expr [string first "SIM"   "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+				set_property used_in_simulation     [expr [string first "SIM"   "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
 			}
 		}
 	}
 	if {"$(VIVADO_XDC)" != ""} {
-		puts "checking/scoping constraints..."
+		puts "scoping constraints..."
 	}
 	scope_constrs {$(VIVADO_XDC)}
 	exit 0
