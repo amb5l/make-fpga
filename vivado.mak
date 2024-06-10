@@ -140,14 +140,13 @@ VIVADO_XDC_SIM=$(foreach x,$(VIVADO_XDC),$(if,$(filter SIM,$(subst $(comma), ,$(
 define vivado_tcl_xpr
 
 	create_project $(if $(VIVADO_PART),-part "$(VIVADO_PART)") -force "$(VIVADO_PROJ)"
-	if {"$(VIVADO_SIM_RUN)" != ""} {
+	if {"$(VIVADO_SIM_RUN_NAME)" != ""} {
 		puts "adding simulation filesets..."
-		foreach r {$(VIVADO_SIM_RUN)} {
-			set run [lindex [split "$$r" ":"] 0]
-			if {!("$$run" in [get_filesets])} {
-				create_fileset -simset $$run
+		foreach r {$(VIVADO_SIM_RUN_NAME)} {
+			if {!("$$r" in [get_filesets])} {
+				create_fileset -simset $$r
 			}
-			set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets $$run]
+			set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets $$r]
 		}
 		current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUN_NAME))]
 	}
