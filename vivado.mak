@@ -14,6 +14,7 @@
 # VIVADO_PART         FPGA part number
 # VIVADO_LANGUAGE     VHDL-1993, VHDL-2008 or Verilog
 # VIVADO_DSN_TOP      name of top design unit (entity or configuration)
+# VIVADO_DSN_GEN      top generics
 # VIVADO_DSN_LIB      list of design libraries (defaults to 'work')
 # VIVADO_DSN_SRC      list of design source files, with optional =language suffix
 # VIVADO_DSN_SRC.l    as above, specific to library l
@@ -239,6 +240,10 @@ define vivado_tcl_xpr
 		if {[get_property top [get_filesets sources_1]] != "$(VIVADO_DSN_TOP)"} {
 			set_property top "$(VIVADO_DSN_TOP)" [get_filesets sources_1]
 		}
+	}
+	if {[llength {$(VIVADO_DSN_GEN)}] > 0} {
+		puts "setting top design unit generics..."
+		set_property generic {$(VIVADO_DSN_GEN)} [get_filesets sources_1]
 	}
 	if {"$(VIVADO_SIM_RUN)" != ""} {
 		puts "setting top unit and generics for simulation filesets..."
