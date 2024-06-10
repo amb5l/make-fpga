@@ -121,6 +121,11 @@ endif
 # libraries are run specific, sources are library and run specific
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(if $(VIVADO_SIM_LIB.$r),,$(error VIVADO_SIM_LIB.$r is empty)))
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),$(if $(VIVADO_SIM_SRC.$l.$r),,$(error VIVADO_SIM_SRC.$l.$r is empty))))
+else
+# simulation runs not specified
+ifneq (,$(VIVADO_SIM_SRC) $(VIVADO_SIM_LIB))
+$(error VIVADO_SIM_RUN not defined)
+endif
 endif
 
 # constraints
