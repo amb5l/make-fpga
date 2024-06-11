@@ -290,8 +290,15 @@ endef
 
 define vivado_tcl_bd
 
-	set f [lindex $$argv 0]
-	set design [file rootname [file tail $$f]]
+	if {$$argc == 2} {
+		set file [lindex $$argv 0]
+		set args [lindex $$argv 1]
+	} else {
+		set file_args [lindex $$argv 0]
+		set file [lindex [split "$$file_args" "="] 0]
+		set args [lindex [split "$$file_args" "="] 1]	
+	}
+	set design [file rootname [file tail $$file]]
 	open_project $(VIVADO_PROJ)
 	if {[get_files -quiet -of_objects [get_filesets sources_1] "$$design.bd"] != ""} {
 		export_ip_user_files -of_objects [get_files -of_objects [get_filesets sources_1] "$$design.bd"] -no_script -reset -force -quiet
@@ -299,7 +306,9 @@ define vivado_tcl_bd
 		file delete -force $(VIVADO_BD_SRC_DIR)/$$design
 		file delete -force $(VIVADO_BD_GEN_DIR)/$$design
 	}
-	source $$f
+	set argv $$args
+	set argc [llength $$argv]
+	source $$file
 
 endef
 
@@ -479,26 +488,26 @@ xpr: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 
 # create block diagrams
 define RR_VIVADO_BD
-$(vivado_touch_dir)/$(basename $(notdir $1)).bd: $1 $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
-	$$(call banner,Vivado: create block diagrams)
-	$$(call VIVADO_RUN,vivado_tcl_bd,$$<)
+$(vivado_touch_dir)/$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).bd: $(call VIVADO_SRC_FILE,$1) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+	$$(call banner,Vivado: create block diagram)
+	$$(call VIVADO_RUN,vivado_tcl_bd,$1)
 	touch $$@
-bd:: $(vivado_touch_dir)/$(basename $(notdir $1)).bd
+bd:: $(vivado_touch_dir)/$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).bd
 endef
 $(foreach x,$(VIVADO_BD_TCL),$(eval $(call RR_VIVADO_BD,$x)))
 
 # generate block diagram products
 define RR_VIVADO_BD_GEN
-$(vivado_touch_dir)/$(basename $(notdir $1)).gen: $(vivado_touch_dir)/$(basename $(notdir $1)).bd
-	$$(call banner,Vivado: generate block diagram hardware definitions)
-	$$(call VIVADO_RUN,vivado_tcl_bd_gen,$$<)
+$(vivado_touch_dir)/$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).gen: $(vivado_touch_dir)/$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).bd
+	$$(call banner,Vivado: generate block diagram products)
+	$$(call VIVADO_RUN,vivado_tcl_bd_gen,$(call VIVADO_SRC_FILE,$1))
 	@touch $$@
-gen:: $(vivado_touch_dir)/$(basename $(notdir $1)).gen
+gen:: $(vivado_touch_dir)/$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).gen
 endef
 $(foreach x,$(VIVADO_BD_TCL),$(eval $(call RR_VIVADO_BD_GEN,$x)))
 
 # generate hardware handoff (XSA) file
-$(vivado_touch_dir)/$(VIVADO_PROJ).xsa: $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $x)).gen))
+$(vivado_touch_dir)/$(VIVADO_PROJ).xsa: $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $(call VIVADO_SRC_FILE,$x))).gen))
 	$(call banner,Vivado: create hardware handoff (XSA) file)
 	$(call VIVADO_RUN,vivado_tcl_xsa)
 	@touch $@
@@ -520,7 +529,7 @@ endef
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simelf,$r)))
 
 # synthesis
-$(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $x)).gen)) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+$(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $(call VIVADO_SRC_FILE,$x))).gen)) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 	$(call banner,Vivado: synthesis)
 	$(call VIVADO_RUN,vivado_tcl_synth)
 	@touch $@
