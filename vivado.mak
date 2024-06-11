@@ -529,14 +529,14 @@ endef
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simelf,$r)))
 
 # synthesis
-$(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l)) $(VIVADO_XDC_SYNTH) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $(call VIVADO_SRC_FILE,$x))).gen)) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+$(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(call VIVADO_SRC_FILE,$(foreach l,$(VIVADO_DSN_LIB),$(VIVADO_DSN_SRC.$l))) $(call VIVADO_SRC_FILE,$(VIVADO_XDC_SYNTH)) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $(call VIVADO_SRC_FILE,$x))).gen)) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 	$(call banner,Vivado: synthesis)
 	$(call VIVADO_RUN,vivado_tcl_synth)
 	@touch $@
 synth: $(vivado_touch_dir)/$(VIVADO_PROJ).synth
 
 # implementation (place and route) and preparation for simulation
-$(vivado_touch_dir)/$(VIVADO_PROJ).impl: $(vivado_touch_dir)/$(VIVADO_PROJ).synth $(VIVADO_XDC_IMPL) $(if $(VITIS_APP),$(vivado_touch_dir)/dsn.elf)
+$(vivado_touch_dir)/$(VIVADO_PROJ).impl: $(vivado_touch_dir)/$(VIVADO_PROJ).synth $(call VIVADO_SRC_FILE,$(VIVADO_XDC_IMPL)) $(if $(VITIS_APP),$(vivado_touch_dir)/dsn.elf)
 	$(call banner,Vivado: implementation)
 	$(call VIVADO_RUN,vivado_tcl_impl)
 	@touch $@
