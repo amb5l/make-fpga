@@ -494,7 +494,7 @@ $(foreach x,$(VIVADO_BD_TCL),$(eval $(call RR_VIVADO_BD,$x)))
 define RR_VIVADO_BD_GEN
 $(vivado_touch_dir)/$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).gen: $(vivado_touch_dir)/$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).bd
 	$$(call banner,Vivado: generate block diagram products)
-	$$(call VIVADO_RUN,vivado_tcl_bd_gen,$(call VIVADO_SRC_FILE,$1))
+	$$(call VIVADO_RUN,vivado_tcl_bd_gen,$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).bd)
 	@touch $$@
 gen:: $(vivado_touch_dir)/$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).gen
 endef
