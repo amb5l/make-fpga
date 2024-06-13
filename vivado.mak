@@ -491,7 +491,7 @@ define RR_VIVADO_BD
 $(vivado_touch_dir)/$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).bd: $(call VIVADO_SRC_FILE,$1) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 	$$(call banner,Vivado: create block diagram)
 	$$(call VIVADO_RUN,vivado_tcl_bd,$1)
-	touch $$@
+	@touch $$@
 bd:: $(vivado_touch_dir)/$(basename $(notdir $(call VIVADO_SRC_FILE,$1))).bd
 endef
 $(foreach x,$(VIVADO_BD_TCL),$(eval $(call RR_VIVADO_BD,$x)))
