@@ -89,6 +89,13 @@ define xsct_tcl_prj
 	set f [open "$(VITIS_PRJ)" "w"]
 	puts $$f [join $$lines "\n"]
 	close $$f
+	puts "setting include paths..."
+	foreach p {$(VITIS_INC)} {
+		app config -name $(VITIS_APP) build-config release
+		app config -name $(VITIS_APP) include-path $$p
+		app config -name $(VITIS_APP) build-config debug
+		app config -name $(VITIS_APP) include-path $$p
+	}
 	puts "defining preprocessor symbols..."
 	foreach s {$(VITIS_SYM)} {
 		app config -name $(VITIS_APP) build-config release
