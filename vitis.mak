@@ -196,5 +196,106 @@ $(error Unsupported flow: $(VITIS_FLOW))
 
 endif
 
+################################################################################
+# Visual Studio Code
+
+VSCODE_DIR_RLS=$(VITIS_DIR)/$(VITIS_APP)/Release/vscode
+VSCODE_DIR_DBG=$(VITIS_DIR)/$(VITIS_APP)/Debug/vscode
+VSCODE_SRC=$(VITIS_SRC)
+
+# workspace directories
+$(VSCODE_DIR_RLS):
+	@bash -c "mkdir -p $@"
+$(VSCODE_DIR_RLS)/.vscode:
+	@bash -c "mkdir -p $@"
+$(VSCODE_DIR_DBG):
+	@bash -c "mkdir -p $@"
+$(VSCODE_DIR_DBG)/.vscode:
+	@bash -c "mkdir -p $@"
+
+# souce directory containing symbolic link(s) to source(s)
+$(VSCODE_DIR_RLS)/src: $(addprefix $$(VSCODE_DIR_RLS)/src/,$(notdir $(VSCODE_SRC)))
+$(VSCODE_DIR_DBG)/src: $(addprefix $$(VSCODE_DIR_DBG)/src/,$(notdir $(VSCODE_SRC)))
+
+# symbolic links to source files
+ifeq ($(OS),Windows_NT)
+define rr_srclink
+$$(VSCODE_DIR_RLS)/src/$(notdir $1): $1
+	@bash -c "mkdir -p $$(@D)"
+	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
+$$(VSCODE_DIR_DBG)/src/$(notdir $1): $1
+	@bash -c "mkdir -p $$(@D)"
+	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
+endef
+else
+define rr_srclink
+$$(VSCODE_DIR_RLS)/$1/$(notdir $1): $1
+	@mkdir -p $$(@D)
+	@ln $$< $$@
+$$(VSCODE_DIR_DBG)/$1/$(notdir $1): $1
+	@mkdir -p $$(@D)
+	@ln $$< $$@
+endef
+endif
+$(foreach s,$(VSCODE_SRC),$(eval $(call rr_srclink,$s)))
+
+define settings_rls
+{
+    "configurations": [
+        {
+            "name": "Vitis",
+            "includePath": [
+				$(foreach i,$(VITIS_INC),"$i",)
+                "$(XILINX_VITIS)\\gnu\\$(if $(filter mbv,$(CPU)),riscv,microblaze)\\**\\*xilinx-elf)\\usr\\include",
+                "$${workspaceFolder}\\..\\..\\..\\*\\*\\standalone_domain\\bsp\\*\\include"
+            ],
+            "defines": [
+				$(foreach s,$(VITIS_SYM) $(VITIS_SYM_RLS),"$s",)
+            ],
+            "compilerPath": "$(XILINX_VITIS)\\gnu\\$(if $(filter mbv,$(CPU)),riscv\\nt\\riscv64-unknown-elf\\bin\\riscv64-unknown-elf-gcc,microblaze\\nt\\bin\\mb-gcc).exe",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
+endef
+
+define settings_dbg
+{
+    "configurations": [
+        {
+            "name": "Vitis",
+            "includePath": [
+				$(foreach i,$(VITIS_INC),"$i",)
+                "$(XILINX_VITIS)\\gnu\\$(if $(filter mbv,$(CPU)),riscv,microblaze)\\**\\*xilinx-elf)\\usr\\include",
+                "$${workspaceFolder}\\..\\..\\..\\*\\*\\standalone_domain\\bsp\\*\\include"
+            ],
+            "defines": [
+				$(foreach s,$(VITIS_SYM) $(VITIS_SYM_DBG),"$s",)
+            ],
+            "compilerPath": "$(XILINX_VITIS)\\gnu\\$(if $(filter mbv,$(CPU)),riscv\\nt\\riscv64-unknown-elf\\bin\\riscv64-unknown-elf-gcc,microblaze\\nt\\bin\\mb-gcc).exe",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
+endef
+
+$(VSCODE_DIR_RLS)/.vscode/c_cpp_properties.json: vitis_force | $(VSCODE_DIR_RLS)/.vscode
+	$(file >$@,$(settings_rls))
+$(VSCODE_DIR_DBG)/.vscode/c_cpp_properties.json: vitis_force | $(VSCODE_DIR_DBG)/.vscode
+	$(file >$@,$(settings_dbg))
+
+ve:: $(VSCODE_DIR_RLS)/.vscode/c_cpp_properties.json $(VSCODE_DIR_RLS)/src
+	@cd $(VSCODE_DIR_RLS) && touch Release && code .
+ve:: $(VSCODE_DIR_DBG)/.vscode/c_cpp_properties.json $(VSCODE_DIR_DBG)/src
+	@cd $(VSCODE_DIR_DBG) && touch Debug && code .
+
+################################################################################
+
 clean::
 	@rm -rf $(VITIS_DIR)
