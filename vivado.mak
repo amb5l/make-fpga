@@ -300,11 +300,11 @@ define vivado_tcl_dsn_elf
 
 	set f [lindex $$argv 0]
 	open_project $(VIVADO_PROJ)
-		add_files -norecurse -fileset [get_filesets sources_1] $$f
-		set_property used_in_implementation 1 [get_files -of_objects [get_filesets sources_1] $$f]
-		set_property used_in_simulation 0 [get_files -of_objects [get_filesets sources_1] $$f]
-		set_property SCOPED_TO_REF {$(VIVADO_PROC_REF)} [get_files -of_objects [get_fileset sources_1] $$f]
-		set_property SCOPED_TO_CELLS {$(VIVADO_PROC_CELL)} [get_files -of_objects [get_fileset sources_1] $$f]
+	add_files -norecurse -fileset [get_filesets sources_1] $$f
+	set_property used_in_implementation 1 [get_files -of_objects [get_filesets sources_1] $$f]
+	set_property used_in_simulation 0 [get_files -of_objects [get_filesets sources_1] $$f]
+	set_property SCOPED_TO_REF {$(VIVADO_PROC_REF)} [get_files -of_objects [get_fileset sources_1] $$f]
+	set_property SCOPED_TO_CELLS {$(VIVADO_PROC_CELL)} [get_files -of_objects [get_fileset sources_1] $$f]
 
 endef
 
