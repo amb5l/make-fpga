@@ -299,13 +299,12 @@ endef
 define vivado_tcl_dsn_elf
 
 	set f [lindex $$argv 0]
-	if {$$f != ""} {
+	open_project $(VIVADO_PROJ)
 		add_files -norecurse -fileset [get_filesets sources_1] $$f
 		set_property used_in_implementation 1 [get_files -of_objects [get_filesets sources_1] $$f]
 		set_property used_in_simulation 0 [get_files -of_objects [get_filesets sources_1] $$f]
 		set_property SCOPED_TO_REF {$(VIVADO_PROC_REF)} [get_files -of_objects [get_fileset sources_1] $$f]
 		set_property SCOPED_TO_CELLS {$(VIVADO_PROC_CELL)} [get_files -of_objects [get_fileset sources_1] $$f]
-	}
 
 endef
 
@@ -315,6 +314,7 @@ define vivado_tcl_sim_elf
 
 	set run [lindex $$argv 0]
 	set f   [lindex $$argv 1]
+	open_project $(VIVADO_PROJ)
 	add_files -norecurse -fileset [get_filesets $$run] $$f
 	set_property used_in_simulation 1 [get_files -of_objects [get_filesets $$run] $$f]
 	set_property SCOPED_TO_REF {$(VIVADO_PROC_REF)} [get_files -of_objects [get_fileset $$run] $$f]
@@ -477,16 +477,16 @@ $(vivado_touch_dir)/$(VIVADO_PROJ).xsa: $(foreach x,$(VIVADO_BD_TCL),$(addprefix
 xsa: $(vivado_touch_dir)/$(VIVADO_PROJ).xsa
 
 # associate design ELF file
-$(vivado_touch_dir)/dsn.elf: | $(VIVADO_DSN_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+$(vivado_touch_dir)/dsn.elf: $(VIVADO_DSN_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 	$(call banner,Vivado: associate design ELF file)
 	$(call VIVADO_RUN,vivado_tcl_dsn_elf,$(abspath $<))
 	@touch $@
 
 # associate simulation ELF files
 define rr_simelf
-$(vivado_touch_dir)/sim_$1.elf: | $(VIVADO_SIM_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+$(vivado_touch_dir)/sim_$1.elf: $(VIVADO_SIM_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 	$$(call banner,Vivado: associate simulation ELF file (run: $1))
-	$$(call VIVADO_RUN,vivado_tcl_sim_elf,$1,$(abspath $<))
+	$$(call VIVADO_RUN,vivado_tcl_sim_elf,$1 $$(abspath $$<))
 	@touch $$@
 endef
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simelf,$r)))
