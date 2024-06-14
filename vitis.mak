@@ -290,9 +290,9 @@ $(VSCODE_DIR_RLS)/.vscode/c_cpp_properties.json: vitis_force | $(VSCODE_DIR_RLS)
 $(VSCODE_DIR_DBG)/.vscode/c_cpp_properties.json: vitis_force | $(VSCODE_DIR_DBG)/.vscode
 	$(file >$@,$(settings_dbg))
 
-ve:: $(VSCODE_DIR_RLS)/.vscode/c_cpp_properties.json $(VSCODE_DIR_RLS)/src
+edit:: $(VSCODE_DIR_RLS)/.vscode/c_cpp_properties.json $(VSCODE_DIR_RLS)/src
 	@cd $(VSCODE_DIR_RLS) && touch Release && code .
-ve:: $(VSCODE_DIR_DBG)/.vscode/c_cpp_properties.json $(VSCODE_DIR_DBG)/src
+edit:: $(VSCODE_DIR_DBG)/.vscode/c_cpp_properties.json $(VSCODE_DIR_DBG)/src
 	@cd $(VSCODE_DIR_DBG) && touch Debug && code .
 
 ################################################################################
