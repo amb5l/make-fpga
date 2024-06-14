@@ -64,7 +64,7 @@ $(call check_defined_alt,VIVADO_DSN_TOP VIVADO_SIM_TOP)
 VIVADO_RUN_TCL=run.tcl
 define VIVADO_RUN
 	$(file >$(VIVADO_DIR)/$(VIVADO_RUN_TCL),set code [catch { $($1) } result]; puts $$result; exit $$code)
-	@cd $(VIVADO_DIR) && $(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(VIVADO_RUN_TCL) $(addprefix -tclargs ,$(subst ;,\;,$2))
+	@cd $(VIVADO_DIR) && $(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(VIVADO_RUN_TCL) $(addprefix -tclargs ,$2)
 endef
 VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
 VIVADO_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
