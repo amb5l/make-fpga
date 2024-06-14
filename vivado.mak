@@ -172,44 +172,13 @@ define vivado_tcl_xpr
 	if {[get_property target_language [current_project]] != "$(VIVADO_LANGUAGE)"} {
 		set_property target_language "$$target_language" [current_project]
 	}
-	proc update_files {target_fileset new_files} {
-		proc diff_files {a b} {
-			set r [list]
-			foreach f $$a {
-				if {!("$$f" in "$$b")} {
-					lappend r $$f
-				}
-			}
-			return $$r
-		}
-		set current_files [get_files -quiet -of_objects [get_fileset $$target_fileset] *.*]
-		if {[llength $$current_files]} {
-			set missing_files [diff_files $$new_files $$current_files]
-			if {[llength $$missing_files]} {
-				add_files -norecurse -fileset [get_filesets $$target_fileset] $$missing_files
-			}
-			set l [diff_files $$current_files $$new_files]
-			set surplus_files [list]
-			set exclude {.bd .xci}
-			foreach f $$l {
-				if {!([file extension $$f] in $$exclude) && !([string first "$(VIVADO_DIR)/$(VIVADO_BD_GEN_DIR)/" $$f] != -1)} {
-					lappend surplus_files $$f
-				}
-			}
-			if {[llength $$surplus_files]} {
-				remove_files -fileset $$target_fileset $$surplus_files
-			}
-		} else {
-			add_files -norecurse -fileset [get_filesets $$target_fileset] $$new_files
-		}
-	}
 	if {"$(VIVADO_DSN_LIB)" != ""} {
 		puts "adding design sources..."
-		$(foreach l,$(VIVADO_DSN_LIB),update_files sources_1 {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
+		$(foreach l,$(VIVADO_DSN_LIB),add_files -norecurse -fileset [get_filesets sources_1] {$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))};)
 	}
 	if {"$(VIVADO_SIM_RUN_NAME)" != ""} {
 		puts "adding simulation sources..."
-		$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),update_files $r {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
+		$(foreach r,$(VIVADO_SIM_RUN_NAME),$(foreach l,$(VIVADO_SIM_LIB.$r),add_files -norecurse -fileset [get_filesets $r] {$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l.$r))};))
 	}
 	foreach f [get_files *.vh*] {
 		if {[string first "$(VIVADO_DIR)/$(VIVADO_BD_GEN_DIR)/" $$f] == -1} {
@@ -266,7 +235,7 @@ define vivado_tcl_xpr
 	if {"$(VIVADO_XDC)" != ""} {
 		puts "adding constraints..."
 	}
-	$(if $(VIVADO_XDC),update_files constrs_1 {$(call VIVADO_SRC_FILE,$(VIVADO_XDC))})
+	$(if $(VIVADO_XDC),add_files -norecurse -fileset [get_filesets constrs_1] {$(call VIVADO_SRC_FILE,$(VIVADO_XDC))})
 	proc scope_constrs {xdc} {
 		foreach x $$xdc {
 			set file  [lindex [split "$$x" "="] 0]
@@ -547,6 +516,10 @@ bit: $(vivado_touch_dir)/$(VIVADO_PROJ).bit
 prog: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).bit
 	$(call banner,Vivado: program)
 	$(call VIVADO_RUN,vivado_tcl_prog,$(abspath $(VIVADO_BIT)))
+
+# simulation preparation
+simprep: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf))
+	$(call banner,Vivado: simulation preparation)
 
 # simulation runs
 define rr_simrun
