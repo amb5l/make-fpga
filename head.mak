@@ -32,6 +32,7 @@ check_defined=$(if $($1),,$(error $1 is undefined))
 check_defined_alt=$(if $(foreach a,$1,$($a)),,$(error none of $1 are undefined))
 check_option=$(if $(filter $2,$($1)),,$(error $1 should be one of: $2))
 check_shell_error=$(if $(filter 0,$(.SHELLSTATUS)),,$(error $1))
+uniq=$(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
 
 make_fpga?=$(call xpath,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 

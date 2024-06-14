@@ -458,7 +458,7 @@ define vivado_tcl_sim
 endef
 
 ################################################################################
-# rules and recipes
+# Vivado rules and recipes
 
 .PHONY: vivado_force xpr bd hwdef xsa synth impl bit $(VIVADO_SIM_RUN_NAME)
 
@@ -555,6 +555,68 @@ $1: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(viva
 	$$(call VIVADO_RUN,vivado_tcl_sim)
 endef
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simrun,$r)))
+
+################################################################################
+# Visual Studio Code
+
+VSCODE_DIR=$(VIVADO_DIR)/vscode
+VSCODE_TOP=$(VIVADO_DSN_TOP) $(foreach r,$(VIVADO_SIM_RUN),$(word 2,$(subst ;, ,$(subst :, ,,$r))))
+VSCODE_LIB=$(call uniq,$(VIVADO_DSN_LIB) $(VIVADO_DSN_XLIB) $(VIVADO_SIM_LIB))
+$(foreach l,$(VIVADO_DSN_LIB),$(eval VSCODE_SRC.$l+=$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))))
+$(foreach l,$(VIVADO_DSN_XLIB),$(eval VSCODE_SRC.$l+=$(call VIVADO_SRC_FILE,$(VIVADO_DSN_XSRC.$l))))
+$(foreach l,$(VIVADO_SIM_LIB),$(eval VSCODE_SRC.$l+=$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l))))
+VSCODE_AUX=\
+	$(call VIVADO_SRC_FILE,$(VIVADO_BD_TCL)) \
+	$(call VIVADO_SRC_FILE,$(VIVADO_XDC))
+
+# workspace directory
+$(VSCODE_DIR):
+	@bash -c "mkdir -p $@"
+
+# library directory(s) containing symbolic link(s) to source(s)
+$(foreach l,$(VSCODE_LIB),$(eval $l: $(addprefix $$(VSCODE_DIR)/$l/,$(notdir $(VSCODE_SRC.$l)))))
+
+# symbolic links to source files
+ifeq ($(OS),Windows_NT)
+define rr_srclink
+$$(VSCODE_DIR)/$1/$(notdir $2): $2
+	@bash -c "mkdir -p $$(dir $$@)"
+	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
+endef
+else
+define rr_srclink
+$$(VSCODE_DIR)/$1/$(notdir $2): $2
+	@mkdir -p $$(dir $$@)
+	@ln $$< $$@
+endef
+endif
+$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),$(eval $(call rr_srclink,$l,$s))))
+
+# symbolic links to auxilliary text files
+ifeq ($(OS),Windows_NT)
+define rr_auxlink
+$$(VSCODE_DIR)/$(notdir $1): $1
+	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
+endef
+else
+define rr_auxlink
+$$(VSCODE_DIR)/$(notdir $1): $1
+	@ln $$< $$@
+endef
+endif
+$(foreach a,$(VSCODE_AUX),$(eval $(call rr_auxlink,$a)))
+
+# V4P configuration file
+$(VSCODE_DIR)/config.v4p: vivado_force $(VSCODE_LIB)
+	@bash -c "echo \"[libraries]\" > $@"
+	@bash -c "$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),echo \"$l/$(notdir $s)=$l\" >> $@;))"
+	@bash -c "echo \"[settings]\" >> $@"
+	@bash -c "echo \"V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(VSCODE_TOP))\" >> $@"
+
+edit:: $(VSCODE_DIR)/config.v4p $(addprefix $(VSCODE_DIR)/,$(VSCODE_LIB)) $(addprefix $(VSCODE_DIR)/,$(notdir $(VSCODE_AUX)))
+	@cd $(VSCODE_DIR) && code .
+
+################################################################################
 
 clean::
 	@rm -rf $(VIVADO_DIR)
