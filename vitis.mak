@@ -145,7 +145,7 @@ $(VITIS_DIR)/$(VITIS_PRJ): $$(vivado_touch_dir)/$$(VIVADO_PROJ).xsa $(makefilede
 	@bash -c "\
 		cd $(VITIS_DIR) && \
 		find . -type f -not \( -name '$(XSCT_RUN_TCL)' \) -delete && \
-		find . -type d -not \( -name '.' -or -name '..' \) -exec rm -rf {} + \
+		find . -type d -not \( -name 'vscode' -or -name '.' -or -name '..' \) -exec rm -rf {} + \
 	"
 	$(call XSCT_RUN,xsct_tcl_prj,$(abspath $(VIVADO_DIR)/$(VIVADO_XSA)))
 
