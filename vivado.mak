@@ -553,7 +553,7 @@ $(foreach l,$(VSCODE_LIB),$(eval $l: $(addprefix $$(VSCODE_DIR)/$l/,$(notdir $(V
 ifeq ($(OS),Windows_NT)
 define rr_srclink
 $$(VSCODE_DIR)/$1/$(notdir $2): $2
-	@bash -c "mkdir -p $$(dir $$@)"
+	@bash -c "mkdir -p $$(dir $$@) && rm -f $$@"
 	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 endef
 else
