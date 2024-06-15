@@ -227,10 +227,10 @@ $(VSCODE_DIR_DBG)/src: $(addprefix $$(VSCODE_DIR_DBG)/src/,$(notdir $(VSCODE_SRC
 ifeq ($(OS),Windows_NT)
 define rr_srclink
 $$(VSCODE_DIR_RLS)/src/$(notdir $1): $1
-	@bash -c "mkdir -p $$(@D)"
+	@bash -c "mkdir -p $$(@D) && rm -f $$@"
 	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 $$(VSCODE_DIR_DBG)/src/$(notdir $1): $1
-	@bash -c "mkdir -p $$(@D)"
+	@bash -c "mkdir -p $$(@D) && rm -f $$@"
 	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 endef
 else
