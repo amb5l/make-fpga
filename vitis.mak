@@ -145,7 +145,13 @@ $(VITIS_DIR)/$(VITIS_PRJ): $$(vivado_touch_dir)/$$(VIVADO_PROJ).xsa $(makefilede
 	@bash -c "\
 		cd $(VITIS_DIR) && \
 		find . -type f -not \( -name '$(XSCT_RUN_TCL)' \) -delete && \
-		find . -type d -not \( -name 'vscode' -or -name '.' -or -name '..' \) -exec rm -rf {} + \
+		find . -maxdepth 1 -type d -not \( -name '$(VITIS_APP)' -or -name '.' -or -name '..' \) -exec rm -rf {} + && \
+		find ./$(VITIS_APP)/Release -type f -delete && \
+		find ./$(VITIS_APP)/Release -maxdepth 1 -type d -not \( -wholename './$(VITIS_APP)/Release' -or -wholename './$(VITIS_APP)/Release/vscode' -or -name '.' -or -name '..' \) -exec rm -rf {} + && \
+		find ./$(VITIS_APP)/Debug -type f -delete && \
+		find ./$(VITIS_APP)/Debug -maxdepth 1 -type d -not \( -wholename './$(VITIS_APP)/Debug' -or -wholename './$(VITIS_APP)/Debug/vscode' -or -name '.' -or -name '..' \) -exec rm -rf {} + && \
+		find ./$(VITIS_APP) -type f -delete && \
+		find ./$(VITIS_APP) -maxdepth 1 -type d -not \( -wholename './$(VITIS_APP)' -or -wholename './$(VITIS_APP)/Release' -or -wholename './$(VITIS_APP)/Release/vscode' -or -wholename './$(VITIS_APP)/Debug' -or -wholename './$(VITIS_APP)/Debug/vscode' -or -name 'Debug' -or -name '.' -or -name '..' \) -exec rm -rf {} + \
 	"
 	$(call XSCT_RUN,xsct_tcl_prj,$(abspath $(VIVADO_DIR)/$(VIVADO_XSA)))
 
