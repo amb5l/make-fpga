@@ -570,6 +570,7 @@ $(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),$(eval $(call rr_srclink,
 ifeq ($(OS),Windows_NT)
 define rr_auxlink
 $$(VSCODE_DIR)/$(notdir $1): $1
+	@bash -c "rm -f $$@"
 	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
 endef
 else
