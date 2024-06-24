@@ -225,7 +225,7 @@ $(VSCODE_DIR_DBG):
 $(VSCODE_DIR_DBG)/.vscode:
 	@bash -c "mkdir -p $@"
 
-# souce directory containing symbolic link(s) to source(s)
+# source directory, containing symbolic link(s) to source(s)
 $(VSCODE_DIR_RLS)/src: $(addprefix $$(VSCODE_DIR_RLS)/src/,$(notdir $(VSCODE_SRC)))
 $(VSCODE_DIR_DBG)/src: $(addprefix $$(VSCODE_DIR_DBG)/src/,$(notdir $(VSCODE_SRC)))
 
