@@ -363,49 +363,31 @@ define vivado_tcl_prog
 
 	set file    [lindex $$argv 0]
 	set hw_spec [lindex $$argv 1]
+	set hw_interface 0
+	set hw_device 0
 	if {$$hw_spec != ""} {
 		if {[string first . $$hw_spec] != -1} {
 			set hw_spec_list [split $$hw_spec .]
-			set hw_target [lindex $$hw_spec_list 0]
+			set hw_interface [lindex $$hw_spec_list 0]
 			set hw_device [lindex $$hw_spec_list 1]
+		} else {
+			set hw_interface $$hw_spec
 		}
 	}
 	open_hw_manager
 	connect_hw_server
-	set hw_target_list [get_hw_targets]
+	set hw_interface_list [get_hw_targets]
 	puts "-------------------------------------------------------------------------------"
 	puts "interfaces:"
-	for {set x 0} {$$x < [llength $$hw_target_list]} {incr x} {
-		puts "  $$x: [lindex $$hw_target_list $$x]"
+	for {set x 0} {$$x < [llength $$hw_interface_list]} {incr x} {
+		puts "  $$x: [lindex $$hw_interface_list $$x]"
 	}
-	if {[llength $$hw_target_list] > 1} {
-		if {![info exists hw_target]} {
-			if {![info exists hw_spec]} {
-				error_exit {"prog - hardware interface not specified (e.g. make prog HW=0.1)"}
-			} else {
-				set hw_target $$hw_spec
-			}
-		}
-	} else {
-		set hw_target 0
-	}
-	puts "opening target $$hw_target: [lindex $$hw_target_list $$hw_target]"
-	open_hw_target -quiet [lindex $$hw_target_list $$hw_target]
+	puts "opening interface $$hw_interface: [lindex $$hw_interface_list $$hw_interface]"
+	open_hw_target -quiet [lindex $$hw_interface_list $$hw_interface]
 	set hw_device_list [get_hw_devices]
 	puts "devices:"
 	for {set x 0} {$$x < [llength $$hw_device_list]} {incr x} {
 		puts "  $$x: [lindex $$hw_device_list $$x]"
-	}
-	if {[llength $$hw_device_list] > 1} {
-		if {![info exists hw_device]} {
-			if {![info exists hw_spec]} {
-				error_exit {"prog - hardware device not specified (e.g. make prog HW=0.1)"}
-			} else {
-				set hw_device $$hw_spec
-			}
-		}
-	} else {
-		set hw_device 0
 	}
 	puts "programming device $$hw_device: [lindex $$hw_device_list $$hw_device]"
 	puts "-------------------------------------------------------------------------------"
