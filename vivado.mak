@@ -517,9 +517,9 @@ $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simrun,$r)))
 
 VSCODE_DIR=$(VIVADO_DIR)/vscode
 VSCODE_TOP=$(VIVADO_DSN_TOP) $(foreach r,$(VIVADO_SIM_RUN),$(word 2,$(subst ;, ,$(subst :, ,,$r))))
-VSCODE_LIB=$(call uniq,$(VIVADO_DSN_LIB) $(VIVADO_DSN_XLIB) $(VIVADO_SIM_LIB))
+VSCODE_LIB=$(call uniq,$(VIVADO_DSN_LIB) $(VIVADO_XLIB) $(VIVADO_SIM_LIB))
 $(foreach l,$(VIVADO_DSN_LIB),$(eval VSCODE_SRC.$l+=$(call VIVADO_SRC_FILE,$(VIVADO_DSN_SRC.$l))))
-$(foreach l,$(VIVADO_DSN_XLIB),$(eval VSCODE_SRC.$l+=$(call VIVADO_SRC_FILE,$(VIVADO_DSN_XSRC.$l))))
+$(foreach l,$(VIVADO_XLIB),$(eval VSCODE_SRC.$l+=$(call VIVADO_SRC_FILE,$(VIVADO_XSRC.$l))))
 $(foreach l,$(VIVADO_SIM_LIB),$(eval VSCODE_SRC.$l+=$(call VIVADO_SRC_FILE,$(VIVADO_SIM_SRC.$l))))
 VSCODE_AUX=\
 	$(call VIVADO_SRC_FILE,$(VIVADO_BD_TCL)) \
