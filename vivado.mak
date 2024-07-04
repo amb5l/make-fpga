@@ -519,10 +519,10 @@ $(foreach a,$(VSCODE_AUX),$(eval $(call rr_auxlink,$a)))
 
 # V4P configuration file
 $(VSCODE_DIR)/config.v4p: vivado_force $(VSCODE_LIB)
-	@$(ECHO) "[libraries]" > $@
-	@$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),$(ECHO) "$l/$(notdir $s)=$l" >> $@;))
-	@$(ECHO) "[settings]" >> $@
-	@$(ECHO) "V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(VSCODE_TOP))" >> $@
+	@printf "[libraries]\n" > $@
+	$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),@printf "$l/$(notdir $s)=$l\n" >> $@$(newline)))
+	@printf "[settings]\n" >> $@
+	@printf "V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(VSCODE_TOP))\n" >> $@
 
 edit:: $(VSCODE_DIR)/config.v4p $(addprefix $(VSCODE_DIR)/,$(VSCODE_LIB)) $(addprefix $(VSCODE_DIR)/,$(notdir $(VSCODE_AUX)))
 	@cd $(VSCODE_DIR) && code .

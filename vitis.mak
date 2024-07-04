@@ -150,18 +150,18 @@ $(VITIS_DIR)/$(VITIS_ELF_RLS): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
 	$(call banner,Vitis Classic: build release ELF)
 	@rm -f $@
 	$(call xsct_run,xsct_elf_tcl,Release)
-	@echo Checking that ELF file has built correctly...
+	@printf "Checking that ELF file has built correctly..."
 	@[ -f $@ ]
-	@echo OK
+	@printf "OK"
 
 # debug ELF
 $(VITIS_DIR)/$(VITIS_ELF_DBG): $(VITIS_SRC) | $(VITIS_DIR)/$(VITIS_PRJ)
 	$(call banner,Vitis Classic: build debug ELF)
 	@rm -f $@
 	$(call xsct_run,xsct_elf_tcl,Debug)
-	@echo Checking that ELF file has built correctly...
+	@printf "Checking that ELF file has built correctly..."
 	@[ -f $@ ]
-	@echo OK
+	@printf "OK"
 
 ################################################################################
 # goals

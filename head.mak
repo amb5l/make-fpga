@@ -7,6 +7,10 @@
 
 space:=$(subst x, ,x)
 comma:=,
+define newline
+
+
+endef
 col_rst:=\033[0m
 col_bg_blk:=\033[0;100m
 col_bg_red:=\033[0;101m
@@ -41,8 +45,6 @@ banner=@printf "$(col_bg_wht)$(col_fg_blu)--------------------------------------
 
 ifeq ($(OS),Windows_NT)
 MKDIR=$(XILINX_VIVADO)\gnuwin\bin\mkdir.exe
-ECHO=$(XILINX_VIVADO)\gnuwin\bin\echo.exe
 else
 MKDIR=mkdir
-ECHO=echo
 endif
