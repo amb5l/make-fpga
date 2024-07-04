@@ -10,23 +10,14 @@
 # Common
 ################################################################################
 
-# XILINX_VITIS must contain the path to the Vitis installation
-$(call check_defined,XILINX_VITIS)
-XILINX_VITIS:=$(call xpath,$(XILINX_VITIS))
-$(call check_defined,VITIS_FLOW)
-
 # checks
-ifndef VITIS_FLOW
-$(error VITIS_FLOW must be defined)
-endif
+$(call check_defined,XILINX_VITIS)
+$(call check_defined,VITIS_FLOW)
+$(call check_defined,VITIS_SRC)
 
 # defaults
 VITIS_DIR?=vitis
 VITIS_APP?=app
-nomakefiledeps?=false
-
-# local definitions
-makefiledeps=$(if,$(filter true,$(nomakefiledeps),,$(MAKEFILE_LIST))
 
 ################################################################################
 # Classic Flow
@@ -36,21 +27,19 @@ ifeq (classic,$(VITIS_FLOW))
 
 # defaults
 XSCT?=xsct
+VITIS_PRJ=$(VITIS_APP)/.project
 VITIS_ELF_RLS?=$(VITIS_APP)/Release/$(VITIS_APP).elf
 VITIS_ELF_DBG?=$(VITIS_APP)/Debug/$(VITIS_APP).elf
 
-# local definitions
-XSCT_RUN_TCL=run.tcl
-define XSCT_RUN
-	$(file >$(VITIS_DIR)/$(XSCT_RUN_TCL),set code [catch { $($1) } result]; puts $$result; exit $$code)
-	@cd $(VITIS_DIR) && $(XSCT) $(XSCT_RUN_TCL) $2
-endef
-VITIS_PRJ=$(VITIS_APP)/.project
+# functions
+xsct_run=@cd $(VITIS_DIR) && $(XSCT) $(subst _tcl,.tcl,$1) $2
 
 ################################################################################
 # TCL sequences
+# TODO: use TCL variables to hold makefile variables (for clarity in script files)
 
-define xsct_tcl_prj
+xsct_scripts+=xsct_prj_tcl
+define xsct_prj_tcl
 
 	set xsa [lindex $$argv 0]
 	setws .
@@ -122,7 +111,8 @@ endef
 
 #-------------------------------------------------------------------------------
 
-define xsct_tcl_elf
+xsct_scripts+=xsct_elf_tcl
+define xsct_elf_tcl
 
 	set c [lindex $$argv 0]
 	setws .
@@ -132,54 +122,46 @@ define xsct_tcl_elf
 endef
 
 ################################################################################
+# write script files
+
+$(shell $(MKDIR) -p $(VITIS_DIR))
+$(foreach s,$(xsct_scripts),\
+	$(file >$(VITIS_DIR)/$(subst _tcl,.tcl,$s),set code [catch { $($s) } result]; puts $$result; exit $$code) \
+)
+
+################################################################################
 # rules and recipes
 
 # workspace directory
 $(VITIS_DIR):
-	@bash -c "mkdir -p $@"
+	@$(MKDIR) -p $@
 
 # project
 .SECONDEXPANSION:
-$(VITIS_DIR)/$(VITIS_PRJ): $$(vivado_touch_dir)/$$(VIVADO_PROJ).xsa $(makefiledeps) | $(VITIS_DIR)
+$(VITIS_DIR)/$(VITIS_PRJ): $$(vivado_touch_dir)/$$(VIVADO_PROJ).xsa $(if $(filter dev,$(MAKECMDGOALS)),,$($MAKEFILE_LIST)) | $(VITIS_DIR)
 	$(call banner,Vitis Classic: create project)
-	@bash -c "\
-		cd $(VITIS_DIR) && \
-		find . -type f -not \( -name '$(XSCT_RUN_TCL)' \) -delete && \
-		find . -maxdepth 1 -type d -not \( -name '$(VITIS_APP)' -or -name '.' -or -name '..' \) -exec rm -rf {} + && \
-		if [ -d ./$(VITIS_APP)/Release ]; then \
-			find ./$(VITIS_APP)/Release -type f -delete && \
-			find ./$(VITIS_APP)/Release -maxdepth 1 -type d -not \( -wholename './$(VITIS_APP)/Release' -or -wholename './$(VITIS_APP)/Release/vscode' -or -name '.' -or -name '..' \) -exec rm -rf {} +; \
-		fi && \
-		if [ -d ./$(VITIS_APP)/Debug ]; then \
-			find ./$(VITIS_APP)/Debug -type f -delete && \
-			find ./$(VITIS_APP)/Debug -maxdepth 1 -type d -not \( -wholename './$(VITIS_APP)/Debug' -or -wholename './$(VITIS_APP)/Debug/vscode' -or -name '.' -or -name '..' \) -exec rm -rf {} +; \
-		fi && \
-		if [ -d ./$(VITIS_APP) ]; then \
-			find ./$(VITIS_APP) -type f -delete && \
-			find ./$(VITIS_APP) -maxdepth 1 -type d -not \( -wholename './$(VITIS_APP)' -or -wholename './$(VITIS_APP)/Release' -or -wholename './$(VITIS_APP)/Release/vscode' -or -wholename './$(VITIS_APP)/Debug' -or -wholename './$(VITIS_APP)/Debug/vscode' -or -name 'Debug' -or -name '.' -or -name '..' \) -exec rm -rf {} +; \
-		fi \
-	"
-	$(call XSCT_RUN,xsct_tcl_prj,$(abspath $(VIVADO_DIR)/$(VIVADO_XSA)))
+	@cd $(VITIS_DIR) && \
+		rm -rf .metadata .Xil $(VITIS_APP) $(VITIS_APP)_system $$(VIVADO_PROJ) && \
+		rm -f .analytics IDE.log
+	$(call xsct_run,xsct_prj_tcl,$(abspath $(VIVADO_DIR)/$(VIVADO_XSA)))
 
 # release ELF
 $(VITIS_DIR)/$(VITIS_ELF_RLS): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
 	$(call banner,Vitis Classic: build release ELF)
 	@rm -f $@
-	$(call XSCT_RUN,xsct_tcl_elf,Release)
-	@bash -c "if [ -f $@ ]; \
-	then echo \"Success\"; \
-	else echo \"Failed to build ELF\"; exit 1; \
-	fi"
+	$(call xsct_run,xsct_elf_tcl,Release)
+	@echo Checking that ELF file has built correctly...
+	@[ -f $@ ]
+	@echo OK
 
 # debug ELF
 $(VITIS_DIR)/$(VITIS_ELF_DBG): $(VITIS_SRC) | $(VITIS_DIR)/$(VITIS_PRJ)
 	$(call banner,Vitis Classic: build debug ELF)
 	@rm -f $@
-	$(call XSCT_RUN,xsct_tcl_elf,Debug)
-	@bash -c "if [ -f $@ ]; \
-	then echo \"Success\"; \
-	else echo \"Failed to build ELF\"; exit 1; \
-	fi"
+	$(call xsct_run,xsct_elf_tcl,Debug)
+	@echo Checking that ELF file has built correctly...
+	@[ -f $@ ]
+	@echo OK
 
 ################################################################################
 # goals
@@ -210,45 +192,35 @@ endif
 
 ################################################################################
 # Visual Studio Code
+# TODO remove redundant files
 
-VSCODE_DIR_RLS=$(VITIS_DIR)/$(VITIS_APP)/Release/vscode
-VSCODE_DIR_DBG=$(VITIS_DIR)/$(VITIS_APP)/Debug/vscode
+VSCODE_DIR_RLS=vscode/vitis/Release
+VSCODE_DIR_DBG=vscode/vitis/Debug
 VSCODE_SRC=$(VITIS_SRC)
 
 # workspace directories
 $(VSCODE_DIR_RLS):
-	@bash -c "mkdir -p $@"
+	@$(MKDIR) -p $@
 $(VSCODE_DIR_RLS)/.vscode:
-	@bash -c "mkdir -p $@"
+	@$(MKDIR) -p $@
 $(VSCODE_DIR_DBG):
-	@bash -c "mkdir -p $@"
+	@$(MKDIR) -p $@
 $(VSCODE_DIR_DBG)/.vscode:
-	@bash -c "mkdir -p $@"
+	@$(MKDIR) -p $@
 
 # source directory, containing symbolic link(s) to source(s)
 $(VSCODE_DIR_RLS)/src: $(addprefix $$(VSCODE_DIR_RLS)/src/,$(notdir $(VSCODE_SRC)))
 $(VSCODE_DIR_DBG)/src: $(addprefix $$(VSCODE_DIR_DBG)/src/,$(notdir $(VSCODE_SRC)))
 
 # symbolic links to source files
-ifeq ($(OS),Windows_NT)
 define rr_srclink
 $$(VSCODE_DIR_RLS)/src/$(notdir $1): $1
-	@bash -c "mkdir -p $$(@D) && rm -f $$@"
-	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
 $$(VSCODE_DIR_DBG)/src/$(notdir $1): $1
-	@bash -c "mkdir -p $$(@D) && rm -f $$@"
-	@bash -c "cmd.exe //C \"mklink $$(shell cygpath -w $$@) $$(shell cygpath -w -a $$<)\""
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
 endef
-else
-define rr_srclink
-$$(VSCODE_DIR_RLS)/$1/$(notdir $1): $1
-	@mkdir -p $$(@D)
-	@ln $$< $$@
-$$(VSCODE_DIR_DBG)/$1/$(notdir $1): $1
-	@mkdir -p $$(@D)
-	@ln $$< $$@
-endef
-endif
 $(foreach s,$(VSCODE_SRC),$(eval $(call rr_srclink,$s)))
 
 define settings_rls

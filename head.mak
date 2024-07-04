@@ -5,8 +5,6 @@
 
 .PHONY: all clean
 
-toplevel?=$(call xpath,$(shell git rev-parse --show-toplevel))
-
 space:=$(subst x, ,x)
 comma:=,
 col_rst:=\033[0m
@@ -27,13 +25,24 @@ col_fg_mag:=\033[1;35m
 col_fg_cyn:=\033[1;36m
 col_fg_wht:=\033[1;37m
 
-xpath=$(if $(filter Windows_NT,$(OS)),$(shell cygpath -m "$1"),$1)
-check_defined=$(if $($1),,$(error $1 is undefined))
-check_defined_alt=$(if $(foreach a,$1,$($a)),,$(error none of $1 are undefined))
-check_option=$(if $(filter $2,$($1)),,$(error $1 should be one of: $2))
-check_shell_error=$(if $(filter 0,$(.SHELLSTATUS)),,$(error $1))
-uniq=$(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
+check_defined     = $(if $($1),,$(error $1 is undefined))
+check_defined_alt = $(if $(foreach a,$1,$($a)),,$(error none of $1 are undefined))
+check_option      = $(if $(filter $2,$($1)),,$(error $1 should be one of: $2))
+check_shell_error = $(if $(filter 0,$(.SHELLSTATUS)),,$(error $1))
 
-make_fpga?=$(call xpath,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+ifeq ($(OS),Windows_NT)
+create_symlink=cmd /C "mklink $(subst /,\,$1) $(subst /,\,$2)"
+else
+create_symlink=ln $2 $1
+endif
+nodup=$(if $1,$(firstword $1) $(call nodup,$(filter-out $(firstword $1),$1)))
 
-banner=@bash -c 'printf "$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n$(col_bg_wht)$(col_fg_blu) %-78s$(col_rst)\n$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n" "$1"'
+banner=@printf "$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n$(col_bg_wht)$(col_fg_blu) %-78s$(col_rst)\n$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n" "$1"
+
+ifeq ($(OS),Windows_NT)
+MKDIR=$(XILINX_VIVADO)\gnuwin\bin\mkdir.exe
+ECHO=$(XILINX_VIVADO)\gnuwin\bin\echo.exe
+else
+MKDIR=mkdir
+ECHO=echo
+endif
