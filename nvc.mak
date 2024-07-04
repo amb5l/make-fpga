@@ -59,14 +59,19 @@ dep:=$(firstword $(NVC_SRC))<= $(if $(word 2,$(NVC_SRC)),$(call pairmap,src_dep,
 # extract libraries from sources
 NVC_LIB=$(call nodup,$(call get_src_lib,$(NVC_SRC)))
 
+################################################################################
+# rules and recipes
+
 # main directory
 $(NVC_DIR):
-	bash -c "mkdir -p $@"
+	$(MKDIR) -p $@
 
-# touch directories to track analysis/compilation
+# touch directories to track analysis/compilation and elaboration
+$(NVC_DIR)/.touch:
+	$(MKDIR) -p $@
 define rr_touchdir
 $(NVC_DIR)/$1/.touch:
-	@bash -c "mkdir -p $$@"
+	$(MKDIR) -p $$@
 endef
 $(foreach l,$(NVC_LIB),$(eval $(call rr_touchdir,$l)))
 
@@ -95,15 +100,13 @@ $(foreach d,$(dep),$(eval $(call rr_analyse, \
 	$(call get_src_lib,  $(word 2,$(subst <=, ,$d)))  \
 )))
 
-# simulation runs (elaborate and run)
+# elaboration
 # $1 = run name
 # $2 = design unit library
 # $3 = design unit
 # $4 = list of generic=value
-.PHONY: nvc
-define rr_elabrun
-.PHONY: nvc.$(strip $1)
-nvc.$(strip $1):: $(NVC_DIR)/$(call get_src_lib,$(lastword $(NVC_SRC)))/.touch/$(notdir $(call get_src_file,$(lastword $(NVC_SRC))))
+define rr_elaborate
+$(NVC_DIR)/.touch/$(strip $1): $(NVC_DIR)/$(call get_src_lib,$(lastword $(NVC_SRC)))/.touch/$(notdir $(call get_src_file,$(lastword $(NVC_SRC)))) | $(NVC_DIR)/.touch
 	cd $(NVC_DIR) && $(NVC) \
 		$(NVC_G_OPTS) \
 		--work=$(strip $2):$(strip $2) \
@@ -111,11 +114,38 @@ nvc.$(strip $1):: $(NVC_DIR)/$(call get_src_lib,$(lastword $(NVC_SRC)))/.touch/$
 		$(NVC_E_OPTS)\
 		$(addprefix -g,$(strip $4)) \
 		$(strip $3)
-nvc:: nvc.$(strip $1)
+	touch $$@
 endef
-$(foreach r,$(NVC_RUN),$(eval $(call rr_elabrun, \
+$(foreach r,$(NVC_RUN),$(eval $(call rr_elaborate, \
 	$(call get_run_name, $r), \
 	$(call get_run_lib,  $r), \
 	$(call get_run_unit, $r), \
 	$(call get_run_gen,  $r), \
 )))
+
+# simulation run
+# $1 = run name
+# $2 = design unit library
+# $3 = design unit
+.PHONY: nvc
+define rr_run
+.PHONY: nvc.$(strip $1)
+nvc.$(strip $1):: $(NVC_DIR)/.touch/$(strip $1)
+	cd $(NVC_DIR) && $(NVC) \
+		$(NVC_G_OPTS) \
+		--work=$(strip $2):$(strip $2) \
+		-r \
+		$(NVC_R_OPTS)\
+		$(strip $3)
+nvc:: nvc.$(strip $1)
+endef
+$(foreach r,$(NVC_RUN),$(eval $(call rr_run, \
+	$(call get_run_name, $r), \
+	$(call get_run_lib,  $r), \
+	$(call get_run_unit, $r), \
+)))
+
+################################################################################
+
+clean::
+	@rm -rf $(NVC_DIR)
