@@ -107,11 +107,11 @@ define vivado_xpr_tcl
 			set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets $$r]
 		}
 		current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUN_NAME))]
-	}
-	foreach s [get_filesets] {
-		if {$$s != "sources_1" && $$s != "constrs_1" && $$s != "utils_1"} {
-			if {!("$$s" in {$(VIVADO_SIM_RUN_NAME)})} {
-				delete_fileset $$s
+		foreach s [get_filesets] {
+			if {$$s != "sources_1" && $$s != "constrs_1" && $$s != "utils_1"} {
+				if {!("$$s" in {$(VIVADO_SIM_RUN_NAME)})} {
+					delete_fileset $$s
+				}
 			}
 		}
 	}
