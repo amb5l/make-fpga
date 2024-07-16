@@ -469,7 +469,7 @@ simprep: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(foreach r,$(
 
 # simulation runs
 define rr_simrun
-$1: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(vivado_touch_dir)/sim_$1.elf)
+$1:: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(vivado_touch_dir)/sim_$1.elf)
 	$$(call banner,Vivado: simulation run = $1)
 	$$(call vivado_run,vivado_sim_tcl,$1)
 endef
