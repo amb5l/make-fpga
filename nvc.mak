@@ -4,7 +4,7 @@
 ################################################################################
 # User makefile variables:
 # name
-# NVC_LRM       VHDL LRM if not specified per source file (default: 2008)
+# NVC_VHDL_LRM       VHDL LRM if not specified per source file (default: 2008)
 # NVC_SRC       sources to compile
 #				   path/file<=lib><;language> <path/file<=lib><;language>> ...
 # NVC_RUN       list of simulation runs, each as follows:
@@ -22,7 +22,7 @@ nvc_default: nvc
 NVC?=nvc
 NVC_DIR?=sim_nvc
 NVC_WORK?=work
-NVC_LRM?=2008
+NVC_VHDL_LRM?=2008
 NVC_G_OPTS?=-H 128M
 NVC_A_OPTS?=--relaxed
 NVC_E_OPTS?=
@@ -47,7 +47,7 @@ nodup        = $(if $1,$(firstword $1) $(call nodup,$(filter-out $(firstword $1)
 get_src_file = $(foreach x,$1,$(word 1,$(subst =, ,$(word 1,$(subst ;, ,$x)))))
 get_src_lib  = $(foreach x,$1,$(if $(word 1,$(subst ;, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$x)))))),$(word 1,$(subst ;, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$x)))))),$(NVC_WORK)))
 get_src_lang = $(word 1,$(subst =, ,$(word 2,$(subst ;, ,$1))))
-get_src_lrm  = $(if $(findstring VHDL-,$(call get_src_lang,$1)),$(word 2,$(subst -, ,$(call get_src_lang,$1))),$(NVC_LRM))
+get_src_lrm  = $(if $(findstring VHDL-,$(call get_src_lang,$1)),$(word 2,$(subst -, ,$(call get_src_lang,$1))),$(NVC_VHDL_LRM))
 get_run_name = $(foreach x,$1,$(word 1,$(subst =, ,$x)))
 get_run_lib  = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 1,$(subst :, ,$(word 2,$(subst =, ,$1)))),$(NVC_WORK))
 get_run_unit = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 2,$(subst :, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))),$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))
@@ -120,7 +120,7 @@ $(foreach r,$(NVC_RUN),$(eval $(call rr_elaborate, \
 	$(call get_run_name, $r), \
 	$(call get_run_lib,  $r), \
 	$(call get_run_unit, $r), \
-	$(call get_run_gen,  $r), \
+	$(call get_run_gen,  $r)  \
 )))
 
 # simulation run
