@@ -522,7 +522,7 @@ $(VSCODE_DIR)/config.v4p: vivado_force $(VSCODE_LIB)
 	@printf "[libraries]\n" > $@
 	$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),@printf "$l/$(notdir $s)=$l\n" >> $@$(newline)))
 	@printf "[settings]\n" >> $@
-	@printf "V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(VSCODE_TOP))\n" >> $@
+	@printf "V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(strip $(VSCODE_TOP)))\n" >> $@
 
 edit:: $(VSCODE_DIR)/config.v4p $(addprefix $(VSCODE_DIR)/,$(VSCODE_LIB)) $(addprefix $(VSCODE_DIR)/,$(notdir $(VSCODE_AUX)))
 	@cd $(VSCODE_DIR) && code .
