@@ -81,7 +81,7 @@ endif
 VIVADO_SIM_RUN_NAME=$(call get_run_name,$(VIVADO_SIM_RUN))
 else
 ifneq (,$(strip $(VIVADO_SIM_SRC)))
-$(error VIVADO_SIM_SRC is defined but VIVADO_SIM_RUN is not)
+$(info Note: VIVADO_SIM_SRC is defined but VIVADO_SIM_RUN is not)
 endif
 endif
 
