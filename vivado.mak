@@ -525,8 +525,11 @@ $(VSCODE_DIR)/config.v4p: vivado_force $(VSCODE_LIB)
 	@printf "V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(strip $(VSCODE_TOP)))\n" >> $@
 
 edit:: $(VSCODE_DIR)/config.v4p $(addprefix $(VSCODE_DIR)/,$(VSCODE_LIB)) $(addprefix $(VSCODE_DIR)/,$(notdir $(VSCODE_AUX)))
-	@cd $(VSCODE_DIR) && code .
-
+ifeq ($(OS),Windows_NT)
+	@cd $(VSCODE_DIR) && start code .
+else
+	@cd $(VSCODE_DIR) && code . &
+endif
 ################################################################################
 
 clean::
