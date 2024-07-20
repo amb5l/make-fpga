@@ -158,7 +158,7 @@ endef
 # $3 = design unit
 # $4 = list of generic=value
 define rr_do_run
-proc run_$1 {} {vsim -modelsimini $(VSIM_INI) -work $(VSIM_WORK) $(VSIM_OPTS) -do "$(VSIM_TCL_DO)" $3 $(addprefix -g,$4)}
+proc run_$1 {} { vsim -modelsimini $(VSIM_INI) -work $(VSIM_WORK) $(VSIM_OPTS) -do "$(VSIM_TCL_DO)" $3 $(addprefix -g,$4) }
 endef
 
 .PHONY: vsim_do
@@ -170,7 +170,11 @@ $(VSIM_DIR)/$(VSIM_DO): vsim_force | $(VSIM_DIR)
 	@printf "$(subst ",\",$(foreach r,$(VSIM_RUN),\n$(call rr_do_run,$(call get_run_name,$r),$(call get_run_lib,$r),$(call get_run_unit,$r),$(call get_run_gen,$r)))\n)" >> $@
 vsim_do: $(VSIM_DIR)/$(VCOM_DO) $(VSIM_DIR)/$(VSIM_DO)
 vsim_gui: $(VSIM_DIR)/$(VCOM_DO) $(VSIM_DIR)/$(VSIM_DO) $(addprefix $(VSIM_DIR)/,$(VSIM_LIB))
-	@cd $(VSIM_DIR) && $(VSIM) -gui -do $(VCOM_DO) -do $(VSIM_DO)
+ifeq ($(OS),Windows_NT)
+	@cd $(VSIM_DIR) && start $(VSIM) -gui -do $(VCOM_DO) -do $(VSIM_DO)
+else
+	@cd $(VSIM_DIR) && $(VSIM) -gui -do $(VCOM_DO) -do $(VSIM_DO) &
+endif
 #
 ################################################################################
 
