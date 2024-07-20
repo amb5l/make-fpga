@@ -66,9 +66,6 @@ dep:=$(firstword $(VSIM_SRC))<= $(if $(word 2,$(VSIM_SRC)),$(call pairmap,src_de
 # extract libraries from sources
 VSIM_LIB=$(call nodup,$(call get_src_lib,$(VSIM_SRC)))
 
-# do file
-$(file >$(VSIM_DO),# created by vsim.mak)
-
 ################################################################################
 # rules and recipes
 
