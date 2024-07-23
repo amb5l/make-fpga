@@ -10,6 +10,8 @@
 # Common
 ################################################################################
 
+include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
+
 # checks
 $(call check_defined,XILINX_VITIS)
 $(call check_defined,VITIS_FLOW)
