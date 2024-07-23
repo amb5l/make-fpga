@@ -4,17 +4,19 @@
 ################################################################################
 # User makefile variables:
 # name
-# NVC_VHDL_LRM       VHDL LRM if not specified per source file (default: 2008)
+# NVC_VHDL_LRM  VHDL LRM if not specified per source file (default: 2008)
 # NVC_SRC       sources to compile
-#				   path/file<=lib><;language> <path/file<=lib><;language>> ...
+#                 path/file<=lib><;language> <path/file<=lib><;language>> ...
 # NVC_RUN       list of simulation runs, each as follows:
 #                 name=lib:unit<;generic=value<,generic=value...>>
-#                 For a single run, name= may be omitted and defaults to 'sim='
-# NVC_G_OPTS
-# NVC_A_OPTS
-# NVC_E_OPTS
-# NVC_R_OPTS
+#               For a single run, name= may be omitted and defaults to 'sim='
+# NVC_G_OPTS    global options
+# NVC_A_OPTS    analysis options
+# NVC_E_OPTS    elaboration options
+# NVC_R_OPTS    run options
 ################################################################################
+
+include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
 
 # defaults
 .PHONY: nvc_default
@@ -37,27 +39,11 @@ else
 $(if $(findstring =,$(word 1,$(subst ;, ,$(NVC_RUN)))),,$(eval NVC_RUN=sim=$(value NVC_RUN)))
 endif
 
-# definitions and functions
-comma:=,
-rest         = $(wordlist 2,$(words $1),$1)
-chop         = $(wordlist 1,$(words $(call rest,$1)),$1)
-src_dep      = $1<=$2
-pairmap      = $(and $(strip $2),$(strip $3),$(call $1,$(firstword $2),$(firstword $3)) $(call pairmap,$1,$(call rest,$2),$(call rest,$3)))
-nodup        = $(if $1,$(firstword $1) $(call nodup,$(filter-out $(firstword $1),$1)))
-get_src_file = $(foreach x,$1,$(word 1,$(subst =, ,$(word 1,$(subst ;, ,$x)))))
-get_src_lib  = $(foreach x,$1,$(if $(word 1,$(subst ;, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$x)))))),$(word 1,$(subst ;, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$x)))))),$(NVC_WORK)))
-get_src_lang = $(word 1,$(subst =, ,$(word 2,$(subst ;, ,$1))))
-get_src_lrm  = $(if $(findstring VHDL-,$(call get_src_lang,$1)),$(word 2,$(subst -, ,$(call get_src_lang,$1))),$(NVC_VHDL_LRM))
-get_run_name = $(foreach x,$1,$(word 1,$(subst =, ,$x)))
-get_run_lib  = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 1,$(subst :, ,$(word 2,$(subst =, ,$1)))),$(NVC_WORK))
-get_run_unit = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 2,$(subst :, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))),$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))
-get_run_gen  = $(subst $(comma), ,$(word 2,$(subst ;, ,$1)))
-
 # compilation dependencies enforce compilation order
 dep:=$(firstword $(NVC_SRC))<= $(if $(word 2,$(NVC_SRC)),$(call pairmap,src_dep,$(call rest,$(NVC_SRC)),$(call chop,$(NVC_SRC))),)
 
 # extract libraries from sources
-NVC_LIB=$(call nodup,$(call get_src_lib,$(NVC_SRC)))
+NVC_LIB=$(call nodup,$(call get_src_lib,$(NVC_SRC),$(NVC_WORK)))
 
 ################################################################################
 # rules and recipes
@@ -94,10 +80,10 @@ $(NVC_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4
 endef
 $(foreach d,$(dep),$(eval $(call rr_analyse, \
 	$(call get_src_file, $(word 1,$(subst <=, ,$d))), \
-	$(call get_src_lib,  $(word 1,$(subst <=, ,$d))), \
-	$(call get_src_lrm,  $(word 1,$(subst <=, ,$d))), \
+	$(call get_src_lib,  $(word 1,$(subst <=, ,$d)),$(NVC_WORK)), \
+	$(call get_src_lrm,  $(word 1,$(subst <=, ,$d)),$(NVC_VHDL_LRM)), \
 	$(call get_src_file, $(word 2,$(subst <=, ,$d))), \
-	$(call get_src_lib,  $(word 2,$(subst <=, ,$d)))  \
+	$(call get_src_lib,  $(word 2,$(subst <=, ,$d)),$(NVC_WORK))  \
 )))
 
 # elaboration
@@ -106,7 +92,7 @@ $(foreach d,$(dep),$(eval $(call rr_analyse, \
 # $3 = design unit
 # $4 = list of generic=value
 define rr_elaborate
-$(NVC_DIR)/.touch/$(strip $1): $(NVC_DIR)/$(call get_src_lib,$(lastword $(NVC_SRC)))/.touch/$(notdir $(call get_src_file,$(lastword $(NVC_SRC)))) | $(NVC_DIR)/.touch
+$(NVC_DIR)/.touch/$(strip $1): $(NVC_DIR)/$(call get_src_lib,$(lastword $(NVC_SRC)),$(NVC_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(NVC_SRC)))) | $(NVC_DIR)/.touch
 	cd $(NVC_DIR) && $(NVC) \
 		$(NVC_G_OPTS) \
 		--work=$(strip $2):$(strip $2) \
