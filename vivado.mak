@@ -25,6 +25,8 @@
 # VIVADO_SIM_ELF      ELF to associate with CPU for simulations
 ################################################################################
 
+include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
+
 # defaults
 vivado_default: bit
 VIVADO?=vivado
@@ -40,14 +42,6 @@ $(call check_option,VIVADO_LANGUAGE,VHDL Verilog)
 $(call check_defined_alt,VIVADO_DSN_SRC VIVADO_SIM_SRC)
 $(call check_defined_alt,VIVADO_DSN_TOP VIVADO_SIM_TOP)
 
-# strip - TODO fix this
-#VIVADO_DSN_GEN=$(strip $(value VIVADO_DSN_GEN))
-#VIVADO_DSN_SRC=$(strip $(value VIVADO_DSN_SRC))
-#VIVADO_SIM_SRC=$(strip $(value VIVADO_SIM_SRC))
-#VIVADO_BD_TCL=$(strip $(value VIVADO_BD_TCL))
-#VIVADO_SIM_RUN=$(strip $(value VIVADO_SIM_RUN))
-#VIVADO_XDC=$(strip $(value VIVADO_XDC))
-
 # local definitions
 VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
 VIVADO_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
@@ -58,16 +52,10 @@ $(if $(filter dev,$(MAKECMDGOALS)),$(eval dev=1))
 
 # functions
 vivado_run    = @cd $(VIVADO_DIR) && $(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(subst _tcl,.tcl,$1) $(addprefix -tclargs ,$2)
-get_src_file  = $(foreach x,$1,$(word 1,$(subst =, ,$(word 1,$(subst ;, ,$x)))))
-get_src_lib   = $(foreach x,$1,$(if $(word 1,$(subst ;, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$x)))))),$(word 1,$(subst ;, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$x)))))),$(VIVADO_WORK)))
 get_xdc_file  = $(foreach x,$1,$(word 1,$(subst =, ,$x)))
 get_xdc_scope = $(strip $(foreach x,$1,$(word 2,$(subst =, ,$x))))
 get_bd_file   = $(word 1,$(subst =, ,$x))
 get_bd_args   = $(word 2,$(subst =, ,$x))
-get_run_name  = $(foreach x,$1,$(word 1,$(subst =, ,$x)))
-get_run_lib   = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 1,$(subst :, ,$(word 2,$(subst =, ,$1)))),$(VIVADO_WORK))
-get_run_unit  = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 2,$(subst :, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))),$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))
-get_run_gen   = $(subst $(comma), ,$(word 2,$(subst ;, ,$1)))
 
 # simulation checks and adjustments
 ifneq (,$(VIVADO_SIM_RUN))
@@ -482,10 +470,10 @@ $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simrun,$r)))
 VSCODE_DIR=vscode/vivado
 VSCODE_TOP=$(VIVADO_DSN_TOP) $(call nodup,$(call get_run_unit,$(VIVADO_SIM_RUN)))
 VSCODE_SRC=$(VIVADO_DSN_SRC) $(VIVADO_SIM_SRC) $(VIVADO_LIB_SRC)
-VSCODE_LIB=$(call nodup,$(call get_src_lib,$(VIVADO_DSN_SRC)) $(call get_src_lib,$(VIVADO_SIM_SRC)) $(call get_src_lib,$(VIVADO_LIB_SRC)))
+VSCODE_LIB=$(call nodup,$(call get_src_lib,$(VSCODE_SRC),$(VIVADO_WORK)))
 $(foreach l,$(VSCODE_LIB), \
 	$(foreach s,$(VSCODE_SRC), \
-		$(if $(filter $l,$(call get_src_lib,$s)), \
+		$(if $(filter $l,$(call get_src_lib,$s,$(VIVADO_WORK))), \
 			$(eval VSCODE_SRC.$l+=$(call get_src_file,$s)) \
 		) \
 	) \
