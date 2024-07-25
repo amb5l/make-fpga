@@ -4,12 +4,13 @@
 ################################################################################
 # User makefile variables:
 # name
-# GHDL_LRM  VHDL LRM if not specified per source file (default: 2008)
-# GHDL_SRC  sources to compile
-#             path/file<=lib><;language> <path/file<=lib><;language>> ...
-# GHDL_RUN  list of simulation runs, each as follows:
-#             name=lib:unit<;generic=value<,generic=value...>>
-#           For a single run, name= may be omitted and defaults to 'sim='
+# GHDL_LRM         VHDL LRM if not specified per source file (default: 2008)
+# GHDL_SRC         sources to compile
+#                    path/file<=lib><;language> <path/file<=lib><;language>> ...
+# GHDL_VENDOR_LIB  list of vendor libraries e.g. xilinx-vivado
+# GHDL_RUN         list of simulation runs, each as follows:
+#                    name=lib:unit<;generic=value<,generic=value...>>
+#                  For a single run, name= may be omitted and defaults to 'sim='
 ################################################################################
 
 include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
@@ -21,8 +22,9 @@ GHDL?=ghdl
 GHDL_DIR?=sim_ghdl
 GHDL_WORK?=work
 GHDL_LRM?=08
-GHDL_AOPTS?=-fsynopsys -frelaxed -Wno-hide -Wno-shared $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_VENDOR_LIBS))
-GHDL_EOPTS?=-fsynopsys -frelaxed $(addprefix -P$(GHDL_PREFIX)/lib/ghdl/vendors/,$(GHDL_VENDOR_LIBS))
+GHDL_VENDOR_LIB_PATH?=$(subst /,$(if $(filter Windows_NT,$(OS)),\,/),$(dir $(shell which $(GHDL)))../lib/ghdl/vendors/)
+GHDL_AOPTS?=-fsynopsys -frelaxed -Wno-hide -Wno-shared $(addprefix -P$(GHDL_VENDOR_LIB_PATH),$(GHDL_VENDOR_LIB))
+GHDL_EOPTS?=-fsynopsys -frelaxed $(addprefix -P$(GHDL_VENDOR_LIB_PATH),$(GHDL_VENDOR_LIB))
 GHDL_ROPTS?=--max-stack-alloc=0 --ieee-asserts=disable
 
 # checks
@@ -38,18 +40,12 @@ endif
 dep:=$(firstword $(GHDL_SRC))<= $(if $(word 2,$(GHDL_SRC)),$(call pairmap,src_dep,$(call rest,$(GHDL_SRC)),$(call chop,$(GHDL_SRC))),)
 
 # extract libraries from sources
-GHDL_LIB=$(call nodup,$(call get_src_lib,$(GHDL_SRC)))
+GHDL_LIB=$(call nodup,$(call get_src_lib,$(GHDL_SRC),$(GHDL_WORK)))
 
 ################################################################################
 # rules and recipes
 
-# main directory
-$(GHDL_DIR):
-	$(MKDIR) -p $@
-
 # touch directories to track analysis/compilation and elaboration
-$(GHDL_DIR)/.touch:
-	$(MKDIR) -p $@
 define rr_touchdir
 $(GHDL_DIR)/$1/.touch:
 	$(MKDIR) -p $$@
@@ -63,7 +59,7 @@ $(foreach l,$(GHDL_LIB),$(eval $(call rr_touchdir,$l)))
 # $4 = dependency source path/file
 # $5 = dependency source library
 define rr_com
-$(GHDL_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4),$(GHDL_DIR)/$(strip $5)/.touch/$(notdir $(strip $4))) | $(GHDL_DIR)/.touch
+$(GHDL_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4),$(GHDL_DIR)/$(strip $5)/.touch/$(notdir $(strip $4))) | $(GHDL_DIR)/$(strip $2)/.touch
 	cd $(GHDL_DIR) && $(GHDL) -a --work=$(strip $2) --std=$(strip $3) $$(GHDL_AOPTS) $$<
 	touch $$@
 endef
@@ -83,10 +79,11 @@ $(foreach d,$(dep),$(eval $(call rr_com, \
 .PHONY: ghdl
 define rr_run
 .PHONY: ghdl.$(strip $1)
-ghdl.$(strip $1):: $(GHDL_DIR)/$(call get_src_lib,$(lastword $(GHDL_SRC)),$(GHDL_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(GHDL_SRC)))) | $(GHDL_DIR)/.touch
+ghdl.$(strip $1):: $(GHDL_DIR)/$(call get_src_lib,$(lastword $(GHDL_SRC)),$(GHDL_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(GHDL_SRC))))
 	cd $(GHDL_DIR) && $(GHDL) \
 		--elab-run \
 		--work=$(strip $2) \
+		--std=08 \
 		$(GHDL_EOPTS) \
 		$(strip $3) \
 		$(GHDL_ROPTS) \
