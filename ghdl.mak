@@ -80,6 +80,7 @@ $(foreach d,$(dep),$(eval $(call rr_com, \
 define rr_run
 .PHONY: ghdl.$(strip $1)
 ghdl.$(strip $1):: $(GHDL_DIR)/$(call get_src_lib,$(lastword $(GHDL_SRC)),$(GHDL_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(GHDL_SRC))))
+	$(call banner,GHDL: simulation run = $1)
 	cd $(GHDL_DIR) && $(GHDL) \
 		--elab-run \
 		--work=$(strip $2) \

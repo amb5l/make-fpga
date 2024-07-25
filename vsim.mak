@@ -108,6 +108,7 @@ $(foreach d,$(dep),$(eval $(call rr_com, \
 define rr_run
 .PHONY: vsim.$(strip $1)
 vsim.$(strip $1):: $(VSIM_DIR)/$(call get_src_lib,$(lastword $(VSIM_SRC)),$(VSIM_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(VSIM_SRC))))
+	$(call banner,vsim: simulation run = $1)
 	cd $(VSIM_DIR) && $(VSIM) \
 		-modelsimini $(VSIM_INI) \
 		-work $2 \
