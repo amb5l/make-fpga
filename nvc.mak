@@ -61,13 +61,13 @@ $(NVC_DIR)/$1/.touch:
 endef
 $(foreach l,$(NVC_LIB),$(eval $(call rr_touchdir,$l)))
 
-# analysis (compilation)
+# compilation
 # $1 = source path/file
 # $2 = source library
 # $3 = LRM
 # $4 = dependency source path/file
 # $5 = dependency source library
-define rr_analyse
+define rr_com
 $(NVC_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4),$(NVC_DIR)/$(strip $5)/.touch/$(notdir $(strip $4))) | $(NVC_DIR)/$(strip $2)/.touch
 	cd $(NVC_DIR) && $(NVC) \
 		$(NVC_G_OPTS) \
@@ -78,7 +78,7 @@ $(NVC_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4
 		$(strip $1)
 	touch $$@
 endef
-$(foreach d,$(dep),$(eval $(call rr_analyse, \
+$(foreach d,$(dep),$(eval $(call rr_com, \
 	$(call get_src_file, $(word 1,$(subst <=, ,$d))), \
 	$(call get_src_lib,  $(word 1,$(subst <=, ,$d)),$(NVC_WORK)), \
 	$(call get_src_lrm,  $(word 1,$(subst <=, ,$d)),$(NVC_VHDL_LRM)), \
@@ -86,40 +86,23 @@ $(foreach d,$(dep),$(eval $(call rr_analyse, \
 	$(call get_src_lib,  $(word 2,$(subst <=, ,$d)),$(NVC_WORK))  \
 )))
 
-# elaboration
+# simulation run
 # $1 = run name
 # $2 = design unit library
 # $3 = design unit
 # $4 = list of generic=value
-define rr_elaborate
-$(NVC_DIR)/.touch/$(strip $1): $(NVC_DIR)/$(call get_src_lib,$(lastword $(NVC_SRC)),$(NVC_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(NVC_SRC)))) | $(NVC_DIR)/.touch
+.PHONY: nvc
+define rr_run
+.PHONY: nvc.$(strip $1)
+nvc.$(strip $1):: $(NVC_DIR)/$(call get_src_lib,$(lastword $(NVC_SRC)),$(NVC_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(NVC_SRC))))
+	$(call banner,NVC: simulation run = $1)
 	cd $(NVC_DIR) && $(NVC) \
 		$(NVC_G_OPTS) \
 		--work=$(strip $2):$(strip $2) \
 		-e \
 		$(NVC_E_OPTS)\
 		$(addprefix -g,$(strip $4)) \
-		$(strip $3)
-	touch $$@
-endef
-$(foreach r,$(NVC_RUN),$(eval $(call rr_elaborate, \
-	$(call get_run_name, $r), \
-	$(call get_run_lib,  $r), \
-	$(call get_run_unit, $r), \
-	$(call get_run_gen,  $r)  \
-)))
-
-# simulation run
-# $1 = run name
-# $2 = design unit library
-# $3 = design unit
-.PHONY: nvc
-define rr_run
-.PHONY: nvc.$(strip $1)
-nvc.$(strip $1):: $(NVC_DIR)/.touch/$(strip $1)
-	cd $(NVC_DIR) && $(NVC) \
-		$(NVC_G_OPTS) \
-		--work=$(strip $2):$(strip $2) \
+		$(strip $3) \
 		-r \
 		$(NVC_R_OPTS)\
 		$(strip $3)
@@ -129,6 +112,7 @@ $(foreach r,$(NVC_RUN),$(eval $(call rr_run, \
 	$(call get_run_name, $r), \
 	$(call get_run_lib,  $r), \
 	$(call get_run_unit, $r), \
+	$(call get_run_gen,  $r)  \
 )))
 
 ################################################################################
