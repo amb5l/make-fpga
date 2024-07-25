@@ -47,7 +47,7 @@ endif
 dep:=$(firstword $(VSIM_SRC))<= $(if $(word 2,$(VSIM_SRC)),$(call pairmap,src_dep,$(call rest,$(VSIM_SRC)),$(call chop,$(VSIM_SRC))),)
 
 # extract libraries from sources
-VSIM_LIB=$(call nodup,$(call get_src_lib,$(VSIM_SRC)))
+VSIM_LIB=$(call nodup,$(call get_src_lib,$(VSIM_SRC),$(VSIM_WORK)))
 
 ################################################################################
 # rules and recipes
@@ -69,8 +69,6 @@ endef
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_lib,$l)))
 
 # touch directories to track compilation
-$(VSIM_DIR)/.touch:
-	$(MKDIR) -p $@
 define rr_touchdir
 $(VSIM_DIR)/$1/.touch:
 	$(MKDIR) -p $$@
@@ -87,7 +85,7 @@ define rr_com
 $(VSIM_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4),$(VSIM_DIR)/$(strip $5)/.touch/$(notdir $(strip $4))) $(if $(filter dev,$(MAKECMDGOALS)),,$($MAKEFILE_LIST)) | $(VSIM_DIR)/$(strip $2) $(VSIM_DIR)/$(strip $2)/.touch
 	cd $(VSIM_DIR) && $(VCOM) \
 		-modelsimini $(VSIM_INI) \
-		-work $2 \
+		-work $(strip $2) \
 		-$(strip $3) \
 		$(VCOM_OPTS) \
 		$$<
@@ -109,7 +107,7 @@ $(foreach d,$(dep),$(eval $(call rr_com, \
 .PHONY: vsim
 define rr_run
 .PHONY: vsim.$(strip $1)
-vsim.$(strip $1):: $(VSIM_DIR)/$(call get_src_lib,$(lastword $(VSIM_SRC)),$(VSIM_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(VSIM_SRC)))) | $(VSIM_DIR)/.touch
+vsim.$(strip $1):: $(VSIM_DIR)/$(call get_src_lib,$(lastword $(VSIM_SRC)),$(VSIM_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(VSIM_SRC))))
 	cd $(VSIM_DIR) && $(VSIM) \
 		-modelsimini $(VSIM_INI) \
 		-work $2 \
