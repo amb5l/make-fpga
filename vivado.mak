@@ -60,8 +60,6 @@ get_bd_args   = $(word 2,$(subst =, ,$x))
 # simulation checks and adjustments
 ifneq (,$(VIVADO_SIM_RUN))
 ifneq (1,$(words $(VIVADO_SIM_RUN)))
-$(info VIVADO_SIM_RUN = $$(VIVADO_SIM_RUN))
-$(info VIVADO_SIM_RUN words = $$(words $$(VIVADO_SIM_RUN)))
 $(foreach r,$(VIVADO_SIM_RUN),$(if $(findstring =,$(word 1,$(subst ;, ,$r))),,$(error Multiple simulation runs must be named)))
 else
 $(if $(findstring =,$(word 1,$(subst ;, ,$(VIVADO_SIM_RUN)))),,$(eval VIVADO_SIM_RUN=sim=$(value VIVADO_SIM_RUN)))
@@ -164,7 +162,7 @@ define vivado_xpr_tcl
 		puts "setting top design unit generics..."
 		set_property generic {$(VIVADO_DSN_GEN)} [get_filesets sources_1]
 	}
-	if {"$(VIVADO_SIM_RUN)" != ""} {
+	if {"$(VIVADO_SIM_RUN_NAME)" != ""} {
 		puts "setting top unit and generics for simulation filesets..."
 		foreach r {$(VIVADO_SIM_RUN)} {
 			set run [lindex [split "$$r" "="] 0]
