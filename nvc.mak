@@ -38,6 +38,7 @@ $(foreach r,$(NVC_RUN),$(if $(findstring =,$(word 1,$(subst ;, ,$r))),,$(error M
 else
 $(if $(findstring =,$(word 1,$(subst ;, ,$(NVC_RUN)))),,$(eval NVC_RUN=sim=$(value NVC_RUN)))
 endif
+$(if $(filter 1993 2000 2002 2008 2019,$(NVC_VHDL_LRM)),,$(error NVC_VHDL_LRM value is unsupported: $(NVC_VHDL_LRM)))
 
 # compilation dependencies enforce compilation order
 dep:=$(firstword $(NVC_SRC))<= $(if $(word 2,$(NVC_SRC)),$(call pairmap,src_dep,$(call rest,$(NVC_SRC)),$(call chop,$(NVC_SRC))),)

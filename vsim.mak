@@ -42,6 +42,7 @@ $(foreach r,$(VSIM_RUN),$(if $(findstring =,$(word 1,$(subst ;, ,$r))),,$(error 
 else
 $(if $(findstring =,$(word 1,$(subst ;, ,$(VSIM_RUN)))),,$(eval VSIM_RUN=sim=$(value VSIM_RUN)))
 endif
+$(if $(filter 1987 1993 2002 2008,$(VSIM_VHDL_LRM)),,$(error VSIM_VHDL_LRM value is unsupported: $(VSIM_VHDL_LRM)))
 
 # compilation dependencies enforce compilation order
 dep:=$(firstword $(VSIM_SRC))<= $(if $(word 2,$(VSIM_SRC)),$(call pairmap,src_dep,$(call rest,$(VSIM_SRC)),$(call chop,$(VSIM_SRC))),)
