@@ -41,6 +41,8 @@ $(call check_defined,XILINX_VIVADO)
 $(call check_option,VIVADO_LANGUAGE,VHDL Verilog)
 $(call check_defined_alt,VIVADO_DSN_SRC VIVADO_SIM_SRC)
 $(call check_defined_alt,VIVADO_DSN_TOP VIVADO_SIM_TOP)
+$(if $(filter 1993 2000 2008 2019,$(VIVADO_VHDL_LRM)),,$(error VIVADO_VHDL_LRM value is unsupported: $(VIVADO_VHDL_LRM)))
+$(foreach s,$(VIVADO_DSN_SRC) $(VIVADO_SIM_SRC),$(if $(filter 1993 2000 2008 2019,$(call get_src_lrm,$s,$(VIVADO_VHDL_LRM))),,$(error source file LRM is unsupported: $s)))
 
 # local definitions
 VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd

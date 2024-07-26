@@ -36,6 +36,7 @@ else
 $(if $(findstring =,$(word 1,$(subst ;, ,$(GHDL_RUN)))),,$(eval GHDL_RUN=sim=$(value GHDL_RUN)))
 endif
 $(if $(filter 1987 1993 2002 2008 2019,$(GHDL_LRM)),,$(error GHDL_LRM value is unsupported: $(GHDL_LRM)))
+$(foreach s,$(GHDL_SRC),$(if $(filter 1987 1993 2002 2008 2019,$(call get_src_lrm,$s,$(GHDL_LRM))),,$(error source file LRM is unsupported: $s)))
 
 # compilation dependencies enforce compilation order
 dep:=$(firstword $(GHDL_SRC))<= $(if $(word 2,$(GHDL_SRC)),$(call pairmap,src_dep,$(call rest,$(GHDL_SRC)),$(call chop,$(GHDL_SRC))),)
