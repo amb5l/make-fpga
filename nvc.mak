@@ -48,13 +48,7 @@ NVC_LIB=$(call nodup,$(call get_src_lib,$(NVC_SRC),$(NVC_WORK)))
 ################################################################################
 # rules and recipes
 
-# main directory
-$(NVC_DIR):
-	$(MKDIR) -p $@
-
-# touch directories to track analysis/compilation and elaboration
-$(NVC_DIR)/.touch:
-	$(MKDIR) -p $@
+# touch directories to track compilation
 define rr_touchdir
 $(NVC_DIR)/$1/.touch:
 	$(MKDIR) -p $$@

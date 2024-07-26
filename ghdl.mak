@@ -45,7 +45,7 @@ GHDL_LIB=$(call nodup,$(call get_src_lib,$(GHDL_SRC),$(GHDL_WORK)))
 ################################################################################
 # rules and recipes
 
-# touch directories to track analysis/compilation and elaboration
+# touch directories to track compilation
 define rr_touchdir
 $(GHDL_DIR)/$1/.touch:
 	$(MKDIR) -p $$@
