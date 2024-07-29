@@ -277,9 +277,17 @@ $(VSCODE_DIR_DBG)/.vscode/c_cpp_properties.json: vitis_force | $(VSCODE_DIR_DBG)
 	$(file >$@,$(settings_dbg))
 
 edit:: $(VSCODE_DIR_RLS)/.vscode/c_cpp_properties.json $(VSCODE_DIR_RLS)/src
-	@cd $(VSCODE_DIR_RLS) && touch Release && code .
+ifeq ($(OS),Windows_NT)
+	@cd $(VSCODE_DIR_RLS) && start code .
+else
+	@cd $(VSCODE_DIR_RLS) && code . &
+endif
 edit:: $(VSCODE_DIR_DBG)/.vscode/c_cpp_properties.json $(VSCODE_DIR_DBG)/src
-	@cd $(VSCODE_DIR_DBG) && touch Debug && code .
+ifeq ($(OS),Windows_NT)
+	@cd $(VSCODE_DIR_DBG) && start code .
+else
+	@cd $(VSCODE_DIR_DBG) && code . &
+endif
 
 ################################################################################
 
