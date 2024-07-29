@@ -232,13 +232,13 @@ define settings_rls
             "name": "Vitis",
             "includePath": [
 				$(foreach i,$(VITIS_INC),"$i",)
-                "$(XILINX_VITIS)\\gnu\\$(if $(filter mbv,$(CPU)),riscv,microblaze)\\**\\*xilinx-elf)\\usr\\include",
-                "$${workspaceFolder}\\..\\..\\..\\*\\*\\standalone_domain\\bsp\\*\\include"
+                "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv,microblaze)/**/*xilinx-elf/usr/include",
+                "$${workspaceFolder}/../../../*/*/standalone_domain/bsp/*/include"
             ],
             "defines": [
 				$(foreach s,$(VITIS_SYM) $(VITIS_SYM_RLS),"$s",)
             ],
-            "compilerPath": "$(XILINX_VITIS)\\gnu\\$(if $(filter mbv,$(CPU)),riscv\\nt\\riscv64-unknown-elf\\bin\\riscv64-unknown-elf-gcc,microblaze\\nt\\bin\\mb-gcc).exe",
+            "compilerPath": "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv//nt//riscv64-unknown-elf//bin//riscv64-unknown-elf-gcc,microblaze//nt//bin//mb-gcc).exe",
             "cStandard": "c17",
             "cppStandard": "gnu++17",
             "intelliSenseMode": "windows-gcc-x64"
@@ -255,13 +255,13 @@ define settings_dbg
             "name": "Vitis",
             "includePath": [
 				$(foreach i,$(VITIS_INC),"$i",)
-                "$(XILINX_VITIS)\\gnu\\$(if $(filter mbv,$(CPU)),riscv,microblaze)\\**\\*xilinx-elf)\\usr\\include",
-                "$${workspaceFolder}\\..\\..\\..\\*\\*\\standalone_domain\\bsp\\*\\include"
+                "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv,microblaze)/**/*xilinx-elf)/usr/include",
+                "$${workspaceFolder}/../../../*/*/standalone_domain/bsp/*/include"
             ],
             "defines": [
 				$(foreach s,$(VITIS_SYM) $(VITIS_SYM_DBG),"$s",)
             ],
-            "compilerPath": "$(XILINX_VITIS)\\gnu\\$(if $(filter mbv,$(CPU)),riscv\\nt\\riscv64-unknown-elf\\bin\\riscv64-unknown-elf-gcc,microblaze\\nt\\bin\\mb-gcc).exe",
+            "compilerPath": "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv/nt/riscv64-unknown-elf/bin/riscv64-unknown-elf-gcc,microblaze/nt/bin/mb-gcc).exe",
             "cStandard": "c17",
             "cppStandard": "gnu++17",
             "intelliSenseMode": "windows-gcc-x64"
