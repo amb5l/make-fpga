@@ -154,7 +154,7 @@ $(VITIS_DIR)/$(VITIS_ELF_RLS): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
 	$(call xsct_run,xsct_elf_tcl,Release)
 	@printf "Checking that ELF file has built correctly..."
 	@[ -f $@ ]
-	@printf "OK"
+	@printf "OK\n"
 
 # debug ELF
 $(VITIS_DIR)/$(VITIS_ELF_DBG): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
@@ -163,7 +163,7 @@ $(VITIS_DIR)/$(VITIS_ELF_DBG): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
 	$(call xsct_run,xsct_elf_tcl,Debug)
 	@printf "Checking that ELF file has built correctly..."
 	@[ -f $@ ]
-	@printf "OK"
+	@printf "OK\n"
 
 ################################################################################
 # goals
