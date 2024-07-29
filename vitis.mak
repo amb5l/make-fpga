@@ -140,7 +140,7 @@ $(VITIS_DIR):
 
 # project
 .SECONDEXPANSION:
-$(VITIS_DIR)/$(VITIS_PRJ): $$(vivado_touch_dir)/$$(VIVADO_PROJ).xsa $(if $(filter dev,$(MAKECMDGOALS)),,$($MAKEFILE_LIST)) | $(VITIS_DIR)
+$(VITIS_DIR)/$(VITIS_PRJ): $$(vivado_touch_dir)/$$(VIVADO_PROJ).xsa $(if $(filter dev,$(MAKECMDGOALS)),,$(MAKEFILE_LIST)) | $(VITIS_DIR)
 	$(call banner,Vitis Classic: create project)
 	@cd $(VITIS_DIR) && \
 		rm -rf .metadata .Xil $(VITIS_APP) $(VITIS_APP)_system $$(VIVADO_PROJ) && \

@@ -84,7 +84,7 @@ $(foreach l,$(VSIM_LIB),$(eval $(call rr_touchdir,$l)))
 # $4 = dependency source path/file
 # $5 = dependency source library
 define rr_com
-$(VSIM_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4),$(VSIM_DIR)/$(strip $5)/.touch/$(notdir $(strip $4))) $(if $(filter dev,$(MAKECMDGOALS)),,$($MAKEFILE_LIST)) | $(VSIM_DIR)/$(strip $2) $(VSIM_DIR)/$(strip $2)/.touch
+$(VSIM_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4),$(VSIM_DIR)/$(strip $5)/.touch/$(notdir $(strip $4))) $(if $(filter dev,$(MAKECMDGOALS)),,$(MAKEFILE_LIST)) | $(VSIM_DIR)/$(strip $2) $(VSIM_DIR)/$(strip $2)/.touch
 	cd $(VSIM_DIR) && $(VCOM) \
 		-modelsimini $(VSIM_INI) \
 		-work $(strip $2) \
