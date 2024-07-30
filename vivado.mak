@@ -360,7 +360,7 @@ $(foreach s,$(vivado_scripts),\
 ################################################################################
 # Vivado rules and recipes
 
-.PHONY: dev vivado_default vivado_force xpr bd hwdef xsa synth impl bit $(VIVADO_SIM_RUN_NAME)
+.PHONY: dev vivado_default vivado_force xpr bd hwdef xsa synth dsn_elf impl bit sim_elf $(VIVADO_SIM_RUN_NAME)
 
 dev::
 	@:
@@ -410,27 +410,19 @@ $(vivado_touch_dir)/$(VIVADO_PROJ).xsa: $(foreach x,$(VIVADO_BD_TCL),$(addprefix
 	@touch $@
 xsa: $(vivado_touch_dir)/$(VIVADO_PROJ).xsa
 
-# associate design ELF file
-$(vivado_touch_dir)/dsn.elf: $(VIVADO_DSN_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
-	$(call banner,Vivado: associate design ELF file)
-	$(call vivado_run,vivado_dsn_elf_tcl,$(abspath $<))
-	@touch $@
-
-# associate simulation ELF files
-define rr_simelf
-$(vivado_touch_dir)/sim_$1.elf: $(VIVADO_SIM_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
-	$$(call banner,Vivado: associate simulation ELF file (run: $1))
-	$$(call vivado_run,vivado_sim_elf_tcl,$1 $$(abspath $$<))
-	@touch $$@
-endef
-$(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simelf,$r)))
-
 # synthesis
 $(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(call get_src_file,$(VIVADO_DSN_SRC.$l)) $(call get_xdc_file,$(VIVADO_XDC_SYNTH)) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $(call get_bd_file,$x))).gen)) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 	$(call banner,Vivado: synthesis)
 	$(call vivado_run,vivado_synth_tcl)
 	@touch $@
 synth: $(vivado_touch_dir)/$(VIVADO_PROJ).synth
+
+# associate design ELF file
+$(vivado_touch_dir)/dsn.elf: $(VIVADO_DSN_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+	$(call banner,Vivado: associate design ELF file)
+	$(call vivado_run,vivado_dsn_elf_tcl,$(abspath $<))
+	@touch $@
+dsn_elf: $(vivado_touch_dir)/dsn.elf
 
 # implementation (place and route) and preparation for simulation
 $(vivado_touch_dir)/$(VIVADO_PROJ).impl: $(vivado_touch_dir)/$(VIVADO_PROJ).synth $(call get_xdc_file,$(VIVADO_XDC_IMPL)) $(if $(VITIS_APP),$(vivado_touch_dir)/dsn.elf)
@@ -451,9 +443,15 @@ prog: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).bit
 	$(call banner,Vivado: program)
 	$(call vivado_run,vivado_prog_tcl,$(abspath $(VIVADO_BIT)))
 
-# simulation preparation
-simprep: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf))
-	$(call banner,Vivado: simulation preparation)
+# associate simulation ELF files
+define rr_simelf
+$(vivado_touch_dir)/sim_$1.elf: $(VIVADO_SIM_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+	$$(call banner,Vivado: associate simulation ELF file (run: $1))
+	$$(call vivado_run,vivado_sim_elf_tcl,$1 $$(abspath $$<))
+	@touch $$@
+endef
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simelf,$r)))
+sim_elf: $(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf)
 
 # simulation runs
 define rr_simrun
