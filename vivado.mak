@@ -360,7 +360,7 @@ $(foreach s,$(vivado_scripts),\
 ################################################################################
 # Vivado rules and recipes
 
-.PHONY: dev vivado_default vivado_force xpr bd hwdef xsa synth dsn_elf impl bit sim_elf $(VIVADO_SIM_RUN_NAME)
+.PHONY: dev vivado_default vivado_force xpr bd hwdef xsa synth dsn_elf impl bit sim_elf sim_bat sim_gui
 
 dev::
 	@:
@@ -455,11 +455,20 @@ sim_elf: $(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf)
 
 # simulation runs
 define rr_simrun
-$1:: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(vivado_touch_dir)/sim_$1.elf)
-	$$(call banner,Vivado: simulation run = $1)
-	$$(call vivado_run,vivado_sim_tcl,$1)
+.PHONY: sim.$1
+sim.$1:: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(vivado_touch_dir)/sim_$1.elf)
+	$(call banner,Vivado: simulation run = $1)
+	$(call vivado_run,vivado_sim_tcl,$1)
 endef
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simrun,$r)))
+
+# batch simulation
+sim_bat:: $(foreach r,$(VIVADO_SIM_RUN_NAME),sim.$r)
+	@:
+
+# interactive simulation
+sim_gui:: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(foreach x,$(VIVADO_BD_TCL),$(vivado_touch_dir)/$(basename $(notdir $(call get_bd_file,$x))).gen) $(if $(VITIS_APP),$(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf))
+	vivado $(VIVADO_DIR)/$(VIVADO_PROJ).xpr
 
 ################################################################################
 # Visual Studio Code
