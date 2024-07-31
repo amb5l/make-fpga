@@ -468,7 +468,11 @@ sim_bat:: $(foreach r,$(VIVADO_SIM_RUN_NAME),sim.$r)
 
 # interactive simulation
 sim_gui:: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(foreach x,$(VIVADO_BD_TCL),$(vivado_touch_dir)/$(basename $(notdir $(call get_bd_file,$x))).gen) $(if $(VITIS_APP),$(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf))
-	vivado $(VIVADO_DIR)/$(VIVADO_PROJ).xpr
+ifeq ($(OS),Windows_NT)
+	@cd $(VIVADO_DIR) && start vivado $(VIVADO_PROJ).xpr
+else
+	@cd $(VIVADO_DIR) && vivado $(VIVADO_PROJ).xpr &
+endif
 
 ################################################################################
 # Visual Studio Code
