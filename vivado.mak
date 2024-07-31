@@ -4,25 +4,25 @@
 ################################################################################
 # User makefile variables:
 # name
-# VIVADO_PART         FPGA part number
-# VIVADO_LANGUAGE     VHDL or Verilog
-# VIVADO_VHDL_LRM     default VHDL LRM for design and simulation sources:
-#                       2000, 2008 or 2019 (default is 2008)
-# VIVADO_DSN_TOP      top design unit (entity or configuration)
-# VIVADO_DSN_GEN      top generics:
-#                       generic=value<,generic=value...>
-# VIVADO_DSN_SRC      list of design sources, each as follows:
-#                       path/file<=lib><;language>
-# VIVADO_BD_TCL       list of block diagram creating TCL files
-# VIVADO_PROC_REF     reference (name) of block diagram containing CPU
-# VIVADO_PROC_CELL    path from BD instance down to CPU for ELF association
-# VIVADO_DSN_ELF      ELF to associate with CPU for builds
-# VIVADO_XDC          list of constraint files, with =scope suffixes
-# VIVADO_SIM_SRC      list of simulation sources (see VIVADO_DSN_SRC)
-# VIVADO_SIM_RUN      list of simulation runs, each as follows:
-#                       name=<lib:>unit;<generic=value<,generic=value...>>
-#                       For a single run, name may be omitted and defaults to 'sim'
-# VIVADO_SIM_ELF      ELF to associate with CPU for simulations
+# VIVADO_PART      FPGA part number
+# VIVADO_LANGUAGE  VHDL or Verilog
+# VIVADO_VHDL_LRM  default VHDL LRM for design and simulation sources:
+#                    2000, 2008 or 2019 (default is 2008)
+# VIVADO_DSN_TOP   top design unit (entity or configuration)
+# VIVADO_DSN_GEN   top generics:
+#                    generic=value<,generic=value...>
+# VIVADO_DSN_SRC   list of design sources, each as follows:
+#                    path/file<=lib><;language>
+# VIVADO_BD_TCL    list of block diagram creating TCL files
+# VIVADO_PROC_REF  reference (name) of block diagram containing CPU
+# VIVADO_PROC_CELL path from BD instance down to CPU for ELF association
+# VIVADO_DSN_ELF   ELF to associate with CPU for builds
+# VIVADO_XDC       list of constraint files, with =scope suffixes
+# VIVADO_SIM_SRC   list of simulation sources (see VIVADO_DSN_SRC)
+# VIVADO_SIM_RUN   list of simulation runs, each as follows:
+#                    name=<lib:>unit;<generic=value<,generic=value...>>
+#                    For a single run, name may be omitted and defaults to 'sim'
+# VIVADO_SIM_ELF   ELF to associate with CPU for simulations
 ################################################################################
 
 include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
