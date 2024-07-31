@@ -263,6 +263,16 @@ define vivado_sim_elf_tcl
 	set_property SCOPED_TO_CELLS {$(VIVADO_PROC_CELL)} [get_files -of_objects [get_fileset $$run] $$f]
 endef
 
+#-------------------------------------------------------------------------------
+
+vivado_scripts+=vivado_dsn_order_tcl
+define vivado_dsn_order_tcl
+	open_project $(VIVADO_PROJ)
+	puts "enabling manual compilation order..."
+	set_property source_mgmt_mode DisplayOnly [current_project]
+	puts "setting design compilation order..."
+	reorder_files -fileset [get_filesets sources_1] -front {$(call get_src_file,$(VIVADO_DSN_SRC))}
+endef
 
 #-------------------------------------------------------------------------------
 
@@ -299,7 +309,6 @@ endef
 
 vivado_scripts+=vivado_prog_tcl
 define vivado_prog_tcl
-
 	set file    [lindex $$argv 0]
 	set hw_spec [lindex $$argv 1]
 	set hw_interface 0
@@ -333,20 +342,30 @@ define vivado_prog_tcl
 	current_hw_device [lindex $$hw_device_list $$hw_device]
 	set_property PROGRAM.FILE $$file [current_hw_device]
 	program_hw_devices [current_hw_device]
+endef
 
+#-------------------------------------------------------------------------------
+
+vivado_scripts+=vivado_sim_order_tcl
+define vivado_sim_order_tcl
+	open_project $(VIVADO_PROJ)
+	puts "enabling manual compilation order..."
+	set_property source_mgmt_mode DisplayOnly [current_project]
+	puts "setting simulation compilation order..."
+	foreach r {$(VIVADO_SIM_RUN_NAME)} {
+		reorder_files -fileset [get_filesets $$r] -front {$(call get_src_file,$(VIVADO_SIM_SRC))}
+	}
 endef
 
 #-------------------------------------------------------------------------------
 
 vivado_scripts+=vivado_sim_tcl
 define vivado_sim_tcl
-
 	set r [lindex $$argv 0]
 	open_project $(VIVADO_PROJ)
 	current_fileset -simset [get_filesets $$r]
 	launch_simulation
 	run all
-
 endef
 
 ################################################################################
@@ -360,7 +379,7 @@ $(foreach s,$(vivado_scripts),\
 ################################################################################
 # Vivado rules and recipes
 
-.PHONY: dev vivado_default vivado_force xpr bd hwdef xsa synth dsn_elf impl bit sim_elf sim_bat sim_gui
+.PHONY: dev vivado_default vivado_force xpr bd hwdef xsa dsn_order synth dsn_elf impl bit sim_order sim_elf sim_bat sim_gui
 
 dev::
 	@:
@@ -410,8 +429,14 @@ $(vivado_touch_dir)/$(VIVADO_PROJ).xsa: $(foreach x,$(VIVADO_BD_TCL),$(addprefix
 	@touch $@
 xsa: $(vivado_touch_dir)/$(VIVADO_PROJ).xsa
 
+# design compilation order
+$(vivado_touch_dir)/dsn.order: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+	$(call banner,Vivado: set design compilation order)
+	$(call vivado_run,vivado_dsn_order_tcl)
+	@touch $@
+
 # synthesis
-$(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(call get_src_file,$(VIVADO_DSN_SRC.$l)) $(call get_xdc_file,$(VIVADO_XDC_SYNTH)) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $(call get_bd_file,$x))).gen)) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+$(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(call get_src_file,$(VIVADO_DSN_SRC.$l)) $(call get_xdc_file,$(VIVADO_XDC_SYNTH)) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $(call get_bd_file,$x))).gen)) $(vivado_touch_dir)/dsn.order
 	$(call banner,Vivado: synthesis)
 	$(call vivado_run,vivado_synth_tcl)
 	@touch $@
@@ -443,6 +468,15 @@ prog: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).bit
 	$(call banner,Vivado: program)
 	$(call vivado_run,vivado_prog_tcl,$(abspath $(VIVADO_BIT)))
 
+# simulation compilation order
+define rr_simorder
+$(vivado_touch_dir)/sim_$1.order: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+	$(call banner,Vivado: set simulation compilation order (run: $1))
+	$(call vivado_run,vivado_sim_order_tcl)
+	@touch $$@
+endef
+$(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simorder,$r)))
+
 # associate simulation ELF files
 define rr_simelf
 $(vivado_touch_dir)/sim_$1.elf: $(VIVADO_SIM_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
@@ -456,7 +490,7 @@ sim_elf: $(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf)
 # simulation runs
 define rr_simrun
 .PHONY: sim.$1
-sim.$1:: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(vivado_touch_dir)/sim_$1.elf)
+sim.$1:: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(if $(VITIS_APP),$(vivado_touch_dir)/sim_$1.elf) $(vivado_touch_dir)/sim_$1.order
 	$(call banner,Vivado: simulation run = $1)
 	$(call vivado_run,vivado_sim_tcl,$1)
 endef
@@ -467,9 +501,9 @@ sim_bat:: $(foreach r,$(VIVADO_SIM_RUN_NAME),sim.$r)
 	@:
 
 # interactive simulation
-sim_gui:: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(foreach x,$(VIVADO_BD_TCL),$(vivado_touch_dir)/$(basename $(notdir $(call get_bd_file,$x))).gen) $(if $(VITIS_APP),$(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf))
+sim_gui:: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(foreach x,$(VIVADO_BD_TCL),$(vivado_touch_dir)/$(basename $(notdir $(call get_bd_file,$x))).gen) $(if $(VITIS_APP),$(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf)) $(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.order)
 ifeq ($(OS),Windows_NT)
-	@cd $(VIVADO_DIR) && start vivado $(VIVADO_PROJ).xpr
+	@cd $(VIVADO_DIR) && start cmd /c "vivado $(VIVADO_PROJ).xpr"
 else
 	@cd $(VIVADO_DIR) && vivado $(VIVADO_PROJ).xpr &
 endif
