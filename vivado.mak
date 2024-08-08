@@ -475,13 +475,10 @@ prog: vivado_force $(vivado_touch_dir)/$(VIVADO_PROJ).bit
 	$(call vivado_run,vivado_prog_tcl,$(abspath $(VIVADO_BIT)))
 
 # simulation compilation order
-define rr_simorder
-$(vivado_touch_dir)/sim_$1.order: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
-	$(call banner,Vivado: set simulation compilation order (run: $1))
+$(vivado_touch_dir)/sim.order: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+	$(call banner,Vivado: set simulation compilation order)
 	$(call vivado_run,vivado_sim_order_tcl)
-	@touch $$@
-endef
-$(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simorder,$r)))
+	@touch $@
 
 # associate simulation ELF files
 define rr_simelf
@@ -507,7 +504,7 @@ sim_bat:: $(foreach r,$(VIVADO_SIM_RUN_NAME),sim.$r)
 	@:
 
 # interactive simulation
-sim_gui:: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(foreach x,$(VIVADO_BD_TCL),$(vivado_touch_dir)/$(basename $(notdir $(call get_bd_file,$x))).gen) $(if $(VITIS_APP),$(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf)) $(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.order)
+sim_gui:: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr $(foreach x,$(VIVADO_BD_TCL),$(vivado_touch_dir)/$(basename $(notdir $(call get_bd_file,$x))).gen) $(if $(VITIS_APP),$(foreach r,$(VIVADO_SIM_RUN_NAME),$(vivado_touch_dir)/sim_$r.elf)) $(vivado_touch_dir)/sim.order
 ifeq ($(OS),Windows_NT)
 	@cd $(VIVADO_DIR) && start cmd /c "vivado $(VIVADO_PROJ).xpr"
 else
