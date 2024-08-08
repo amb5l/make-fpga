@@ -17,12 +17,13 @@
 # VIVADO_PROC_REF  reference (name) of block diagram containing CPU
 # VIVADO_PROC_CELL path from BD instance down to CPU for ELF association
 # VIVADO_DSN_ELF   ELF to associate with CPU for builds
-# VIVADO_XDC       list of constraint files, with =scope suffixes
 # VIVADO_SIM_SRC   list of simulation sources (see VIVADO_DSN_SRC)
 # VIVADO_SIM_RUN   list of simulation runs, each as follows:
 #                    name=<lib:>unit;<generic=value<,generic=value...>>
 #                    For a single run, name may be omitted and defaults to 'sim'
 # VIVADO_SIM_ELF   ELF to associate with CPU for simulations
+# VIVADO_SIM_WCFG  simulation waveform configuration files
+# VIVADO_XDC       list of constraint files, with =scope suffixes
 ################################################################################
 
 include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
@@ -197,6 +198,11 @@ define vivado_xpr_tcl
 		add_files -norecurse -fileset [get_filesets constrs_1] {$(call get_xdc_file,$(VIVADO_XDC))}
 		puts "scoping constraints..."
 		scope_constrs {$(VIVADO_XDC)}
+	}
+	if {"$(VIVADO_SIM_WCFG)" != ""} {
+		foreach r {$(VIVADO_SIM_RUN_NAME)} {
+			add_files -norecurse -fileset [get_filesets $$r] {$(VIVADO_SIM_WCFG)}
+		}
 	}
 	exit 0
 endef
