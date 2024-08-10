@@ -53,7 +53,7 @@ NVC_LIB=$(call nodup,$(call get_src_lib,$(NVC_SRC),$(NVC_WORK)))
 # touch directories to track compilation
 define rr_touchdir
 $(NVC_DIR)/$1/.touch:
-	$(MKDIR) -p $$@
+	@$(MKDIR) -p $$@
 endef
 $(foreach l,$(NVC_LIB),$(eval $(call rr_touchdir,$l)))
 
@@ -65,14 +65,14 @@ $(foreach l,$(NVC_LIB),$(eval $(call rr_touchdir,$l)))
 # $5 = dependency source library
 define rr_com
 $(NVC_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4),$(NVC_DIR)/$(strip $5)/.touch/$(notdir $(strip $4))) | $(NVC_DIR)/$(strip $2)/.touch
-	cd $(NVC_DIR) && $(NVC) \
+	@cd $(NVC_DIR) && $(NVC) \
 		$(NVC_G_OPTS) \
 		--std=$(strip $3) \
 		--work=$(strip $2):$(strip $2) \
 		-a \
 		$(NVC_A_OPTS)\
 		$(strip $1)
-	touch $$@
+	@touch $$@
 endef
 $(foreach d,$(dep),$(eval $(call rr_com, \
 	$(call get_src_file, $(word 1,$(subst <=, ,$d))), \
@@ -92,7 +92,7 @@ define rr_run
 .PHONY: nvc.$(strip $1)
 nvc.$(strip $1):: $(NVC_DIR)/$(call get_src_lib,$(lastword $(NVC_SRC)),$(NVC_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(NVC_SRC))))
 	$(call banner,NVC: simulation run = $1)
-	cd $(NVC_DIR) && $(NVC) \
+	@cd $(NVC_DIR) && $(NVC) \
 		$(NVC_G_OPTS) \
 		--work=$(strip $2):$(strip $2) \
 		-e \

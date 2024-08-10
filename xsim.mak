@@ -1,4 +1,4 @@
-################################################################################
+	################################################################################
 # xsim.mak
 # See https://github.com/amb5l/make-fpga
 ################################################################################
@@ -55,7 +55,7 @@ XSIM_LIB=$(call nodup,$(call get_src_lib,$(XSIM_SRC),$(XSIM_WORK)))
 # touch directories to track compilation
 define rr_touchdir
 $(XSIM_DIR)/$1/.touch:
-	$(MKDIR) -p $$@
+	@$(MKDIR) -p $$@
 endef
 $(foreach l,$(XSIM_LIB),$(eval $(call rr_touchdir,$l)))
 
@@ -67,12 +67,12 @@ $(foreach l,$(XSIM_LIB),$(eval $(call rr_touchdir,$l)))
 # $5 = dependency source library
 define rr_com
 $(XSIM_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4),$(XSIM_DIR)/$(strip $5)/.touch/$(notdir $(strip $4))) | $(XSIM_DIR)/$(strip $2)/.touch
-	cd $(XSIM_DIR) && $(XVHDL) \
+	@cd $(XSIM_DIR) && $(XVHDL) \
 		$(if $(filter $3,2000),,$(if $(filter $3,1993),-93_mode,$(if $(filter $3,2008),-2008))) \
 		$(XVHDL_OPTS) \
 		-work $(strip $2) \
 		$(strip $1)
-	touch $$@
+	@touch $$@
 endef
 $(foreach d,$(dep),$(eval $(call rr_com, \
 	$(call get_src_file, $(word 1,$(subst <=, ,$d))), \
@@ -96,13 +96,13 @@ define rr_run
 .PHONY: xsim.$(strip $1)
 xsim.$(strip $1):: $(XSIM_DIR)/$(call get_src_lib,$(lastword $(XSIM_SRC)),$(XSIM_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(XSIM_SRC)))) | $(XSIM_DIR)/run.tcl
 	$(call banner,XSIM: simulation run = $1)
-	cd $(XSIM_DIR) && $(XELAB) \
+	@cd $(XSIM_DIR) && $(XELAB) \
 		$(XELAB_OPTS) \
 		-L $(strip $2) \
 		-top $(strip $3) \
 		-snapshot $(strip $2).$(strip $3) \
 		$(foreach g,$4,-generic_top "$g")
-	cd $(XSIM_DIR) && $(XSIM) \
+	@cd $(XSIM_DIR) && $(XSIM) \
 		$(XSIM_OPTS) \
 		-tclbatch run.tcl \
 		$(strip $2).$(strip $3)

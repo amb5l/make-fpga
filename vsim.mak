@@ -56,24 +56,24 @@ VSIM_LIB=$(call nodup,$(call get_src_lib,$(VSIM_SRC),$(VSIM_WORK)))
 
 # main directory
 $(VSIM_DIR):
-	$(MKDIR) -p $@
+	@$(MKDIR) -p $@
 
 # modelsim.ini
 $(VSIM_DIR)/$(VSIM_INI): | $(VSIM_DIR)
-	cd $(VSIM_DIR) && $(VMAP) -c && [ -f $(VSIM_INI) ] || mv modelsim.ini $(VSIM_INI)
+	@cd $(VSIM_DIR) && $(VMAP) -c && [ -f $(VSIM_INI) ] || mv modelsim.ini $(VSIM_INI)
 
 # libraries
 define vsim_lib
 $(VSIM_DIR)/$1: | $(VSIM_DIR)/$(VSIM_INI)
-	cd $$(VSIM_DIR) && vlib $1
-	cd $$(VSIM_DIR) && $(VMAP) -modelsimini $(VSIM_INI) $1 $1
+	@cd $$(VSIM_DIR) && vlib $1
+	@cd $$(VSIM_DIR) && $(VMAP) -modelsimini $(VSIM_INI) $1 $1
 endef
 $(foreach l,$(VSIM_LIB),$(eval $(call vsim_lib,$l)))
 
 # touch directories to track compilation
 define rr_touchdir
 $(VSIM_DIR)/$1/.touch:
-	$(MKDIR) -p $$@
+	@$(MKDIR) -p $$@
 endef
 $(foreach l,$(VSIM_LIB),$(eval $(call rr_touchdir,$l)))
 
@@ -85,13 +85,13 @@ $(foreach l,$(VSIM_LIB),$(eval $(call rr_touchdir,$l)))
 # $5 = dependency source library
 define rr_com
 $(VSIM_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4),$(VSIM_DIR)/$(strip $5)/.touch/$(notdir $(strip $4))) $(if $(filter dev,$(MAKECMDGOALS)),,$(MAKEFILE_LIST)) | $(VSIM_DIR)/$(strip $2) $(VSIM_DIR)/$(strip $2)/.touch
-	cd $(VSIM_DIR) && $(VCOM) \
+	@cd $(VSIM_DIR) && $(VCOM) \
 		-modelsimini $(VSIM_INI) \
 		-work $(strip $2) \
 		-$(strip $3) \
 		$(VCOM_OPTS) \
 		$$<
-	touch $$@
+	@touch $$@
 endef
 $(foreach d,$(dep),$(eval $(call rr_com, \
 	$(call get_src_file, $(word 1,$(subst <=, ,$d))), \
@@ -111,7 +111,7 @@ define rr_run
 .PHONY: vsim.$(strip $1)
 vsim.$(strip $1):: $(VSIM_DIR)/$(call get_src_lib,$(lastword $(VSIM_SRC)),$(VSIM_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(VSIM_SRC))))
 	$(call banner,vsim: simulation run = $1)
-	cd $(VSIM_DIR) && $(VSIM) \
+	@cd $(VSIM_DIR) && $(VSIM) \
 		-modelsimini $(VSIM_INI) \
 		-work $2 \
 		 -c \

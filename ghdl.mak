@@ -50,7 +50,7 @@ GHDL_LIB=$(call nodup,$(call get_src_lib,$(GHDL_SRC),$(GHDL_WORK)))
 # touch directories to track compilation
 define rr_touchdir
 $(GHDL_DIR)/$1/.touch:
-	$(MKDIR) -p $$@
+	@$(MKDIR) -p $$@
 endef
 $(foreach l,$(GHDL_LIB),$(eval $(call rr_touchdir,$l)))
 
@@ -62,8 +62,8 @@ $(foreach l,$(GHDL_LIB),$(eval $(call rr_touchdir,$l)))
 # $5 = dependency source library
 define rr_com
 $(GHDL_DIR)/$(strip $2)/.touch/$(notdir $(strip $1)): $(strip $1) $(if $(strip $4),$(GHDL_DIR)/$(strip $5)/.touch/$(notdir $(strip $4))) | $(GHDL_DIR)/$(strip $2)/.touch
-	cd $(GHDL_DIR) && $(GHDL) -a --work=$(strip $2) --std=$(strip $3) $$(GHDL_AOPTS) $$<
-	touch $$@
+	@cd $(GHDL_DIR) && $(GHDL) -a --work=$(strip $2) --std=$(strip $3) $$(GHDL_AOPTS) $$<
+	@touch $$@
 endef
 $(foreach d,$(dep),$(eval $(call rr_com, \
 	$(call get_src_file, $(word 1,$(subst <=, ,$d))), \
@@ -83,7 +83,7 @@ define rr_run
 .PHONY: ghdl.$(strip $1)
 ghdl.$(strip $1):: $(GHDL_DIR)/$(call get_src_lib,$(lastword $(GHDL_SRC)),$(GHDL_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(GHDL_SRC))))
 	$(call banner,GHDL: simulation run = $1)
-	cd $(GHDL_DIR) && $(GHDL) \
+	@cd $(GHDL_DIR) && $(GHDL) \
 		--elab-run \
 		--work=$(strip $2) \
 		--std=08 \
