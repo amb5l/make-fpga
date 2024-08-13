@@ -54,11 +54,11 @@ vivado_touch_dir=$(VIVADO_DIR)/touch
 $(if $(filter dev,$(MAKECMDGOALS)),$(eval dev=1))
 
 # functions
-vivado_run    = @cd $(VIVADO_DIR) && $(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(subst _tcl,.tcl,$1) $(addprefix -tclargs ,$2)
-get_xdc_file  = $(foreach x,$1,$(word 1,$(subst =, ,$x)))
-get_xdc_scope = $(strip $(foreach x,$1,$(word 2,$(subst =, ,$x))))
-get_bd_file   = $(word 1,$(subst =, ,$x))
-get_bd_args   = $(word 2,$(subst =, ,$x))
+vivado_run     = @cd $(VIVADO_DIR) && $(VIVADO) -mode tcl -notrace -nolog -nojournal -source $(subst _tcl,.tcl,$1) $(addprefix -tclargs ,$2)
+get_xdc_file   = $(foreach x,$1,$(word 1,$(subst =, ,$x)))
+get_xdc_usedin = $(strip $(foreach x,$1,$(word 2,$(subst =, ,$x))))
+get_bd_file    = $(word 1,$(subst =, ,$x))
+get_bd_args    = $(word 2,$(subst =, ,$x))
 
 # simulation checks and adjustments
 ifneq (,$(VIVADO_SIM_RUN))
@@ -75,10 +75,10 @@ endif
 endif
 
 # constraints
-$(foreach x,$(VIVADO_XDC),$(if $(call get_xdc_scope,$x),,$(error All constraints must be scoped)))
-VIVADO_XDC_SYNTH=$(foreach x,$(VIVADO_XDC),$(if,$(findstring SYNTH,$(call get_xdc_scope,$x)),$(call get_xdc_file,$x)))
-VIVADO_XDC_IMPL=$(foreach x,$(VIVADO_XDC),$(if,$(findstring IMPL,$(call get_xdc_scope,$x)),$(call get_xdc_file,$x)))
-VIVADO_XDC_SIM=$(foreach x,$(VIVADO_XDC),$(if,$(findstring SIM,$(call get_xdc_scope,$x)),$(call get_xdc_file,$x)))
+$(foreach x,$(VIVADO_XDC),$(if $(call get_xdc_usedin,$x),,$(error All constraints must be scoped)))
+VIVADO_XDC_SYNTH=$(foreach x,$(VIVADO_XDC),$(if,$(findstring SYNTH,$(call get_xdc_usedin,$x)),$(call get_xdc_file,$x)))
+VIVADO_XDC_IMPL=$(foreach x,$(VIVADO_XDC),$(if,$(findstring IMPL,$(call get_xdc_usedin,$x)),$(call get_xdc_file,$x)))
+VIVADO_XDC_SIM=$(foreach x,$(VIVADO_XDC),$(if,$(findstring SIM,$(call get_xdc_usedin,$x)),$(call get_xdc_file,$x)))
 
 ################################################################################
 # TCL sequences
@@ -182,22 +182,27 @@ define vivado_xpr_tcl
 	}
 	puts "enabling synthesis assertions..."
 	set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1]
-	proc scope_constrs {xdc} {
-		foreach x $$xdc {
-			set file  [lindex [split "$$x" "="] 0]
-			set scope [lindex [split "$$x" "="] 1]
-			set_property used_in_synthesis      [expr [string first "SYNTH" "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
-			set_property used_in_implementation [expr [string first "IMPL"  "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
-			if {[file extension $$file] == ".tcl"} {
-				set_property used_in_simulation     [expr [string first "SIM"   "$$scope"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
-			}
-		}
-	}
 	if {"$(VIVADO_XDC)" != ""} {
 		puts "adding constraints..."
 		add_files -norecurse -fileset [get_filesets constrs_1] {$(call get_xdc_file,$(VIVADO_XDC))}
-		puts "scoping constraints..."
-		scope_constrs {$(VIVADO_XDC)}
+		puts "setting used in properties on constraints..."
+		foreach x {$(VIVADO_XDC)} {
+			set file   [lindex [split "$$x" "="] 0]
+			set usedin [lindex [split "$$x" "="] 1]
+			set_property used_in_synthesis      [expr [string first "SYNTH" "$$usedin"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+			set_property used_in_implementation [expr [string first "IMPL"  "$$usedin"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+			if {[file extension $$file] == ".tcl"} {
+				set_property used_in_simulation [expr [string first "SIM"   "$$usedin"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+			}
+		}
+	}
+	if {"$(VIVADO_XDC_REF)" != ""} {
+		puts "adding constraints scoped by reference..."
+		foreach x {$(VIVADO_XDC_REF)} {
+			set file [lindex [split "$$x" "="] 0]
+			set ref  [lindex [split "$$x" "="] 1]
+			read_xdc -ref $$ref $$file
+		}
 	}
 	if {"$(VIVADO_SIM_WCFG)" != ""} {
 		foreach r {$(VIVADO_SIM_RUN_NAME)} {
@@ -528,7 +533,8 @@ $(foreach l,$(VSCODE_LIB), \
 )
 VSCODE_AUX=\
 	$(call get_bd_file,$(VIVADO_BD_TCL)) \
-	$(call get_xdc_file,$(VIVADO_XDC))
+	$(call get_xdc_file,$(VIVADO_XDC)) \
+	$(call get_xdc_file,$(VIVADO_XDC_REF))
 
 # workspace directory
 $(VSCODE_DIR):
