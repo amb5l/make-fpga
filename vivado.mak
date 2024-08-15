@@ -379,6 +379,17 @@ define vivado_sim_tcl
 	run all
 endef
 
+#-------------------------------------------------------------------------------
+
+vivado_scripts+=vivado_sdf_tcl
+define vivado_sdf_tcl
+	open_project $(VIVADO_PROJ)
+	open_run impl_1
+	write_verilog -mode timesim -force $(VIVADO_DSN_TOP)_timesim.v
+	write_sdf -process_corner slow -force $(VIVADO_DSN_TOP)_slow.sdf
+	write_sdf -process_corner fast -force $(VIVADO_DSN_TOP)_fast.sdf
+endef
+
 ################################################################################
 # write script files
 
@@ -390,7 +401,7 @@ $(foreach s,$(vivado_scripts),\
 ################################################################################
 # Vivado rules and recipes
 
-.PHONY: dev vivado_default vivado_force xpr bd hwdef xsa dsn_order synth dsn_elf impl bit sim_order sim_elf sim_bat sim_gui
+.PHONY: dev vivado_default vivado_force xpr bd hwdef xsa dsn_order synth dsn_elf impl bit sim_order sim_elf sim_bat sim_gui sdf
 
 dev::
 	@:
@@ -399,7 +410,7 @@ vivado_force:
 
 # project directory
 $(VIVADO_DIR):
-	@$(MKDIR) -p $@"
+	@$(MKDIR) -p $@
 
 # touch directory
 $(vivado_touch_dir):
@@ -515,6 +526,12 @@ ifeq ($(OS),Windows_NT)
 else
 	@cd $(VIVADO_DIR) && vivado $(VIVADO_PROJ).xpr &
 endif
+
+# timing simulation (netlist and SDF)
+$(VIVADO_DIR)/$(VIVADO_DSN_TOP)_timesim.v $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_slow.sdf  $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_fast.sdf &: $(vivado_touch_dir)/$(VIVADO_PROJ).impl
+	$(call banner,Vivado: generating timing simulation netlist and SDF files)
+	$(call vivado_run,vivado_sdf_tcl,$1)
+sdf:: $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_timesim.v $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_slow.sdf  $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_fast.sdf
 
 ################################################################################
 # Visual Studio Code
