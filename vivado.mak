@@ -458,7 +458,7 @@ $(vivado_touch_dir)/dsn.order: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 	@touch $@
 
 # synthesis
-$(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(call get_src_file,$(VIVADO_DSN_SRC.$l)) $(call get_xdc_file,$(VIVADO_XDC_SYNTH)) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $(call get_bd_file,$x))).gen)) $(vivado_touch_dir)/dsn.order
+$(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(call get_src_file,$(VIVADO_DSN_SRC)) $(call get_xdc_file,$(VIVADO_XDC_SYNTH)) $(foreach x,$(VIVADO_BD_TCL),$(addprefix $(vivado_touch_dir)/,$(basename $(notdir $(call get_bd_file,$x))).gen)) $(vivado_touch_dir)/dsn.order
 	$(call banner,Vivado: synthesis)
 	$(call vivado_run,vivado_synth_tcl)
 	@touch $@
