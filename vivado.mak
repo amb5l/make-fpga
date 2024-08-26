@@ -417,7 +417,7 @@ $(vivado_touch_dir):
 	@$(MKDIR) -p $@
 
 # create project file
-$(vivado_touch_dir)/$(VIVADO_PROJ).xpr: $(if $(filter dev,$(MAKECMDGOALS)),,$(MAKEFILE_LIST)) | $(VIVADO_DIR) $(vivado_touch_dir)
+$(vivado_touch_dir)/$(VIVADO_PROJ).xpr: $(if $(filter dev,$(MAKECMDGOALS)),,$(MAKEFILE_LIST)) $(call get_src_file,$(VIVADO_DSN_SRC)) $(call get_bd_file,$(VIVADO_BD_TCL)) $(call get_src_file,$(VIVADO_SIM_SRC)) $(call get_xdc_file,$(VIVADO_XDC)) $(call get_xdc_file,$(VIVADO_XDC_SYNTH)) $(call get_xdc_file,$(VIVADO_XDC_IMPL)) | $(VIVADO_DIR) $(vivado_touch_dir)
 	$(call banner,Vivado: create project)
 	@rm -f $(VIVADO_DIR)/$(VIVADO_PROJ).xpr
 	$(call vivado_run,vivado_xpr_tcl)
