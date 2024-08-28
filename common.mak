@@ -44,7 +44,7 @@ get_src_lang      = $(word 1,$(word 2,$(subst ;, ,$1)))
 get_src_lrm       = $(if $(findstring VHDL-,$(call get_src_lang,$1)),$(word 2,$(subst -, ,$(call get_src_lang,$1))),$2)
 get_src_lrm2      = $(if $(findstring 1987,$(call get_src_lrm,$1,$2)),87,$(if $(findstring 1993,$(call get_src_lrm,$1,$2)),93,$(if $(findstring 2002,$(call get_src_lrm,$1,$2)),02,$(if $(findstring 2008,$(call get_src_lrm,$1,$2)),08,$(if $(findstring 2019,$(call get_src_lrm,$1,$2)),19,?)))))
 get_run_name      = $(foreach x,$1,$(word 1,$(subst =, ,$x)))
-get_run_lib       = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 1,$(subst :, ,$(word 2,$(subst =, ,$1)))),$(GHDL_WORK))
+get_run_lib       = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 1,$(subst :, ,$(word 2,$(subst =, ,$1)))),$2)
 get_run_unit      = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 2,$(subst :, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))),$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))
 get_run_gen       = $(subst $(comma), ,$(word 2,$(subst ;, ,$1)))
 banner            = @printf "$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n$(col_bg_wht)$(col_fg_blu) %-78s$(col_rst)\n$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n" "$1"
