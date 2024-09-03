@@ -91,7 +91,7 @@ $(foreach d,$(dep),$(eval $(call rr_com, \
 define rr_run
 .PHONY: nvc.$(strip $1)
 nvc.$(strip $1):: $(NVC_DIR)/$(call get_src_lib,$(lastword $(NVC_SRC)),$(NVC_WORK))/.touch/$(notdir $(call get_src_file,$(lastword $(NVC_SRC))))
-	$(call banner,NVC: simulation run = $1)
+	$(call banner,NVC: simulation run = $(strip $1))
 	@cd $(NVC_DIR) && $(NVC) \
 		$(NVC_G_OPTS) \
 		--work=$(strip $2):$(strip $2) \
