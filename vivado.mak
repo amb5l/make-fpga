@@ -58,7 +58,7 @@ vivado_run     = @cd $(VIVADO_DIR) && $(VIVADO) -mode tcl -notrace -nolog -nojou
 get_xdc_file   = $(foreach x,$1,$(word 1,$(subst =, ,$x)))
 get_xdc_usedin = $(strip $(foreach x,$1,$(word 2,$(subst =, ,$x))))
 get_bd_file    = $(word 1,$(subst =, ,$x))
-get_bd_args    = $(word 2,$(subst =, ,$x))
+get_bd_args    = $(subst ;, ,$(word 2,$(subst =, ,$x)))
 
 # simulation checks and adjustments
 ifneq (,$(VIVADO_SIM_RUN))
