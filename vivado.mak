@@ -46,6 +46,8 @@ $(if $(filter 1993 2000 2008 2019,$(VIVADO_VHDL_LRM)),,$(error VIVADO_VHDL_LRM v
 $(foreach s,$(VIVADO_DSN_SRC) $(VIVADO_SIM_SRC),$(if $(filter 1993 2000 2008 2019,$(call get_src_lrm,$s,$(VIVADO_VHDL_LRM))),,$(error source file LRM is unsupported: $s)))
 
 # local definitions
+VIVADO_SYNTH_RUN=synth_1
+VIVADO_IMPL_RUN=impl_1
 VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
 VIVADO_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
 VIVADO_XSA=$(VIVADO_DSN_TOP).xsa
@@ -181,7 +183,7 @@ define vivado_xpr_tcl
 		}
 	}
 	puts "enabling synthesis assertions..."
-	set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs synth_1]
+	set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs $(VIVADO_SYNTH_RUN)]
 	if {"$(VIVADO_XDC)" != ""} {
 		puts "adding constraints..."
 		add_files -norecurse -fileset [get_filesets constrs_1] {$(call get_xdc_file,$(VIVADO_XDC))}
@@ -290,10 +292,10 @@ endef
 vivado_scripts+=vivado_synth_tcl
 define vivado_synth_tcl
 	open_project $(VIVADO_PROJ)
-	reset_run synth_1
-	launch_runs synth_1
-	wait_on_run synth_1
-	if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {exit 1}
+	reset_run $(VIVADO_SYNTH_RUN)
+	launch_runs $(VIVADO_SYNTH_RUN)
+	wait_on_run $(VIVADO_SYNTH_RUN)
+	if {[get_property PROGRESS [get_runs $(VIVADO_SYNTH_RUN)]] != "100%"} {exit 1}
 endef
 
 #-------------------------------------------------------------------------------
@@ -301,10 +303,10 @@ endef
 vivado_scripts+=vivado_impl_tcl
 define vivado_impl_tcl
 	open_project $(VIVADO_PROJ)
-	reset_run impl_1
-	launch_runs impl_1 -to_step route_design
-	wait_on_run impl_1
-	if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {exit 1}
+	reset_run $(VIVADO_IMPL_RUN)
+	launch_runs $(VIVADO_IMPL_RUN) -to_step route_design
+	wait_on_run $(VIVADO_IMPL_RUN)
+	if {[get_property PROGRESS [get_runs $(VIVADO_IMPL_RUN)]] != "100%"} {exit 1}
 endef
 
 #-------------------------------------------------------------------------------
@@ -312,7 +314,7 @@ endef
 vivado_scripts+=vivado_bit_tcl
 define vivado_bit_tcl
 	open_project $(VIVADO_PROJ)
-	open_run impl_1
+	open_run $(VIVADO_IMPL_RUN)
 	write_bitstream -force [lindex $$argv 0]
 endef
 
@@ -384,7 +386,7 @@ endef
 vivado_scripts+=vivado_sdf_tcl
 define vivado_sdf_tcl
 	open_project $(VIVADO_PROJ)
-	open_run impl_1
+	open_run $(VIVADO_IMPL_RUN)
 	write_verilog -mode timesim -force $(VIVADO_DSN_TOP)_timesim.v
 	write_sdf -process_corner slow -force $(VIVADO_DSN_TOP)_slow.sdf
 	write_sdf -process_corner fast -force $(VIVADO_DSN_TOP)_fast.sdf
