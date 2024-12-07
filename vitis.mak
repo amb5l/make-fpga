@@ -233,7 +233,8 @@ define settings_rls
             "includePath": [
 				$(foreach i,$(VITIS_INC),"$i",)
                 "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv,microblaze)/**/*xilinx-elf/usr/include",
-                "$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/include"
+                "$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/include",
+				"$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/libsrc/*/src/microblaze"
             ],
             "defines": [
 				$(foreach s,$(VITIS_SYM) $(VITIS_SYM_RLS),"$s")
@@ -256,7 +257,8 @@ define settings_dbg
             "includePath": [
 				$(foreach i,$(VITIS_INC),"$i",)
                 "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv,microblaze)/**/*xilinx-elf)/usr/include",
-                "$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/include"
+                "$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/include",
+				"$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/libsrc/*/src/microblaze"
             ],
             "defines": [
 				$(foreach s,$(VITIS_SYM) $(VITIS_SYM_DBG),"$s")
