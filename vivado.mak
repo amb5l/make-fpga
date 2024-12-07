@@ -51,7 +51,7 @@ VIVADO_FS_CONSTR=constrs_1
 VIVADO_FS_UTIL=utils_1
 VIVADO_SYNTH_RUN=synth_1
 VIVADO_IMPL_RUN=impl_1
-VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
+VIVADO_IMPL_DIR=$(VIVADO_PROJ).runs/$(VIVADO_IMPL_RUN)
 VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/$(VIVADO_FS_SRC)/bd
 VIVADO_BD_GEN_DIR?=$(VIVADO_PROJ).gen/$(VIVADO_FS_SRC)/bd
 VIVADO_XSA=$(VIVADO_DSN_TOP).xsa
@@ -215,6 +215,9 @@ define vivado_xpr_tcl
 			add_files -norecurse -fileset [get_filesets $$r] {$(VIVADO_SIM_WCFG)}
 		}
 	}
+	puts "adding post TCL to write_bitstream..."
+	add_files -fileset $(VIVADO_FS_UTIL) -norecurse vivado_bit_cp.tcl
+	set_property STEPS.WRITE_BITSTREAM.TCL.POST [ get_files vivado_bit_cp.tcl -of [get_fileset $(VIVADO_FS_UTIL)] ] [get_runs $(VIVADO_IMPL_RUN)]
 	exit 0
 endef
 
@@ -318,8 +321,10 @@ endef
 vivado_scripts+=vivado_bit_tcl
 define vivado_bit_tcl
 	open_project $(VIVADO_PROJ)
-	open_run $(VIVADO_IMPL_RUN)
-	write_bitstream -force [lindex $$argv 0]
+	reset_run $(VIVADO_IMPL_RUN) -from_step write_bitstream
+	launch_runs $(VIVADO_IMPL_RUN) -to_step write_bitstream
+	wait_on_run $(VIVADO_IMPL_RUN)
+	if {[get_property PROGRESS [get_runs $(VIVADO_IMPL_RUN)]] != "100%"} {exit 1}
 endef
 
 #-------------------------------------------------------------------------------
@@ -404,6 +409,14 @@ $(foreach s,$(vivado_scripts),\
 	$(file >$(VIVADO_DIR)/$(subst _tcl,.tcl,$s),set code [catch { $($s) } result]; puts $$result; exit $$code) \
 )
 
+#-------------------------------------------------------------------------------
+
+define vivado_bit_cp_tcl
+	file copy -force $(abspath $(VIVADO_DIR)/$(VIVADO_IMPL_DIR)/$(VIVADO_BIT)) $(abspath $(VIVADO_BIT))
+endef
+
+$(file >$(VIVADO_DIR)/vivado_bit_cp.tcl,$(vivado_bit_cp_tcl))
+
 ################################################################################
 # Vivado rules and recipes
 
@@ -487,7 +500,7 @@ impl: $(vivado_touch_dir)/$(VIVADO_PROJ).impl
 # write bitstream
 $(vivado_touch_dir)/$(VIVADO_PROJ).bit: $(vivado_touch_dir)/$(VIVADO_PROJ).impl
 	$(call banner,Vivado: write bitstream)
-	$(call vivado_run,vivado_bit_tcl,$(abspath $(VIVADO_BIT)))
+	$(call vivado_run,vivado_bit_tcl)
 	@touch $@
 bit: $(vivado_touch_dir)/$(VIVADO_PROJ).bit
 
