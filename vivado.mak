@@ -533,6 +533,10 @@ $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_timesim.v $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_slow.s
 	$(call vivado_run,vivado_sdf_tcl,$1)
 sdf:: $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_timesim.v $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_slow.sdf  $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_fast.sdf
 
+# IDE
+ide:: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+	$(VIVADO) $(VIVADO_DIR)/$(VIVADO_PROJ).xpr
+
 ################################################################################
 # Visual Studio Code
 # TODO remove redundant files

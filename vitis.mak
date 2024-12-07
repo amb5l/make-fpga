@@ -28,6 +28,7 @@ VITIS_APP?=app
 ifeq (classic,$(VITIS_FLOW))
 
 # defaults
+VITIS?=vitis -classic
 XSCT?=xsct
 VITIS_PRJ=$(VITIS_APP)/.project
 VITIS_ELF_RLS?=$(VITIS_APP)/Release/$(VITIS_APP).elf
@@ -179,6 +180,9 @@ rls: $(VITIS_DIR)/$(VITIS_ELF_RLS)
 dbg: $(VITIS_DIR)/$(VITIS_ELF_DBG)
 
 elf: rls dbg
+
+ide:: $(VITIS_DIR)/$(VITIS_PRJ)
+	$(VITIS) -workspace $(VITIS_DIR)
 
 ################################################################################
 # Unified Flow
