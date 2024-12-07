@@ -236,7 +236,7 @@ define settings_rls
                 "$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/include"
             ],
             "defines": [
-				$(foreach s,$(VITIS_SYM) $(VITIS_SYM_RLS),"$s",)
+				$(foreach s,$(VITIS_SYM) $(VITIS_SYM_RLS),"$s")
             ],
             "compilerPath": "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv//nt//riscv64-unknown-elf//bin//riscv64-unknown-elf-gcc,microblaze//nt//bin//mb-gcc).exe",
             "cStandard": "c17",
@@ -259,7 +259,7 @@ define settings_dbg
                 "$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/include"
             ],
             "defines": [
-				$(foreach s,$(VITIS_SYM) $(VITIS_SYM_DBG),"$s",)
+				$(foreach s,$(VITIS_SYM) $(VITIS_SYM_DBG),"$s")
             ],
             "compilerPath": "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv/nt/riscv64-unknown-elf/bin/riscv64-unknown-elf-gcc,microblaze/nt/bin/mb-gcc).exe",
             "cStandard": "c17",
