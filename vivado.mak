@@ -46,10 +46,14 @@ $(if $(filter 1993 2000 2008 2019,$(VIVADO_VHDL_LRM)),,$(error VIVADO_VHDL_LRM v
 $(foreach s,$(VIVADO_DSN_SRC) $(VIVADO_SIM_SRC),$(if $(filter 1993 2000 2008 2019,$(call get_src_lrm,$s,$(VIVADO_VHDL_LRM))),,$(error source file LRM is unsupported: $s)))
 
 # local definitions
+VIVADO_FS_SRC=sources_1
+VIVADO_FS_CONSTR=constrs_1
+VIVADO_FS_UTIL=utils_1
 VIVADO_SYNTH_RUN=synth_1
 VIVADO_IMPL_RUN=impl_1
 VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/sources_1/bd
-VIVADO_BD_GEN_DIR?=$(VIVADO_PROJ).gen/sources_1/bd
+VIVADO_BD_SRC_DIR=$(VIVADO_PROJ).srcs/$(VIVADO_FS_SRC)/bd
+VIVADO_BD_GEN_DIR?=$(VIVADO_PROJ).gen/$(VIVADO_FS_SRC)/bd
 VIVADO_XSA=$(VIVADO_DSN_TOP).xsa
 VIVADO_BIT=$(VIVADO_DSN_TOP).bit
 vivado_touch_dir=$(VIVADO_DIR)/touch
@@ -99,7 +103,7 @@ define vivado_xpr_tcl
 		}
 		current_fileset -simset [get_filesets $(word 1,$(VIVADO_SIM_RUN_NAME))]
 		foreach s [get_filesets] {
-			if {$$s != "sources_1" && $$s != "constrs_1" && $$s != "utils_1"} {
+			if {$$s != "$(VIVADO_FS_SRC)" && $$s != "$(VIVADO_FS_CONSTR)" && $$s != "$(VIVADO_FS_UTIL)"} {
 				if {!("$$s" in {$(VIVADO_SIM_RUN_NAME)})} {
 					delete_fileset $$s
 				}
@@ -141,10 +145,10 @@ define vivado_xpr_tcl
 	}
 	if {"$(VIVADO_DSN_SRC)" != ""} {
 		puts "adding design sources..."
-		add_files -norecurse -fileset [get_filesets sources_1] {$(call get_src_file,$(VIVADO_DSN_SRC))}
+		add_files -norecurse -fileset [get_filesets $(VIVADO_FS_SRC)] {$(call get_src_file,$(VIVADO_DSN_SRC))}
 		puts "assigning design sources to libraries, and language defaults/overrides..."
 		foreach s {$(VIVADO_DSN_SRC)} {
-			lib_type $$s sources_1
+			lib_type $$s $(VIVADO_FS_SRC)
 		}
 	}
 	if {"$(VIVADO_SIM_SRC)" != ""} {
@@ -161,11 +165,11 @@ define vivado_xpr_tcl
 	}
 	if {"$(VIVADO_DSN_TOP)" != ""} {
 		puts "setting top design unit..."
-		set_property top "$(VIVADO_DSN_TOP)" [get_filesets sources_1]
+		set_property top "$(VIVADO_DSN_TOP)" [get_filesets $(VIVADO_FS_SRC)]
 	}
 	if {[llength {$(VIVADO_DSN_GEN)}] > 0} {
 		puts "setting top design unit generics..."
-		set_property generic {$(VIVADO_DSN_GEN)} [get_filesets sources_1]
+		set_property generic {$(VIVADO_DSN_GEN)} [get_filesets $(VIVADO_FS_SRC)]
 	}
 	if {"$(VIVADO_SIM_RUN_NAME)" != ""} {
 		puts "setting top unit and generics for simulation filesets..."
@@ -186,15 +190,15 @@ define vivado_xpr_tcl
 	set_property STEPS.SYNTH_DESIGN.ARGS.ASSERT true [get_runs $(VIVADO_SYNTH_RUN)]
 	if {"$(VIVADO_XDC)" != ""} {
 		puts "adding constraints..."
-		add_files -norecurse -fileset [get_filesets constrs_1] {$(call get_xdc_file,$(VIVADO_XDC))}
+		add_files -norecurse -fileset [get_filesets $(VIVADO_FS_CONSTR)] {$(call get_xdc_file,$(VIVADO_XDC))}
 		puts "setting used in properties on constraints..."
 		foreach x {$(VIVADO_XDC)} {
 			set file   [lindex [split "$$x" "="] 0]
 			set usedin [lindex [split "$$x" "="] 1]
-			set_property used_in_synthesis      [expr [string first "SYNTH" "$$usedin"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
-			set_property used_in_implementation [expr [string first "IMPL"  "$$usedin"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+			set_property used_in_synthesis      [expr [string first "SYNTH" "$$usedin"] != -1 ? true : false] [get_files -of_objects [get_filesets $(VIVADO_FS_CONSTR)] $$file]
+			set_property used_in_implementation [expr [string first "IMPL"  "$$usedin"] != -1 ? true : false] [get_files -of_objects [get_filesets $(VIVADO_FS_CONSTR)] $$file]
 			if {[file extension $$file] == ".tcl"} {
-				set_property used_in_simulation [expr [string first "SIM"   "$$usedin"] != -1 ? true : false] [get_files -of_objects [get_filesets constrs_1] $$file]
+				set_property used_in_simulation [expr [string first "SIM"   "$$usedin"] != -1 ? true : false] [get_files -of_objects [get_filesets $(VIVADO_FS_CONSTR)] $$file]
 			}
 		}
 	}
@@ -222,9 +226,9 @@ define vivado_bd_tcl
 	set args [lrange $$argv 1 end]
 	set design [file rootname [file tail $$file]]
 	open_project $(VIVADO_PROJ)
-	if {[get_files -quiet -of_objects [get_filesets sources_1] "$$design.bd"] != ""} {
-		export_ip_user_files -of_objects [get_files -of_objects [get_filesets sources_1] "$$design.bd"] -no_script -reset -force -quiet
-		remove_files [get_files -of_objects [get_filesets sources_1] "$$design.bd"]
+	if {[get_files -quiet -of_objects [get_filesets $(VIVADO_FS_SRC)] "$$design.bd"] != ""} {
+		export_ip_user_files -of_objects [get_files -of_objects [get_filesets $(VIVADO_FS_SRC)] "$$design.bd"] -no_script -reset -force -quiet
+		remove_files [get_files -of_objects [get_filesets $(VIVADO_FS_SRC)] "$$design.bd"]
 		file delete -force $(VIVADO_BD_SRC_DIR)/$$design
 		file delete -force $(VIVADO_BD_GEN_DIR)/$$design
 	}
@@ -239,7 +243,7 @@ vivado_scripts+=vivado_bd_gen_tcl
 define vivado_bd_gen_tcl
 	set f [lindex $$argv 0]
 	open_project $(VIVADO_PROJ)
-	generate_target all [get_files -of_objects [get_filesets sources_1] [file tail $$f]]
+	generate_target all [get_files -of_objects [get_filesets $(VIVADO_FS_SRC)] [file tail $$f]]
 endef
 
 #-------------------------------------------------------------------------------
@@ -256,11 +260,11 @@ vivado_scripts+=vivado_dsn_elf_tcl
 define vivado_dsn_elf_tcl
 	set f [lindex $$argv 0]
 	open_project $(VIVADO_PROJ)
-	add_files -norecurse -fileset [get_filesets sources_1] $$f
-	set_property used_in_implementation 1 [get_files -of_objects [get_filesets sources_1] $$f]
-	set_property used_in_simulation 0 [get_files -of_objects [get_filesets sources_1] $$f]
-	set_property SCOPED_TO_REF {$(VIVADO_PROC_REF)} [get_files -of_objects [get_fileset sources_1] $$f]
-	set_property SCOPED_TO_CELLS {$(VIVADO_PROC_CELL)} [get_files -of_objects [get_fileset sources_1] $$f]
+	add_files -norecurse -fileset [get_filesets $(VIVADO_FS_SRC)] $$f
+	set_property used_in_implementation 1 [get_files -of_objects [get_filesets $(VIVADO_FS_SRC)] $$f]
+	set_property used_in_simulation 0 [get_files -of_objects [get_filesets $(VIVADO_FS_SRC)] $$f]
+	set_property SCOPED_TO_REF {$(VIVADO_PROC_REF)} [get_files -of_objects [get_fileset $(VIVADO_FS_SRC)] $$f]
+	set_property SCOPED_TO_CELLS {$(VIVADO_PROC_CELL)} [get_files -of_objects [get_fileset $(VIVADO_FS_SRC)] $$f]
 endef
 
 #-------------------------------------------------------------------------------
@@ -284,7 +288,7 @@ define vivado_dsn_order_tcl
 	puts "enabling manual compilation order..."
 	set_property source_mgmt_mode DisplayOnly [current_project]
 	puts "setting design compilation order..."
-	reorder_files -fileset [get_filesets sources_1] -front {$(call get_src_file,$(VIVADO_DSN_SRC))}
+	reorder_files -fileset [get_filesets $(VIVADO_FS_SRC)] -front {$(call get_src_file,$(VIVADO_DSN_SRC))}
 endef
 
 #-------------------------------------------------------------------------------
