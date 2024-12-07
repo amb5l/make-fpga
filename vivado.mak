@@ -535,7 +535,11 @@ sdf:: $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_timesim.v $(VIVADO_DIR)/$(VIVADO_DSN_TOP)_
 
 # IDE
 ide:: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
-	$(VIVADO) $(VIVADO_DIR)/$(VIVADO_PROJ).xpr
+ifeq ($(OS),Windows_NT)
+	cmd /c "start $(VIVADO) $(VIVADO_DIR)/$(VIVADO_PROJ).xpr"
+else
+	$(VIVADO) $(VIVADO_DIR)/$(VIVADO_PROJ).xpr &
+endif
 
 ################################################################################
 # Visual Studio Code
