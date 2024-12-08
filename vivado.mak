@@ -484,9 +484,9 @@ $(vivado_touch_dir)/$(VIVADO_PROJ).synth: $(call get_src_file,$(VIVADO_DSN_SRC))
 synth: $(vivado_touch_dir)/$(VIVADO_PROJ).synth
 
 # associate design ELF file
-$(vivado_touch_dir)/dsn.elf: $(VIVADO_DSN_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+$(vivado_touch_dir)/dsn.elf: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr | $(VIVADO_DSN_ELF)
 	$(call banner,Vivado: associate design ELF file)
-	$(call vivado_run,vivado_dsn_elf_tcl,$(abspath $<))
+	$(call vivado_run,vivado_dsn_elf_tcl,$(abspath $(VIVADO_DSN_ELF)))
 	@touch $@
 dsn_elf: $(vivado_touch_dir)/dsn.elf
 
@@ -517,9 +517,9 @@ $(vivado_touch_dir)/sim.order: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
 
 # associate simulation ELF files
 define rr_simelf
-$(vivado_touch_dir)/sim_$1.elf: $(VIVADO_SIM_ELF) $(vivado_touch_dir)/$(VIVADO_PROJ).xpr
+$(vivado_touch_dir)/sim_$1.elf: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr | $(VIVADO_SIM_ELF)
 	$$(call banner,Vivado: associate simulation ELF file (run: $1))
-	$$(call vivado_run,vivado_sim_elf_tcl,$1 $$(abspath $$<))
+	$$(call vivado_run,vivado_sim_elf_tcl,$1 $$(abspath $$(VIVADO_SIM_ELF)))
 	@touch $$@
 endef
 $(foreach r,$(VIVADO_SIM_RUN_NAME),$(eval $(call rr_simelf,$r)))
