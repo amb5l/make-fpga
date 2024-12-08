@@ -39,6 +39,7 @@ $(call check_option,VITIS_ARCH,microblaze riscv)
 
 # local definitions
 gcc_path=$(if $(filter riscv,$(VITIS_ARCH)),riscv/nt/riscv64-unknown-elf/bin/riscv64-unknown-elf-gcc,microblaze/nt/bin/mb-gcc).exe
+target_name=$(if $(filter riscv,$(VITIS_ARCH)),Hart*,MicroBlaze*)
 
 # functions
 xsct_run=@cd $(VITIS_DIR) && $(XSCT) $(subst _tcl,.tcl,$1) $2
@@ -130,6 +131,20 @@ define xsct_elf_tcl
 
 endef
 
+#-------------------------------------------------------------------------------
+
+xsct_scripts+=xsct_run_tcl
+define xsct_run_tcl
+
+	set f [lindex $$argv 0]
+	connect
+	fpga $$f
+	targets -set -filter {name =~ "$(target_name)"}
+	dow $(VITIS_ELF_RLS)
+	rst
+
+endef
+
 ################################################################################
 # write script files
 
@@ -186,6 +201,10 @@ rls: $(VITIS_DIR)/$(VITIS_ELF_RLS)
 dbg: $(VITIS_DIR)/$(VITIS_ELF_DBG)
 
 elf: rls dbg
+
+run: $(VITIS_DIR)/$(VITIS_ELF_RLS) | $$(vivado_touch_dir)/$$(VIVADO_PROJ).bit
+	$(call banner,Vitis Classic: download and run release ELF)
+	$(call xsct_run,xsct_run_tcl,$(abspath $(VIVADO_DSN_TOP).bit))
 
 ide:: $(VITIS_DIR)/$(VITIS_PRJ)
 	$(VITIS) -workspace $(VITIS_DIR)
