@@ -190,7 +190,7 @@ $(VITIS_DIR)/$(VITIS_ELF_DBG): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
 ################################################################################
 # goals
 
-.PHONY: vitis_force prj rls dbg elf
+.PHONY: vitis_force prj rls dbg elf run ide
 
 vitis_force:
 
