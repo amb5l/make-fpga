@@ -34,6 +34,12 @@ VITIS_PRJ=$(VITIS_APP)/.project
 VITIS_ELF_RLS?=$(VITIS_APP)/Release/$(VITIS_APP).elf
 VITIS_ELF_DBG?=$(VITIS_APP)/Debug/$(VITIS_APP).elf
 
+# checks
+$(call check_option,VITIS_ARCH,microblaze riscv)
+
+# local definitions
+gcc_path=$(if $(filter riscv,$(VITIS_ARCH)),riscv/nt/riscv64-unknown-elf/bin/riscv64-unknown-elf-gcc,microblaze/nt/bin/mb-gcc).exe
+
 # functions
 xsct_run=@cd $(VITIS_DIR) && $(XSCT) $(subst _tcl,.tcl,$1) $2
 
@@ -236,14 +242,14 @@ define settings_rls
             "name": "Vitis",
             "includePath": [
 				$(foreach i,$(VITIS_INC),"$i",)
-                "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv,microblaze)/**/*xilinx-elf/usr/include",
+                "$(subst \,/,$(XILINX_VITIS))/gnu/$(VITIS_ARCH)/**/*xilinx-elf/usr/include",
                 "$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/include",
 				"$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/libsrc/*/src/microblaze"
             ],
             "defines": [
 				$(subst $(space),$(comma),$(foreach s,$(VITIS_SYM) $(VITIS_SYM_RLS),"$s"))
             ],
-            "compilerPath": "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv//nt//riscv64-unknown-elf//bin//riscv64-unknown-elf-gcc,microblaze//nt//bin//mb-gcc).exe",
+            "compilerPath": "$(subst \,/,$(XILINX_VITIS))/gnu/$(gcc_path)",
             "cStandard": "c17",
             "cppStandard": "gnu++17",
             "intelliSenseMode": "windows-gcc-x64"
@@ -260,14 +266,14 @@ define settings_dbg
             "name": "Vitis",
             "includePath": [
 				$(foreach i,$(VITIS_INC),"$i",)
-                "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv,microblaze)/**/*xilinx-elf)/usr/include",
+                "$(subst \,/,$(XILINX_VITIS))/gnu/$(VITIS_ARCH)/**/*xilinx-elf/usr/include",
                 "$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/include",
 				"$${workspaceFolder}/../../../$(VITIS_DIR)/*/*/standalone_domain/bsp/*/libsrc/*/src/microblaze"
             ],
             "defines": [
 				$(subst $(space),$(comma),$(foreach s,$(VITIS_SYM) $(VITIS_SYM_DBG),"$s"))
             ],
-            "compilerPath": "$(subst \,/,$(XILINX_VITIS))/gnu/$(if $(filter mbv,$(CPU)),riscv/nt/riscv64-unknown-elf/bin/riscv64-unknown-elf-gcc,microblaze/nt/bin/mb-gcc).exe",
+            "compilerPath": "$(subst \,/,$(XILINX_VITIS))/gnu/$(gcc_path)",
             "cStandard": "c17",
             "cppStandard": "gnu++17",
             "intelliSenseMode": "windows-gcc-x64"
