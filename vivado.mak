@@ -491,7 +491,7 @@ $(vivado_touch_dir)/dsn.elf: $(vivado_touch_dir)/$(VIVADO_PROJ).xpr | $(VIVADO_D
 dsn_elf: $(vivado_touch_dir)/dsn.elf
 
 # implementation (place and route) and preparation for simulation
-$(vivado_touch_dir)/$(VIVADO_PROJ).impl: $(vivado_touch_dir)/$(VIVADO_PROJ).synth $(call get_xdc_file,$(VIVADO_XDC_IMPL)) $(if $(VITIS_APP),$(vivado_touch_dir)/dsn.elf)
+$(vivado_touch_dir)/$(VIVADO_PROJ).impl: $(vivado_touch_dir)/$(VIVADO_PROJ).synth $(call get_xdc_file,$(VIVADO_XDC_IMPL)) $(if $(VITIS_APP),$(vivado_touch_dir)/dsn.elf $(VIVADO_DSN_ELF))
 	$(call banner,Vivado: implementation)
 	$(call vivado_run,vivado_impl_tcl)
 	@touch $@
