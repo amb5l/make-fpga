@@ -202,8 +202,9 @@ dbg: $(VITIS_DIR)/$(VITIS_ELF_DBG)
 
 elf: rls dbg
 
-run: $(VITIS_DIR)/$(VITIS_ELF_RLS) | $$(vivado_touch_dir)/$$(VIVADO_PROJ).bit
+run: $(VITIS_DIR)/$(VITIS_ELF_RLS)
 	$(call banner,Vitis Classic: download and run release ELF)
+	test -e $(vivado_touch_dir)/$(VIVADO_PROJ).bit || $(MAKE) bit
 	$(call xsct_run,xsct_run_tcl,$(abspath $(VIVADO_DSN_TOP).bit))
 
 ide:: $(VITIS_DIR)/$(VITIS_PRJ)
