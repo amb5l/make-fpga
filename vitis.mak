@@ -226,34 +226,34 @@ endif
 # Visual Studio Code
 # TODO remove redundant files
 
-VSCODE_DIR_RLS=vscode/vitis/Release
-VSCODE_DIR_DBG=vscode/vitis/Debug
-VSCODE_SRC=$(VITIS_SRC)
+VITIS_EDIT_DIR_RLS=edit/vitis/Release
+VITIS_EDIT_DIR_DBG=edit/vitis/Debug
+VITIS_EDIT_SRC=$(VITIS_SRC)
 
 # workspace directories
-$(VSCODE_DIR_RLS):
+$(VITIS_EDIT_DIR_RLS):
 	@$(MKDIR) -p $@
-$(VSCODE_DIR_RLS)/.vscode:
+$(VITIS_EDIT_DIR_RLS)/.vscode:
 	@$(MKDIR) -p $@
-$(VSCODE_DIR_DBG):
+$(VITIS_EDIT_DIR_DBG):
 	@$(MKDIR) -p $@
-$(VSCODE_DIR_DBG)/.vscode:
+$(VITIS_EDIT_DIR_DBG)/.vscode:
 	@$(MKDIR) -p $@
 
 # source directory, containing symbolic link(s) to source(s)
-$(VSCODE_DIR_RLS)/src: $(addprefix $$(VSCODE_DIR_RLS)/src/,$(notdir $(VSCODE_SRC)))
-$(VSCODE_DIR_DBG)/src: $(addprefix $$(VSCODE_DIR_DBG)/src/,$(notdir $(VSCODE_SRC)))
+$(VITIS_EDIT_DIR_RLS)/src: $(addprefix $$(VITIS_EDIT_DIR_RLS)/src/,$(notdir $(VITIS_EDIT_SRC)))
+$(VITIS_EDIT_DIR_DBG)/src: $(addprefix $$(VITIS_EDIT_DIR_DBG)/src/,$(notdir $(VITIS_EDIT_SRC)))
 
 # symbolic links to source files
 define rr_srclink
-$$(VSCODE_DIR_RLS)/src/$(notdir $1): $1
+$$(VITIS_EDIT_DIR_RLS)/src/$(notdir $1): $1
 	@$$(MKDIR) -p $$(@D) && rm -f $$@
 	@$$(call create_symlink,$$@,$$<)
-$$(VSCODE_DIR_DBG)/src/$(notdir $1): $1
+$$(VITIS_EDIT_DIR_DBG)/src/$(notdir $1): $1
 	@$$(MKDIR) -p $$(@D) && rm -f $$@
 	@$$(call create_symlink,$$@,$$<)
 endef
-$(foreach s,$(VSCODE_SRC),$(eval $(call rr_srclink,$s)))
+$(foreach s,$(VITIS_EDIT_SRC),$(eval $(call rr_srclink,$s)))
 
 define settings_rls
 {
@@ -303,22 +303,22 @@ define settings_dbg
 }
 endef
 
-$(VSCODE_DIR_RLS)/.vscode/c_cpp_properties.json: vitis_force | $(VSCODE_DIR_RLS)/.vscode
+$(VITIS_EDIT_DIR_RLS)/.vscode/c_cpp_properties.json: vitis_force | $(VITIS_EDIT_DIR_RLS)/.vscode
 	$(file >$@,$(settings_rls))
-$(VSCODE_DIR_DBG)/.vscode/c_cpp_properties.json: vitis_force | $(VSCODE_DIR_DBG)/.vscode
+$(VITIS_EDIT_DIR_DBG)/.vscode/c_cpp_properties.json: vitis_force | $(VITIS_EDIT_DIR_DBG)/.vscode
 	$(file >$@,$(settings_dbg))
 
-edit:: $(VSCODE_DIR_RLS)/.vscode/c_cpp_properties.json $(VSCODE_DIR_RLS)/src
+edit:: $(VITIS_EDIT_DIR_RLS)/.vscode/c_cpp_properties.json $(VITIS_EDIT_DIR_RLS)/src
 ifeq ($(OS),Windows_NT)
-	@cd $(VSCODE_DIR_RLS) && start code .
+	@cd $(VITIS_EDIT_DIR_RLS) && start code .
 else
-	@cd $(VSCODE_DIR_RLS) && code . &
+	@cd $(VITIS_EDIT_DIR_RLS) && code . &
 endif
-edit:: $(VSCODE_DIR_DBG)/.vscode/c_cpp_properties.json $(VSCODE_DIR_DBG)/src
+edit:: $(VITIS_EDIT_DIR_DBG)/.vscode/c_cpp_properties.json $(VITIS_EDIT_DIR_DBG)/src
 ifeq ($(OS),Windows_NT)
-	@cd $(VSCODE_DIR_DBG) && start code .
+	@cd $(VITIS_EDIT_DIR_DBG) && start code .
 else
-	@cd $(VSCODE_DIR_DBG) && code . &
+	@cd $(VITIS_EDIT_DIR_DBG) && code . &
 endif
 
 ################################################################################

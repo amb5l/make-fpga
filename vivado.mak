@@ -564,58 +564,59 @@ endif
 # Visual Studio Code
 # TODO remove redundant files
 
-VSCODE_DIR=vscode/vivado
-VSCODE_TOP=$(VIVADO_DSN_TOP) $(call nodup,$(call get_run_unit,$(VIVADO_SIM_RUN)))
-VSCODE_SRC=$(VIVADO_DSN_SRC) $(VIVADO_SIM_SRC) $(VIVADO_LIB_SRC)
-VSCODE_LIB=$(call nodup,$(call get_src_lib,$(VSCODE_SRC),$(VIVADO_WORK)))
-$(foreach l,$(VSCODE_LIB), \
-	$(foreach s,$(VSCODE_SRC), \
+VIVADO_EDIT_DIR=edit/vivado
+VIVADO_EDIT_TOP=$(VIVADO_DSN_TOP) $(call nodup,$(call get_run_unit,$(VIVADO_SIM_RUN)))
+VIVADO_EDIT_SRC=$(VIVADO_DSN_SRC) $(VIVADO_SIM_SRC) $(VIVADO_LIB_SRC)
+VIVADO_EDIT_LIB=$(call nodup,$(call get_src_lib,$(VIVADO_EDIT_SRC),$(VIVADO_WORK)))
+$(foreach l,$(VIVADO_EDIT_LIB), \
+	$(foreach s,$(VIVADO_EDIT_SRC), \
 		$(if $(filter $l,$(call get_src_lib,$s,$(VIVADO_WORK))), \
-			$(eval VSCODE_SRC.$l+=$(call get_src_file,$s)) \
+			$(eval VIVADO_EDIT_SRC.$l+=$(call get_src_file,$s)) \
 		) \
 	) \
 )
-VSCODE_AUX=\
+VIVADO_EDIT_AUX=\
 	$(call get_bd_file,$(VIVADO_BD_TCL)) \
 	$(call get_xdc_file,$(VIVADO_XDC)) \
 	$(call get_xdc_file,$(VIVADO_XDC_REF))
 
 # workspace directory
-$(VSCODE_DIR):
+$(VIVADO_EDIT_DIR):
 	@$(MKDIR) -p $@
 
 # library directory(s) containing symbolic link(s) to source(s)
-$(foreach l,$(VSCODE_LIB),$(eval $l: $(addprefix $$(VSCODE_DIR)/$l/,$(notdir $(VSCODE_SRC.$l)))))
+$(foreach l,$(VIVADO_EDIT_LIB),$(eval $l: $(addprefix $$(VIVADO_EDIT_DIR)/$l/,$(notdir $(VIVADO_EDIT_SRC.$l)))))
 
 # symbolic links to source files
 define rr_srclink
-$$(VSCODE_DIR)/$1/$(notdir $2): $2
+$$(VIVADO_EDIT_DIR)/$1/$(notdir $2): $2
 	@$$(MKDIR) -p $$(@D) && rm -f $$@
 	@$$(call create_symlink,$$@,$$<)
 endef
-$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),$(eval $(call rr_srclink,$l,$s))))
+$(foreach l,$(VIVADO_EDIT_LIB),$(foreach s,$(VIVADO_EDIT_SRC.$l),$(eval $(call rr_srclink,$l,$s))))
 
 # symbolic links to auxilliary text files
 define rr_auxlink
-$$(VSCODE_DIR)/$(notdir $1): $1
+$$(VIVADO_EDIT_DIR)/$(notdir $1): $1
 	@$$(MKDIR) -p $$(@D) && rm -f $$@
 	@$$(call create_symlink,$$@,$$<)
 endef
-$(foreach a,$(VSCODE_AUX),$(eval $(call rr_auxlink,$a)))
+$(foreach a,$(VIVADO_EDIT_AUX),$(eval $(call rr_auxlink,$a)))
 
 # V4P configuration file
-$(VSCODE_DIR)/config.v4p: vivado_force $(VSCODE_LIB)
-	@printf "[libraries]\n" > $@
-	$(foreach l,$(VSCODE_LIB),$(foreach s,$(VSCODE_SRC.$l),@printf "$l/$(notdir $s)=$l\n" >> $@$(newline)))
-	@printf "[settings]\n" >> $@
-	@printf "V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(strip $(VSCODE_TOP)))\n" >> $@
+$(VIVADO_EDIT_DIR)/config.v4p: vivado_force $(VIVADO_EDIT_LIB)
+	$(file >$@,[libraries])
+	$(foreach l,$(VIVADO_EDIT_LIB),$(foreach s,$(VIVADO_EDIT_SRC.$l),$(file >>$@,$l/$(notdir $s)=$l)))
+	$(file >>$@,[settings])
+	$(file >>$@,V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(strip $(VIVADO_EDIT_TOP))))
 
-edit:: $(VSCODE_DIR)/config.v4p $(addprefix $(VSCODE_DIR)/,$(VSCODE_LIB)) $(addprefix $(VSCODE_DIR)/,$(notdir $(VSCODE_AUX)))
+edit:: $(VIVADO_EDIT_DIR)/config.v4p $(addprefix $(VIVADO_EDIT_DIR)/,$(VIVADO_EDIT_LIB)) $(addprefix $(VIVADO_EDIT_DIR)/,$(notdir $(VIVADO_EDIT_AUX)))
 ifeq ($(OS),Windows_NT)
-	@cd $(VSCODE_DIR) && start code .
+	@cd $(VIVADO_EDIT_DIR) && start code .
 else
-	@cd $(VSCODE_DIR) && code . &
+	@cd $(VIVADO_EDIT_DIR) && code . &
 endif
+
 ################################################################################
 
 clean::
