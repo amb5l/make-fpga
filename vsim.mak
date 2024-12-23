@@ -160,7 +160,59 @@ ifeq ($(OS),Windows_NT)
 else
 	@cd $(VSIM_DIR) && $(VSIM) -gui -do $(VCOM_DO) -do $(VSIM_DO) &
 endif
-#
+
+################################################################################
+# Visual Studio Code
+
+VSIM_EDIT_DIR=edit/vsim
+VSIM_EDIT_TOP=$(call nodup,$(call get_run_unit,$(VSIM_RUN)))
+VSIM_EDIT_SRC=$(VSIM_SRC)
+VSIM_EDIT_LIB=$(call nodup,$(call get_src_lib,$(VSIM_EDIT_SRC),$(VSIM_WORK)))
+$(foreach l,$(VSIM_EDIT_LIB), \
+	$(foreach s,$(VSIM_EDIT_SRC), \
+		$(if $(filter $l,$(call get_src_lib,$s,$(VSIM_WORK))), \
+			$(eval VSIM_EDIT_SRC.$l+=$(call get_src_file,$s)) \
+		) \
+	) \
+)
+
+# workspace directory
+$(VSIM_EDIT_DIR):
+	@$(MKDIR) -p $@
+
+# library directory(s) containing symbolic link(s) to source(s)
+$(foreach l,$(VSIM_EDIT_LIB),$(eval $l: $(addprefix $$(VSIM_EDIT_DIR)/$l/,$(notdir $(VSIM_EDIT_SRC.$l)))))
+
+# symbolic links to source files
+define rr_srclink
+$$(VSIM_EDIT_DIR)/$1/$(notdir $2): $2
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
+endef
+$(foreach l,$(VSIM_EDIT_LIB),$(foreach s,$(VSIM_EDIT_SRC.$l),$(eval $(call rr_srclink,$l,$s))))
+
+# symbolic links to auxilliary text files
+define rr_auxlink
+$$(VSIM_EDIT_DIR)/$(notdir $1): $1
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
+endef
+$(foreach a,$(VSIM_EDIT_AUX),$(eval $(call rr_auxlink,$a)))
+
+# V4P configuration file
+$(VSIM_EDIT_DIR)/config.v4p: vsim_force $(VSIM_EDIT_LIB)
+	$(file >$@,[libraries])
+	$(foreach l,$(VSIM_EDIT_LIB),$(foreach s,$(VSIM_EDIT_SRC.$l),$(file >>$@,$l/$(notdir $s)=$l)))
+	$(file >>$@,[settings])
+	$(file >>$@,V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(strip $(VSIM_EDIT_TOP))))
+
+edit:: $(VSIM_EDIT_DIR)/config.v4p $(addprefix $(VSIM_EDIT_DIR)/,$(VSIM_EDIT_LIB)) $(addprefix $(VSIM_EDIT_DIR)/,$(notdir $(VSIM_EDIT_AUX)))
+ifeq ($(OS),Windows_NT)
+	@cd $(VSIM_EDIT_DIR) && start code .
+else
+	@cd $(VSIM_EDIT_DIR) && code . &
+endif
+
 ################################################################################
 
 clean::

@@ -16,8 +16,9 @@
 include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
 
 # defaults
-.PHONY: ghdl_default
+.PHONY: ghdl_default ghdl_force
 ghdl_default: ghdl
+ghdl_force:
 GHDL?=ghdl
 GHDL_DIR?=sim_ghdl
 GHDL_WORK?=work
@@ -99,6 +100,58 @@ $(foreach r,$(GHDL_RUN),$(eval $(call rr_run, \
 	$(call get_run_unit, $r), \
 	$(call get_run_gen,  $r)  \
 )))
+
+################################################################################
+# Visual Studio Code
+
+GHDL_EDIT_DIR=edit/ghdl
+GHDL_EDIT_TOP=$(call nodup,$(call get_run_unit,$(GHDL_RUN)))
+GHDL_EDIT_SRC=$(GHDL_SRC)
+GHDL_EDIT_LIB=$(call nodup,$(call get_src_lib,$(GHDL_EDIT_SRC),$(GHDL_WORK)))
+$(foreach l,$(GHDL_EDIT_LIB), \
+	$(foreach s,$(GHDL_EDIT_SRC), \
+		$(if $(filter $l,$(call get_src_lib,$s,$(GHDL_WORK))), \
+			$(eval GHDL_EDIT_SRC.$l+=$(call get_src_file,$s)) \
+		) \
+	) \
+)
+
+# workspace directory
+$(GHDL_EDIT_DIR):
+	@$(MKDIR) -p $@
+
+# library directory(s) containing symbolic link(s) to source(s)
+$(foreach l,$(GHDL_EDIT_LIB),$(eval $l: $(addprefix $$(GHDL_EDIT_DIR)/$l/,$(notdir $(GHDL_EDIT_SRC.$l)))))
+
+# symbolic links to source files
+define rr_srclink
+$$(GHDL_EDIT_DIR)/$1/$(notdir $2): $2
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
+endef
+$(foreach l,$(GHDL_EDIT_LIB),$(foreach s,$(GHDL_EDIT_SRC.$l),$(eval $(call rr_srclink,$l,$s))))
+
+# symbolic links to auxilliary text files
+define rr_auxlink
+$$(GHDL_EDIT_DIR)/$(notdir $1): $1
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
+endef
+$(foreach a,$(GHDL_EDIT_AUX),$(eval $(call rr_auxlink,$a)))
+
+# V4P configuration file
+$(GHDL_EDIT_DIR)/config.v4p: ghdl_force $(GHDL_EDIT_LIB)
+	$(file >$@,[libraries])
+	$(foreach l,$(GHDL_EDIT_LIB),$(foreach s,$(GHDL_EDIT_SRC.$l),$(file >>$@,$l/$(notdir $s)=$l)))
+	$(file >>$@,[settings])
+	$(file >>$@,V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(strip $(GHDL_EDIT_TOP))))
+
+edit:: $(GHDL_EDIT_DIR)/config.v4p $(addprefix $(GHDL_EDIT_DIR)/,$(GHDL_EDIT_LIB)) $(addprefix $(GHDL_EDIT_DIR)/,$(notdir $(GHDL_EDIT_AUX)))
+ifeq ($(OS),Windows_NT)
+	@cd $(GHDL_EDIT_DIR) && start code .
+else
+	@cd $(GHDL_EDIT_DIR) && code . &
+endif
 
 ################################################################################
 

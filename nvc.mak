@@ -19,8 +19,9 @@
 include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
 
 # defaults
-.PHONY: nvc_default
+.PHONY: nvc_default nvc_force
 nvc_default: nvc
+nvc_force:
 NVC?=nvc
 NVC_DIR?=sim_nvc
 NVC_WORK?=work
@@ -110,6 +111,58 @@ $(foreach r,$(NVC_RUN),$(eval $(call rr_run, \
 	$(call get_run_unit, $r), \
 	$(call get_run_gen,  $r)  \
 )))
+
+################################################################################
+# Visual Studio Code
+
+NVC_EDIT_DIR=edit/nvc
+NVC_EDIT_TOP=$(call nodup,$(call get_run_unit,$(NVC_RUN)))
+NVC_EDIT_SRC=$(NVC_SRC)
+NVC_EDIT_LIB=$(call nodup,$(call get_src_lib,$(NVC_EDIT_SRC),$(NVC_WORK)))
+$(foreach l,$(NVC_EDIT_LIB), \
+	$(foreach s,$(NVC_EDIT_SRC), \
+		$(if $(filter $l,$(call get_src_lib,$s,$(NVC_WORK))), \
+			$(eval NVC_EDIT_SRC.$l+=$(call get_src_file,$s)) \
+		) \
+	) \
+)
+
+# workspace directory
+$(NVC_EDIT_DIR):
+	@$(MKDIR) -p $@
+
+# library directory(s) containing symbolic link(s) to source(s)
+$(foreach l,$(NVC_EDIT_LIB),$(eval $l: $(addprefix $$(NVC_EDIT_DIR)/$l/,$(notdir $(NVC_EDIT_SRC.$l)))))
+
+# symbolic links to source files
+define rr_srclink
+$$(NVC_EDIT_DIR)/$1/$(notdir $2): $2
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
+endef
+$(foreach l,$(NVC_EDIT_LIB),$(foreach s,$(NVC_EDIT_SRC.$l),$(eval $(call rr_srclink,$l,$s))))
+
+# symbolic links to auxilliary text files
+define rr_auxlink
+$$(NVC_EDIT_DIR)/$(notdir $1): $1
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
+endef
+$(foreach a,$(NVC_EDIT_AUX),$(eval $(call rr_auxlink,$a)))
+
+# V4P configuration file
+$(NVC_EDIT_DIR)/config.v4p: nvc_force $(NVC_EDIT_LIB)	
+	$(file >$@,[libraries])
+	$(foreach l,$(NVC_EDIT_LIB),$(foreach s,$(NVC_EDIT_SRC.$l),$(file >>$@,$l/$(notdir $s)=$l)))
+	$(file >>$@,[settings])
+	$(file >>$@,V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(strip $(NVC_EDIT_TOP))))
+
+edit:: $(NVC_EDIT_DIR)/config.v4p $(addprefix $(NVC_EDIT_DIR)/,$(NVC_EDIT_LIB)) $(addprefix $(NVC_EDIT_DIR)/,$(notdir $(NVC_EDIT_AUX)))
+ifeq ($(OS),Windows_NT)
+	@cd $(NVC_EDIT_DIR) && start code .
+else
+	@cd $(NVC_EDIT_DIR) && code . &
+endif
 
 ################################################################################
 

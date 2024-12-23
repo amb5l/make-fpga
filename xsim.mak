@@ -20,8 +20,9 @@ include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
 
 
 # defaults
-.PHONY: xsim_default
+.PHONY: xsim_default xsim_force
 xsim_default: xsim
+xsim_force:
 XVHDL?=xvhdl
 XELAB?=xelab
 XSIM?=xsim
@@ -114,6 +115,58 @@ $(foreach r,$(XSIM_RUN),$(eval $(call rr_run, \
 	$(call get_run_unit, $r), \
 	$(call get_run_gen,  $r)  \
 )))
+
+################################################################################
+# Visual Studio Code
+
+XSIM_EDIT_DIR=edit/xsim
+XSIM_EDIT_TOP=$(call nodup,$(call get_run_unit,$(XSIM_RUN)))
+XSIM_EDIT_SRC=$(XSIM_SRC)
+XSIM_EDIT_LIB=$(call nodup,$(call get_src_lib,$(XSIM_EDIT_SRC),$(XSIM_WORK)))
+$(foreach l,$(XSIM_EDIT_LIB), \
+	$(foreach s,$(XSIM_EDIT_SRC), \
+		$(if $(filter $l,$(call get_src_lib,$s,$(XSIM_WORK))), \
+			$(eval XSIM_EDIT_SRC.$l+=$(call get_src_file,$s)) \
+		) \
+	) \
+)
+
+# workspace directory
+$(XSIM_EDIT_DIR):
+	@$(MKDIR) -p $@
+
+# library directory(s) containing symbolic link(s) to source(s)
+$(foreach l,$(XSIM_EDIT_LIB),$(eval $l: $(addprefix $$(XSIM_EDIT_DIR)/$l/,$(notdir $(XSIM_EDIT_SRC.$l)))))
+
+# symbolic links to source files
+define rr_srclink
+$$(XSIM_EDIT_DIR)/$1/$(notdir $2): $2
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
+endef
+$(foreach l,$(XSIM_EDIT_LIB),$(foreach s,$(XSIM_EDIT_SRC.$l),$(eval $(call rr_srclink,$l,$s))))
+
+# symbolic links to auxilliary text files
+define rr_auxlink
+$$(XSIM_EDIT_DIR)/$(notdir $1): $1
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
+endef
+$(foreach a,$(XSIM_EDIT_AUX),$(eval $(call rr_auxlink,$a)))
+
+# V4P configuration file
+$(XSIM_EDIT_DIR)/config.v4p: xsim_force $(XSIM_EDIT_LIB)
+	$(file >$@,[libraries])
+	$(foreach l,$(XSIM_EDIT_LIB),$(foreach s,$(XSIM_EDIT_SRC.$l),$(file >>$@,$l/$(notdir $s)=$l)))
+	$(file >>$@,[settings])
+	$(file >>$@,V4p.Settings.Basics.TopLevelEntities=$(subst $(space),$(comma),$(strip $(XSIM_EDIT_TOP))))
+
+edit:: $(XSIM_EDIT_DIR)/config.v4p $(addprefix $(XSIM_EDIT_DIR)/,$(XSIM_EDIT_LIB)) $(addprefix $(XSIM_EDIT_DIR)/,$(notdir $(XSIM_EDIT_AUX)))
+ifeq ($(OS),Windows_NT)
+	@cd $(XSIM_EDIT_DIR) && start code .
+else
+	@cd $(XSIM_EDIT_DIR) && code . &
+endif
 
 ################################################################################
 
