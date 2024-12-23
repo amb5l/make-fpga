@@ -96,7 +96,7 @@ ghdl:: ghdl.$(strip $1)
 endef
 $(foreach r,$(GHDL_RUN),$(eval $(call rr_run, \
 	$(call get_run_name, $r), \
-	$(call get_run_lib,  $r), \
+	$(call get_run_lib,  $r, $(GHDL_WORK)), \
 	$(call get_run_unit, $r), \
 	$(call get_run_gen,  $r)  \
 )))
