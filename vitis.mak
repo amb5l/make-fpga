@@ -39,10 +39,11 @@ $(call check_option,VITIS_ARCH,microblaze riscv)
 
 # local definitions
 gcc_path=$(if $(filter riscv,$(VITIS_ARCH)),riscv/nt/riscv64-unknown-elf/bin/riscv64-unknown-elf-gcc,microblaze/nt/bin/mb-gcc).exe
-target_name=$(if $(filter riscv,$(VITIS_ARCH)),Hart*,MicroBlaze*)
+target_mdm_filter=$(if $(filter riscv,$(VITIS_ARCH)),RISC-V,MicroBlaze*)
+target_cpu_filter=$(if $(filter riscv,$(VITIS_ARCH)),Hart*,MicroBlaze*)
 
 # functions
-xsct_run=@cd $(VITIS_DIR) && $(XSCT) $(subst _tcl,.tcl,$1) $2
+xsct_run=@cd $(VITIS_DIR) && $(XSCT) $(subst _tcl,.tcl,$1) $2 $3
 
 ################################################################################
 # TCL sequences
@@ -139,9 +140,33 @@ define xsct_run_tcl
 	set f [lindex $$argv 0]
 	connect
 	fpga $$f
-	targets -set -filter {name =~ "$(target_name)"}
+	targets -set -filter {name =~ "$(target_cpu_filter)"}
 	dow $(VITIS_ELF_RLS)
 	rst
+
+endef
+
+#-------------------------------------------------------------------------------
+
+xsct_scripts+=xsct_putty_tcl
+define xsct_putty_tcl
+
+	set bitfile [lindex $$argv 0]
+	set logfile [lindex $$argv 1]
+	connect
+	puts "BIT FILE: $$bitfile"
+	fpga $$bitfile
+	targets -set -filter {name =~ "$(target_cpu_filter)"}
+	dow $(VITIS_ELF_RLS)
+	rst
+	targets -set -filter {name =~ "$(target_mdm_filter)"}
+	set port [jtagterminal -socket]
+	puts "PORT = $$port"
+	puts "LOG FILE = $$logfile"
+	exec putty -telnet -sessionlog $$logfile -P $$port 127.0.0.1 &
+	puts -nonewline "press Enter to terminate: "
+	flush stdout
+	gets stdin
 
 endef
 
@@ -190,7 +215,7 @@ $(VITIS_DIR)/$(VITIS_ELF_DBG): $(VITIS_SRC) $(VITIS_DIR)/$(VITIS_PRJ)
 ################################################################################
 # goals
 
-.PHONY: vitis_force prj rls dbg elf run ide
+.PHONY: vitis_force prj rls dbg elf ide run putty
 
 vitis_force:
 
@@ -202,13 +227,18 @@ dbg: $(VITIS_DIR)/$(VITIS_ELF_DBG)
 
 elf: rls dbg
 
+ide:: $(VITIS_DIR)/$(VITIS_PRJ)
+	$(VITIS) -workspace $(VITIS_DIR)
+
 run: $(VITIS_DIR)/$(VITIS_ELF_RLS)
-	$(call banner,Vitis Classic: download and run release ELF)
+	$(call banner,Vitis Classic: program FPGA; download & run release ELF)
 	test -e $(vivado_touch_dir)/$(VIVADO_PROJ).bit || $(MAKE) bit
 	$(call xsct_run,xsct_run_tcl,$(abspath $(VIVADO_DSN_TOP).bit))
 
-ide:: $(VITIS_DIR)/$(VITIS_PRJ)
-	$(VITIS) -workspace $(VITIS_DIR)
+putty: $(VITIS_DIR)/$(VITIS_ELF_RLS)
+	$(call banner,Vitis Classic: program FPGA; download & run release ELF; connect PuTTY)
+	test -e $(vivado_touch_dir)/$(VIVADO_PROJ).bit || $(MAKE) bit
+	$(call xsct_run,xsct_putty_tcl,$(abspath $(VIVADO_DSN_TOP).bit),$(abspath ./putty.log))
 
 ################################################################################
 # Unified Flow
