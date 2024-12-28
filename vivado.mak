@@ -36,6 +36,12 @@ VIVADO_PROJ?=fpga
 VIVADO_WORK?=work
 VIVADO_VHDL_LRM?=2008
 VIVADO_SIM_ELF?=$(VIVADO_DSN_ELF)
+ifeq ($(OS),Windows_NT)
+VIVADO_CORES:=$(shell set /a %NUMBER_OF_PROCESSORS%)
+else
+VIVADO_CORES:=$(shell bash -c "grep '^core id' /proc/cpuinfo |sort -u|wc -l")
+endif
+VIVADO_JOBS?=$(VIVADO_CORES)
 
 # checks
 $(call check_defined,XILINX_VIVADO)
@@ -300,7 +306,7 @@ vivado_scripts+=vivado_synth_tcl
 define vivado_synth_tcl
 	open_project $(VIVADO_PROJ)
 	reset_run $(VIVADO_SYNTH_RUN)
-	launch_runs $(VIVADO_SYNTH_RUN)
+	launch_runs $(VIVADO_SYNTH_RUN) $(addprefix -jobs ,$(VIVADO_JOBS))
 	wait_on_run $(VIVADO_SYNTH_RUN)
 	if {[get_property PROGRESS [get_runs $(VIVADO_SYNTH_RUN)]] != "100%"} {exit 1}
 endef
@@ -311,7 +317,7 @@ vivado_scripts+=vivado_impl_tcl
 define vivado_impl_tcl
 	open_project $(VIVADO_PROJ)
 	reset_run $(VIVADO_IMPL_RUN)
-	launch_runs $(VIVADO_IMPL_RUN) -to_step route_design
+	launch_runs $(VIVADO_IMPL_RUN) -to_step route_design $(addprefix -jobs ,$(VIVADO_JOBS))
 	wait_on_run $(VIVADO_IMPL_RUN)
 	if {[get_property PROGRESS [get_runs $(VIVADO_IMPL_RUN)]] != "100%"} {exit 1}
 endef
@@ -322,7 +328,7 @@ vivado_scripts+=vivado_bit_tcl
 define vivado_bit_tcl
 	open_project $(VIVADO_PROJ)
 	reset_run $(VIVADO_IMPL_RUN) -from_step write_bitstream
-	launch_runs $(VIVADO_IMPL_RUN) -to_step write_bitstream
+	launch_runs $(VIVADO_IMPL_RUN) -to_step write_bitstream $(addprefix -jobs ,$(VIVADO_JOBS))
 	wait_on_run $(VIVADO_IMPL_RUN)
 	if {[get_property PROGRESS [get_runs $(VIVADO_IMPL_RUN)]] != "100%"} {exit 1}
 endef
