@@ -119,6 +119,8 @@ $(foreach r,$(XSIM_RUN),$(eval $(call rr_run, \
 ################################################################################
 # Visual Studio Code
 
+ifneq (0,$(XSIM_EDIT))
+
 XSIM_EDIT_DIR=edit/xsim
 XSIM_EDIT_TOP=$(call nodup,$(call get_run_unit,$(XSIM_RUN)))
 XSIM_EDIT_SRC=$(XSIM_SRC)
@@ -166,6 +168,8 @@ ifeq ($(OS),Windows_NT)
 	@cd $(XSIM_EDIT_DIR) && start code .
 else
 	@cd $(XSIM_EDIT_DIR) && code . &
+endif
+
 endif
 
 ################################################################################

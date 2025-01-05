@@ -115,6 +115,8 @@ $(foreach r,$(NVC_RUN),$(eval $(call rr_run, \
 ################################################################################
 # Visual Studio Code
 
+ifneq (0,$(NVC_EDIT))
+
 NVC_EDIT_DIR=edit/nvc
 NVC_EDIT_TOP=$(call nodup,$(call get_run_unit,$(NVC_RUN)))
 NVC_EDIT_SRC=$(NVC_SRC)
@@ -162,6 +164,8 @@ ifeq ($(OS),Windows_NT)
 	@cd $(NVC_EDIT_DIR) && start code .
 else
 	@cd $(NVC_EDIT_DIR) && code . &
+endif
+
 endif
 
 ################################################################################

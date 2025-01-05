@@ -164,6 +164,8 @@ endif
 ################################################################################
 # Visual Studio Code
 
+ifneq (0,$(VSIM_EDIT))
+
 VSIM_EDIT_DIR=edit/vsim
 VSIM_EDIT_TOP=$(call nodup,$(call get_run_unit,$(VSIM_RUN)))
 VSIM_EDIT_SRC=$(VSIM_SRC)
@@ -211,6 +213,8 @@ ifeq ($(OS),Windows_NT)
 	@cd $(VSIM_EDIT_DIR) && start code .
 else
 	@cd $(VSIM_EDIT_DIR) && code . &
+endif
+
 endif
 
 ################################################################################

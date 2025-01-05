@@ -104,6 +104,8 @@ $(foreach r,$(GHDL_RUN),$(eval $(call rr_run, \
 ################################################################################
 # Visual Studio Code
 
+ifneq (0,$(GHDL_EDIT))
+
 GHDL_EDIT_DIR=edit/ghdl
 GHDL_EDIT_TOP=$(call nodup,$(call get_run_unit,$(GHDL_RUN)))
 GHDL_EDIT_SRC=$(GHDL_SRC)
@@ -151,6 +153,8 @@ ifeq ($(OS),Windows_NT)
 	@cd $(GHDL_EDIT_DIR) && start code .
 else
 	@cd $(GHDL_EDIT_DIR) && code . &
+endif
+
 endif
 
 ################################################################################
