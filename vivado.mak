@@ -23,7 +23,6 @@
 #   VIVADO_SIM_ELF   ELF to associate with CPU for simulations
 #   VIVADO_SIM_WCFG  simulation waveform configuration files
 #   VIVADO_XDC       list of constraint files, with =scope suffixes
-# VIVADO_XDC       list of constraint files, with =scope suffixes
 ################################################################################
 
 include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
@@ -34,6 +33,7 @@ VIVADO?=vivado
 VIVADO_DIR?=vivado
 VIVADO_PROJ?=fpga
 VIVADO_WORK?=work
+VIVADO_LANGUAGE?=VHDL
 VIVADO_VHDL_LRM?=2008
 VIVADO_SIM_ELF?=$(VIVADO_DSN_ELF)
 ifeq ($(OS),Windows_NT)
