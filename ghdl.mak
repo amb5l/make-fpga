@@ -22,7 +22,7 @@ ghdl_force:
 GHDL?=ghdl
 GHDL_DIR?=sim_ghdl
 GHDL_WORK?=work
-GHDL_LRM?=08
+GHDL_LRM?=2008
 GHDL_VENDOR_LIB_PATH?=$(subst /,$(if $(filter Windows_NT,$(OS)),\,/),$(dir $(shell which $(GHDL)))../lib/ghdl/vendors/)
 GHDL_AOPTS?=-fsynopsys -frelaxed -Wno-hide -Wno-shared $(addprefix -P$(GHDL_VENDOR_LIB_PATH),$(GHDL_VENDOR_LIB))
 GHDL_EOPTS?=-fsynopsys -frelaxed $(addprefix -P$(GHDL_VENDOR_LIB_PATH),$(GHDL_VENDOR_LIB))
