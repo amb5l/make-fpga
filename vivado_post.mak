@@ -73,6 +73,7 @@ endef
 vivado_post_scripts+=vivado_post_gen_tcl
 define vivado_post_gen_tcl
 	if {$$argv != ""} {
+		open_project $(VIVADO_POST_PROJ)
 		puts "setting top design unit generics..."
 		set_property generic $$argv [get_filesets sources_1]
 	} else {
@@ -132,31 +133,35 @@ $(foreach s,$(vivado_post_scripts),\
 
 define RR_VIVADO_POST
 
-$$(VIVADO_POST_DIR)/$$(VIVADO_POST_PROJ).xpr: $$(if $$(filter dev,$$(MAKECMDGOALS)),,$$(MAKEFILE_LIST)) | $$(call get_src_file,$$(VIVADO_POST_SRC.$1))
+$$(VIVADO_POST_DIR)/$1:
+	$(MKDIR) -p $$@
+
+$$(VIVADO_POST_DIR)/$1/$$(VIVADO_POST_PROJ).xpr: $$(if $$(filter dev,$$(MAKECMDGOALS)),,$$(MAKEFILE_LIST)) | $$(call get_src_file,$$(VIVADO_POST_SRC.$1)) $$(VIVADO_POST_DIR)/$1
 	$(call banner,Vivado Post Synthesis/Implementation Netlist Support: create project)
 	@rm -f $$@
 	@cd $$(dir $$@) && vivado \
 		-nolog -nojou -notrace -mode batch \
-		-source vivado_post_xpr.tcl \
+		-source $$(abspath $$(VIVADO_POST_DIR)/vivado_post_xpr.tcl) \
 		-tclargs \
 		$1 \
 		$$(call get_src_file,$$(VIVADO_POST_SRC.$1))
 	@cd $$(dir $$@) && vivado \
 		-nolog -nojou -notrace -mode batch \
-		-source vivado_post_gen.tcl \
+		-source $$(abspath $$(VIVADO_POST_DIR)/vivado_post_gen.tcl) \
 		-tclargs \
 		$(VIVADO_POST_GEN.$1)
 
-VIVADO_POST_SYN_FUNC.$1.vhd=$$(abspath $$(VIVADO_POST_DIR)/$1_post_syn_func.vhd)
-$$(VIVADO_POST_SYN_FUNC.$1.vhd): $$(call get_src_file,$$(VIVADO_POST_SRC.$1)) $$(VIVADO_POST_DIR)/$$(VIVADO_POST_PROJ).xpr
+VIVADO_POST_SYN_FUNC.$1.vhd=$$(abspath $$(VIVADO_POST_DIR)/$1/$1_post_syn_func.vhd)
+$$(VIVADO_POST_SYN_FUNC.$1.vhd): $$(call get_src_file,$$(VIVADO_POST_SRC.$1)) $$(VIVADO_POST_DIR)/$1/$$(VIVADO_POST_PROJ).xpr
 	$(call banner,Vivado Post Synthesis/Implementation Netlist Support: create netlist)
 	@cd $$(dir $$@) && vivado \
 		-nolog -nojou -notrace -mode batch \
-		-source vivado_post_syn_func_vhd.tcl \
+		-source $$(abspath $$(VIVADO_POST_DIR)/vivado_post_syn_func_vhd.tcl) \
 		-tclargs \
 		$$(notdir $$@) \
 		$1 \
-		$^
+		$^ \
+		|| echo error synthesising unit: $1 > $$@
 endef
 
 $(foreach u,$(VIVADO_POST_UNIT),$(eval $(call RR_VIVADO_POST,$u)))
