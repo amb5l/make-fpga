@@ -426,7 +426,7 @@ $(file >$(VIVADO_DIR)/vivado_bit_cp.tcl,$(vivado_bit_cp_tcl))
 ################################################################################
 # Vivado rules and recipes
 
-.PHONY: dev vivado_default vivado_force xpr bd hwdef xsa dsn_order synth dsn_elf impl bit sim_order sim_elf sim_bat sim_gui sdf
+.PHONY: dev vivado_default vivado_force xpr bd hwdef xsa dsn_order synth impl bit sim_order sim_elf sim_bat sim_gui sdf
 
 dev::
 	@:
