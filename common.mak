@@ -3,7 +3,7 @@
 # See https://github.com/amb5l/make-fpga
 ################################################################################
 
-ifneq (,_common_mak_)
+ifndef _common_mak_
 
 define newline
 
@@ -58,4 +58,6 @@ MKDIR=mkdir
 endif
 
 _common_mak_=defined
+_common_mak_:=defined
+
 endif
