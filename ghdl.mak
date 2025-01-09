@@ -160,5 +160,17 @@ endif
 
 ################################################################################
 
+help::
+	$(call print_col,col_fi_cyn,  ghdl.mak)
+	$(call print_col,col_fi_wht,  Support for simulation with GHDL.)
+	$(call print_col,col_fg_wht, )
+	$(call print_col,col_fg_wht,    Goals:)
+	$(call print_col,col_fi_grn,      ghdl       $(col_fg_wht)- perform all simulation runs)
+	$(call print_col,col_fi_grn,      ghdl.<run> $(col_fg_wht)- perform specified simulation run)
+	$(call print_col,col_fi_grn,      edit       $(col_fg_wht)- create and open Visual Studio Code workspace directory)
+	$(call print_col,col_fg_wht, )
+
+################################################################################
+
 clean::
 	@rm -rf $(GHDL_DIR)

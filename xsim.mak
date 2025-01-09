@@ -175,5 +175,17 @@ endif
 
 ################################################################################
 
+help::
+	$(call print_col,col_fi_cyn,  xsim.mak)
+	$(call print_col,col_fi_wht,  Support for command line simulation with XSim.)
+	$(call print_col,col_fg_wht, )
+	$(call print_col,col_fg_wht,    Goals:)
+	$(call print_col,col_fi_grn,      xsim       $(col_fg_wht)- perform all simulation runs)
+	$(call print_col,col_fi_grn,      xsim.<run> $(col_fg_wht)- perform specified simulation run)
+	$(call print_col,col_fi_grn,      edit       $(col_fg_wht)- create and open Visual Studio Code workspace directory)
+	$(call print_col,col_fg_wht, )
+
+################################################################################
+
 clean::
 	@rm -rf $(XSIM_DIR)

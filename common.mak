@@ -56,6 +56,7 @@ get_run_lib       = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 1,$(su
 get_run_unit      = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 2,$(subst :, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))),$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))
 get_run_gen       = $(subst $(comma), ,$(word 2,$(subst ;, ,$1)))
 banner            = @printf "$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n$(col_bg_wht)$(col_fg_blu) %-78s$(col_rst)\n$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n" "$1"
+print_col         = @printf "$($1)$2$(if $3,$(comma)$3)$(if $4,$(comma)$4)$(if $5,$(comma)$5)$(col_rst)\n"
 
 ifeq ($(OS),Windows_NT)
 create_symlink=cmd /C "mklink $(subst /,\,$1) $(subst /,\,$2)"
@@ -65,7 +66,18 @@ create_symlink=ln $2 $1
 MKDIR=mkdir
 endif
 
-_common_mak_=defined
+help::
+	$(call print_col,col_fg_wht,)
+	$(call print_col,col_fi_yel,make-fpga)
+	$(call print_col,col_fi_wht,Support for driving FPGA synthesis, implementation and simulation from)
+	$(call print_col,col_fi_wht,makefiles. See $(col_fi_blu)https://github.com/amb5l/make-fpga)
+	$(call print_col,col_fg_wht, )
+	$(call print_col,col_fg_wht,This makefile includes the following $(col_fi_yel)make-fpga$(col_rst) components.)
+	$(call print_col,col_fg_wht,See inside each file for details of user variables.)
+	$(call print_col,col_fg_wht, )
+	$(call print_col,col_fi_wht,SPECIFY ONE OR MORE OF THE GOALS BELOW ON THE $(col_fi_mag)make$(col_fi_wht) COMMAND LINE.)
+	$(call print_col,col_fg_wht, )
+
 _common_mak_:=defined
 
 endif

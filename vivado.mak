@@ -625,5 +625,33 @@ endif
 
 ################################################################################
 
+help::
+	$(call print_col,col_fi_cyn,  vivado.mak)
+	$(call print_col,col_fi_wht,  Support for synthesis, implementation and simulation with Vivado,)
+	$(call print_col,col_fi_wht,  in project mode. The resulting XPR may be opened in the Vivado GUI.)
+	$(call print_col,col_fg_wht, )
+	$(call print_col,col_fg_wht,    Primary Goals:)
+	$(call print_col,col_fi_grn,      bit       $(col_fg_wht)- create BIT file)
+	$(call print_col,col_fi_grn,      edit      $(col_fg_wht)- create and open Visual Studio Code workspace directory)
+	$(call print_col,col_fi_grn,      sim_bat   $(col_fg_wht)- perform simulation run(s) in batch (command line) mode)
+	$(call print_col,col_fi_grn,      sim_gui   $(col_fg_wht)- open GUI, ready for interactive simulation)
+	$(call print_col,col_fi_grn,      sdf       $(col_fg_wht)- create timing simulation netlists and SDF files)
+	$(call print_col,col_fg_wht, )
+	$(call print_col,col_fg_wht,    Other Goals:)
+	$(call print_col,col_fi_grn,      xpr       $(col_fg_wht)- create project)
+	$(call print_col,col_fi_grn,      bd        $(col_fg_wht)- create block diagram(s))
+	$(call print_col,col_fi_grn,      hwdef     $(col_fg_wht)- create HW definition(s) from block diagram(s))
+	$(call print_col,col_fi_grn,      xsa       $(col_fg_wht)- create XSA file(s) for Vitis from HW definition(s))
+	$(call print_col,col_fi_grn,      dsn_order $(col_fg_wht)- set design compilation order)
+	$(call print_col,col_fi_grn,      synth     $(col_fg_wht)- synthesise design)
+	$(call print_col,col_fi_grn,      dsn_elf   $(col_fg_wht)- associate ELF file with design)
+	$(call print_col,col_fi_grn,      impl      $(col_fg_wht)- implement design)
+	$(call print_col,col_fi_grn,      sim_order $(col_fg_wht)- set simulation compilation order)
+	$(call print_col,col_fi_grn,      sim_elf   $(col_fg_wht)- associate ELF file with simulation)
+	$(call print_col,col_fi_grn,      dev       $(col_fg_wht)- remove makefiles from prerequisites)
+	$(call print_col,col_fg_wht, )
+
+################################################################################
+
 clean::
 	@rm -rf $(VIVADO_DIR)

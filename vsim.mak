@@ -220,5 +220,19 @@ endif
 
 ################################################################################
 
+help::
+	$(call print_col,col_fi_cyn,  vsim.mak)
+	$(call print_col,col_fi_wht,  Support for simulation with ModelSim, Questa, etc.)
+	$(call print_col,col_fg_wht, )
+	$(call print_col,col_fg_wht,    Goals:)
+	$(call print_col,col_fi_grn,      vsim       $(col_fg_wht)- perform all simulation runs)
+	$(call print_col,col_fi_grn,      vsim.<run> $(col_fg_wht)- perform specified simulation run)
+	$(call print_col,col_fi_grn,      vsim_do    $(col_fg_wht)- create .do files for compilation and simulation)
+	$(call print_col,col_fi_grn,      vsim_gui   $(col_fg_wht)- create .do files, open GUI for interactive simulation)
+	$(call print_col,col_fi_grn,      edit       $(col_fg_wht)- create and open Visual Studio Code workspace directory)
+	$(call print_col,col_fg_wht, )
+
+################################################################################
+
 clean::
 	@rm -rf $(VSIM_DIR)

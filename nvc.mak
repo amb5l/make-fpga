@@ -154,7 +154,7 @@ endef
 $(foreach a,$(NVC_EDIT_AUX),$(eval $(call rr_auxlink,$a)))
 
 # V4P configuration file
-$(NVC_EDIT_DIR)/config.v4p: nvc_force $(NVC_EDIT_LIB)	
+$(NVC_EDIT_DIR)/config.v4p: nvc_force $(NVC_EDIT_LIB)
 	$(file >$@,[libraries])
 	$(foreach l,$(NVC_EDIT_LIB),$(foreach s,$(NVC_EDIT_SRC.$l),$(file >>$@,$l/$(notdir $s)=$l)))
 	$(file >>$@,[settings])
@@ -168,6 +168,18 @@ else
 endif
 
 endif
+
+################################################################################
+
+help::
+	$(call print_col,col_fi_cyn,  nvc.mak)
+	$(call print_col,col_fi_wht,  Support for simulation with NVC.)
+	$(call print_col,col_fg_wht, )
+	$(call print_col,col_fg_wht,    Goals:)
+	$(call print_col,col_fi_grn,      nvc       $(col_fg_wht)- perform all simulation runs)
+	$(call print_col,col_fi_grn,      nvc.<run> $(col_fg_wht)- perform specified simulation run)
+	$(call print_col,col_fi_grn,      edit      $(col_fg_wht)- create and open Visual Studio Code workspace directory)
+	$(call print_col,col_fg_wht, )
 
 ################################################################################
 

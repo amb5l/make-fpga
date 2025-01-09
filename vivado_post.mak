@@ -170,5 +170,15 @@ $(foreach u,$(VIVADO_POST_UNIT),$(eval $(call RR_VIVADO_POST,$u)))
 
 ################################################################################
 
+help::
+	$(call print_col,col_fi_cyn,  vivado_post.mak)
+	$(call print_col,col_fi_wht,  Support for creating post-synthesis function simulation netlists with Vivado.)
+	$(call print_col,col_fg_wht, )
+	$(call print_col,col_fg_wht,    Goals:)
+	$(call print_col,col_fi_grn,      psf$(col_fg_wht) - build netlists for all specified units)
+	$(call print_col,col_fg_wht, )
+
+################################################################################
+
 clean::
 	@rm -rf $(VIVADO_POST_DIR)
