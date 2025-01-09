@@ -8,12 +8,13 @@
 # XSIM_SRC       sources to compile
 #                  path/file<=lib><;language> <path/file<=lib><;language>> ...
 # XSIM_RUN       list of simulation runs, each as follows:
-#                  name=lib:unit<;generic=value<,generic=value...>>
+#                  name=<lib:>:unit<;generic=value<,generic=value...>>
 #               For a single run, name= may be omitted and defaults to 'sim='
 # XSIM_G_OPTS    global options
 # XSIM_A_OPTS    analysis options
 # XSIM_E_OPTS    elaboration options
 # XSIM_R_OPTS    run options
+# XSIM_EDIT      Set to 0 to disable Visual Studio Code 'edit' goal.
 ################################################################################
 
 include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak

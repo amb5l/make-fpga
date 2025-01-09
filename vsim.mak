@@ -8,9 +8,10 @@
 # VSIM_SRC       sources to compile
 #                  path/file<=lib><;language> <path/file<=lib><;language>> ...
 # VSIM_RUN       list of simulation runs, each as follows:
-#                  name=lib:unit<;generic=value<,generic=value...>>
+#                  name=<lib:>:unit<;generic=value<,generic=value...>>
 #                For a single run, name= may be omitted and defaults to 'sim='
 # VCOM_OPTS      compilation options
+# VSIM_EDIT      Set to 0 to disable Visual Studio Code 'edit' goal.
 ################################################################################
 
 include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak

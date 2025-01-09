@@ -8,12 +8,13 @@
 # NVC_SRC       sources to compile
 #                 path/file<=lib><;language> <path/file<=lib><;language>> ...
 # NVC_RUN       list of simulation runs, each as follows:
-#                 name=lib:unit<;generic=value<,generic=value...>>
+#                 name=<lib:>:unit<;generic=value<,generic=value...>>
 #               For a single run, name= may be omitted and defaults to 'sim='
 # NVC_G_OPTS    global options
 # NVC_A_OPTS    analysis options
 # NVC_E_OPTS    elaboration options
 # NVC_R_OPTS    run options
+# NVC_EDIT      Set to 0 to disable Visual Studio Code 'edit' goal.
 ################################################################################
 
 include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
