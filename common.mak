@@ -55,7 +55,7 @@ get_run_name      = $(foreach x,$1,$(word 1,$(subst =, ,$x)))
 get_run_lib       = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 1,$(subst :, ,$(word 2,$(subst =, ,$1)))),$2)
 get_run_unit      = $(if $(findstring :,$(word 1,$(subst ;, ,$1))),$(word 2,$(subst :, ,$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))),$(word 2,$(subst =, ,$(word 1,$(subst ;, ,$1)))))
 get_run_gen       = $(subst $(comma), ,$(word 2,$(subst ;, ,$1)))
-banner            = @printf "$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n$(col_bg_wht)$(col_fg_blu) %-78s$(col_rst)\n$(col_bg_wht)$(col_fg_blu)-------------------------------------------------------------------------------$(col_rst)\n" "$1"
+banner            = @printf "$(col_bg_wht)$(col_fi_blu)-------------------------------------------------------------------------------$(col_rst)\n$(col_bg_wht)$(col_fi_blu) %-78s$(col_rst)\n$(col_bg_wht)$(col_fi_blu)-------------------------------------------------------------------------------$(col_rst)\n" "$1"
 print_col         = @printf "$($1)$2$(if $3,$(comma)$3)$(if $4,$(comma)$4)$(if $5,$(comma)$5)$(col_rst)\n"
 
 ifeq ($(OS),Windows_NT)
