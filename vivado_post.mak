@@ -164,6 +164,8 @@ $$(VIVADO_POST_SYN_FUNC.$1.vhd): $$(call get_src_file,$$(VIVADO_POST_SRC.$1)) $$
 		|| echo error synthesising unit: $1 > $$@
 endef
 
+psf:: $$(VIVADO_POST_SYN_FUNC.$1.vhd)
+
 $(foreach u,$(VIVADO_POST_UNIT),$(eval $(call RR_VIVADO_POST,$u)))
 
 ################################################################################
