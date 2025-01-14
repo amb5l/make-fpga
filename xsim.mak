@@ -1,9 +1,8 @@
-	################################################################################
+################################################################################
 # xsim.mak
 # See https://github.com/amb5l/make-fpga
 ################################################################################
 # User makefile variables:
-# name
 # XSIM_VHDL_LRM  VHDL LRM if not specified per source file (default: 2008)
 # XSIM_SRC       sources to compile
 #                  path/file<=lib><;language> <path/file<=lib><;language>> ...
