@@ -7,7 +7,13 @@
 
 include $(dir $(lastword $(MAKEFILE_LIST)))/common.mak
 
+# defaults
+.PHONY: sby_default sby_force
+sby_default: sby
+sby_force:
 SBY_DIR?=sby
+
+# checks
 $(call check_defined,SBY_UNIT)
 $(foreach u,$(SBY_UNIT),$(call check_defined,SBY_SRC.$u))
 $(foreach u,$(SBY_UNIT),$(call check_defined,SBY_MODE.$u))
@@ -43,6 +49,32 @@ endef
 $(foreach u,$(SBY_UNIT),$(eval $(call rr_sby,$u)))
 
 ################################################################################
+# Visual Studio Code
+
+ifneq (0,$(SBY_EDIT))
+
+SBY_EDIT_DIR=edit/sby
+
+define rr_sby_symlink
+
+$$(SBY_EDIT_DIR)/$1/$$(notdir $2): $2 | $$(SBY_EDIT_DIR)/$1
+	@$$(MKDIR) -p $$(@D) && rm -f $$@
+	@$$(call create_symlink,$$@,$$<)
+	
+endef
+$(foreach u,$(SBY_UNIT),$(foreach s,$(SBY_SRC.$u),$(eval $(call rr_sby_symlink,$u,$s))))
+
+define rr_sby_edit
+
+edit:: $$(addprefix $$(SBY_EDIT_DIR)/$1/,$$(notdir $$(SBY_SRC.$1)))
+	@cd $$(SBY_EDIT_DIR)/$1 && $$(if $$(filter,Windows_NT,$$(OS)),start )start code .
+
+endef
+$(foreach u,$(SBY_UNIT),$(eval $(call rr_sby_edit,$u)))
+
+endif
+
+################################################################################
 
 help::
 	$(call print_col,col_fi_cyn,  sby.mak)
@@ -50,6 +82,7 @@ help::
 	$(call print_col,col_fg_wht, )
 	$(call print_col,col_fg_wht,    Goals:)
 	$(call print_col,col_fi_grn,      sby       $(col_fg_wht)- run formal verification)
+	$(call print_col,col_fi_grn,      edit      $(col_fg_wht)- create and open Visual Studio Code workspace directory for each unit)
 	$(call print_col,col_fg_wht, )
 
 ################################################################################
