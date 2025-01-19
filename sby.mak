@@ -57,7 +57,7 @@ SBY_EDIT_DIR=edit/sby
 
 define rr_sby_symlink
 
-$$(SBY_EDIT_DIR)/$1/$$(notdir $2): $2 | $$(SBY_EDIT_DIR)/$1
+$$(SBY_EDIT_DIR)/$1/$$(notdir $2): $2
 	@$$(MKDIR) -p $$(@D) && rm -f $$@
 	@$$(call create_symlink,$$@,$$<)
 	
